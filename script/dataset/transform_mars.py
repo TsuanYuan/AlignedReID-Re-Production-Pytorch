@@ -147,7 +147,7 @@ def transform(input_folder, save_dir, file_range, id_prefix):
         folder_only = os.path.basename(folder)
         if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
             continue
-        dest_image_paths = transfer_one_folder(folder, save_dir, id_prefix)
+        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id_prefix)
         dest_image_list = dest_image_list + dest_image_paths
     partition_file = os.path.join(save_dir, 'partitions.pkl')
     save_partitions(dest_image_list, partition_file)
