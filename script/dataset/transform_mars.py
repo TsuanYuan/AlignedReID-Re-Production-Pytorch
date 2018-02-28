@@ -48,12 +48,14 @@ def transfer_one_image(image_path, save_dir, id_prefix, k, cameraIDs):
     shutil.copy(image_path, dest_path)
     return dest_path
 
-def transfer_one_folder(id_folder, save_dir, id_prefix):
+def transfer_one_folder(id_folder, save_dir, id_prefix, max_count_per_id):
     jpgList = listAllVideoFilesWithCameraKey(id_folder, '.jpg')
     jpgList += listAllVideoFilesWithCameraKey(id_folder, '.jpeg')
     cameraIDs = {}
     dest_paths = []
     for k, jpgPath in enumerate(jpgList):
+        if k > max_count_per_id:  # keep samples per id under limit
+            break
         dest_path = transfer_one_image(jpgPath, save_dir, id_prefix, k, cameraIDs)
         dest_paths.append(dest_path)
     destFileList = [os.path.basename(p) for p in dest_paths]
@@ -124,7 +126,7 @@ def save_partitions(trainval_im_names, partition_file):
     # save_pickle(partitions, partition_file)
     # print('Partition file saved to {}'.format(partition_file))
 
-def transform(input_folder, save_dir, file_range, id_prefix):
+def transform(input_folder, save_dir, file_range, id_prefix, max_count_per_id):
     #jpgList = listAllVideoFilesWithCameraKey(input_folder, '.jpg')
     id_folder_list = os.listdir(input_folder)
     n = len(id_folder_list)
@@ -146,7 +148,7 @@ def transform(input_folder, save_dir, file_range, id_prefix):
         folder_only = os.path.basename(folder)
         if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
             continue
-        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id_prefix)
+        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id_prefix, max_count_per_id)
         dest_image_list = dest_image_list + dest_image_paths
     partition_file = os.path.join(save_dir, 'partitions.pkl')
     save_partitions(dest_image_list, partition_file)
@@ -160,9 +162,11 @@ if __name__ == '__main__':
   parser.add_argument('--save_dir', type=str, help="save_folder", required=True)
   parser.add_argument('--folder_range', type=str, help="range of folders to process in one batch", required=False,
                       default='0,-1')
-  parser.add_argument('--id_prefix', type=int, help="prefix ", required=False,
+  parser.add_argument('--id_prefix', type=int, help="prefix to add on an ID", required=False,
                       default=10000)
+  parser.add_argument('--max_count_per_id', type=int, help="max count to sample in one id", required=False,
+                      default=1000)
   args = parser.parse_args()
   image_folder = os.path.abspath(os.path.expanduser(args.image_folder))
   save_dir = os.path.abspath(os.path.expanduser(args.save_dir))
-  transform(image_folder, save_dir, args.folder_range, args.id_prefix)
+  transform(image_folder, save_dir, args.folder_range, args.id_prefix, args.max_count_per_id)
