@@ -133,7 +133,7 @@ def transform(input_folder, save_dir, file_range, id_prefix, max_count_per_id):
     start_idx, end_idx = file_range.split(',')
     start_idx = int(start_idx)
     end_idx = int(end_idx)
-    if end_idx < 0:
+    if end_idx < 0 or end_idx>n:
         end_idx = n
     print "transfer start={0}, end={1} of total {2} ID folders".format(str(start_idx), str(end_idx), str(n))
     if not os.path.isdir(save_dir):
