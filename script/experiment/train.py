@@ -437,8 +437,13 @@ def main():
 
       step += 1
       step_st = time.time()
-
-      ims, im_names, labels, mirrored, epoch_done = train_set.next_batch()
+      not_valid_flag = True
+      while not_valid_flag:
+        ims, im_names, labels, mirrored, epoch_done = train_set.next_batch()
+        if not np.all(labels==labels[0]):
+          not_valid_flag = False
+        else:
+          print("all same labels. resample...")
 
       ims_var = Variable(TVT(torch.from_numpy(ims).float()))
       labels_t = TVT(torch.from_numpy(labels).long())
