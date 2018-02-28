@@ -24,23 +24,23 @@ def create_dataset(
   ########################################
 
   if name == 'market1501':
-    im_dir = ospeu('~/Dataset/market1501/images')
-    partition_file = ospeu('~/Dataset/market1501/partitions.pkl')
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501/images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501/partitions.pkl')
 
   elif name == 'cuhk03':
     im_type = ['detected', 'labeled'][0]
-    im_dir = ospeu(ospj('~/Dataset/cuhk03', im_type, 'images'))
-    partition_file = ospeu(ospj('~/Dataset/cuhk03', im_type, 'partitions.pkl'))
+    im_dir = ospeu(ospj('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/cuhk03', im_type, 'images'))
+    partition_file = ospeu(ospj('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/cuhk03', im_type, 'partitions.pkl'))
 
   elif name == 'duke':
-    im_dir = ospeu('~/Dataset/duke/images')
-    partition_file = ospeu('~/Dataset/duke/partitions.pkl')
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/duke/images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/duke/partitions.pkl')
 
   elif name == 'combined':
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
-    im_dir = ospeu('~/Dataset/market1501_cuhk03_duke/trainval_images')
-    partition_file = ospeu('~/Dataset/market1501_cuhk03_duke/partitions.pkl')
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501_cuhk03_duke/trainval_images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501_cuhk03_duke/partitions.pkl')
 
   ##################
   # Create Dataset #
@@ -50,7 +50,8 @@ def create_dataset(
   cmc_kwargs = dict(separate_camera_set=False,
                     single_gallery_shot=False,
                     first_match_break=True)
-
+    
+  print partition_file
   partitions = load_pickle(partition_file)
   im_names = partitions['{}_im_names'.format(part)]
 
