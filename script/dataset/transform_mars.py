@@ -3,10 +3,26 @@ transform mars dataset for alignedReID training
 """
 import os
 import shutil
-from aligned_reid.utils.dataset_utils import partition_train_val_set
-from aligned_reid.utils.dataset_utils import parse_im_name as parse_new_im_name
-from aligned_reid.utils.utils import save_pickle
+import pickle
+# from aligned_reid.utils.dataset_utils import partition_train_val_set
+# from aligned_reid.utils.dataset_utils import parse_im_name as parse_new_im_name
+#from aligned_reid.utils.utils import save_pickle
 new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
+
+def save_pickle(obj, path):
+  """Create dir and save file."""
+  # may_make_dir(osp.dirname(osp.abspath(path)))
+  with open(path, 'wb') as f:
+    pickle.dump(obj, f, protocol=2)
+
+def parse_new_im_name(im_name, parse_type='id'):
+  """Get the person id or cam from an image name."""
+  assert parse_type in ('id', 'cam')
+  if parse_type == 'id':
+    parsed = int(im_name[:8])
+  else:
+    parsed = int(im_name[9:13])
+  return parsed
 
 def listAllVideoFilesWithCameraKey(rootDir, ext):
     # list all files with ext at a root folder
