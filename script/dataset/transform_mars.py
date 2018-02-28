@@ -143,7 +143,7 @@ def transform(input_folder, save_dir, file_range, id_prefix, max_count_per_id):
         os.makedirs(dest_image_dir)
 
     dest_image_list = []
-    for k in range(start_idx, end_idx+1):
+    for k in range(start_idx, end_idx):
         folder = os.path.join(input_folder, id_folder_list[k])
         folder_only = os.path.basename(folder)
         if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
