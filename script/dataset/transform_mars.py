@@ -46,7 +46,7 @@ def transfer_one_image(image_path, save_dir, id_prefix, k, cameraIDs):
     dest_name = new_im_name_tmpl.format(id, cameraIDs[cameraID], k)
     dest_path = os.path.join(save_dir, dest_name)
     shutil.copy(image_path, dest_path)
-    return image_path
+    return dest_path
 
 def transfer_one_folder(id_folder, save_dir, id_prefix):
     jpgList = listAllVideoFilesWithCameraKey(id_folder, '.jpg')
