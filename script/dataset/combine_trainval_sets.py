@@ -116,6 +116,16 @@ if __name__ == '__main__':
   )
 
   parser.add_argument(
+    '--folder_im_dir',
+    type=str,
+    default=ospeu('~/Dataset/folder/images'))
+  parser.add_argument(
+    '--folder_partition_file',
+    type=str,
+    default=ospeu('~/Dataset/folder/partitions.pkl')
+  )
+
+  parser.add_argument(
     '--save_dir',
     type=str,
     default=ospeu('~/Dataset/market1501_cuhk03_duke')
@@ -126,12 +136,14 @@ if __name__ == '__main__':
   im_dirs = [
     ospap(ospeu(args.market1501_im_dir)),
     ospap(ospeu(args.cuhk03_im_dir)),
-    ospap(ospeu(args.duke_im_dir))
+    ospap(ospeu(args.duke_im_dir)),
+    ospap(ospeu(args.folder_im_dir))
   ]
   partition_files = [
     ospap(ospeu(args.market1501_partition_file)),
     ospap(ospeu(args.cuhk03_partition_file)),
-    ospap(ospeu(args.duke_partition_file))
+    ospap(ospeu(args.duke_partition_file)),
+    ospap(ospeu(args.folder_partition_file))
   ]
 
   save_dir = ospap(ospeu(args.save_dir))

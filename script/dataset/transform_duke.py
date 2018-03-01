@@ -122,6 +122,7 @@ def transform(zip_file, save_dir=None):
                 'val_marks': val_marks,
                 'test_im_names': test_im_names,
                 'test_marks': test_marks}
+
   partition_file = osp.join(save_dir, 'partitions.pkl')
   save_pickle(partitions, partition_file)
   print('Partition file saved to {}'.format(partition_file))

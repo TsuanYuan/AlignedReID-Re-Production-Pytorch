@@ -6,7 +6,86 @@ import shutil
 import pickle
 import numpy
 
+
 new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
+
+def partition_train_val_set(im_names, parse_im_name,
+                            num_val_ids=None, val_prop=None, seed=1):
+  """Partition the trainval set into train and val set.
+  Args:
+    im_names: trainval image names
+    parse_im_name: a function to parse id and camera from image name
+    num_val_ids: number of ids for val set. If not set, val_prob is used.
+    val_prop: the proportion of validation ids
+    seed: the random seed to reproduce the partition results. If not to use,
+      then set to `None`.
+  Returns:
+    a dict with keys (`train_im_names`,
+                      `val_query_im_names`,
+                      `val_gallery_im_names`)
+  """
+  numpy.random.seed(seed)
+  # Transform to numpy array for slicing.
+  if not isinstance(im_names, numpy.ndarray):
+    im_names = numpy.array(im_names)
+  numpy.random.shuffle(im_names)
+  ids = numpy.array([parse_im_name(n, 'id') for n in im_names])
+  cams = numpy.array([parse_im_name(n, 'cam') for n in im_names])
+  unique_ids = numpy.unique(ids)
+  numpy.random.shuffle(unique_ids)
+
+  # Query indices and gallery indices
+  query_inds = []
+  gallery_inds = []
+
+  if num_val_ids is None:
+    assert 0 < val_prop < 1
+    num_val_ids = int(len(unique_ids) * val_prop)
+  num_selected_ids = 0
+  for unique_id in unique_ids:
+    query_inds_ = []
+    # The indices of this id in trainval set.
+    inds = numpy.argwhere(unique_id == ids).flatten()
+    # The cams that this id has.
+    unique_cams = numpy.unique(cams[inds])
+    # For each cam, select one image for query set.
+    for unique_cam in unique_cams:
+      query_inds_.append(
+        inds[numpy.argwhere(cams[inds] == unique_cam).flatten()[0]])
+    gallery_inds_ = list(set(inds) - set(query_inds_))
+    # For each query image, if there is no same-id different-cam images in
+    # gallery, put it in gallery.
+    for query_ind in query_inds_:
+      if len(gallery_inds_) == 0 \
+          or len(numpy.argwhere(cams[gallery_inds_] != cams[query_ind])
+                     .flatten()) == 0:
+        query_inds_.remove(query_ind)
+        gallery_inds_.append(query_ind)
+    # If no query image is left, leave this id in train set.
+    if len(query_inds_) == 0:
+      continue
+    query_inds.append(query_inds_)
+    gallery_inds.append(gallery_inds_)
+    num_selected_ids += 1
+    if num_selected_ids >= num_val_ids:
+      break
+
+  query_inds = numpy.hstack(query_inds)
+  gallery_inds = numpy.hstack(gallery_inds)
+  val_inds = numpy.hstack([query_inds, gallery_inds])
+  trainval_inds = numpy.arange(len(im_names))
+  train_inds = numpy.setdiff1d(trainval_inds, val_inds)
+
+  train_inds = numpy.sort(train_inds)
+  query_inds = numpy.sort(query_inds)
+  gallery_inds = numpy.sort(gallery_inds)
+
+  partitions = dict(train_im_names=im_names[train_inds],
+                    val_query_im_names=im_names[query_inds],
+                    val_gallery_im_names=im_names[gallery_inds])
+
+  return partitions
+
 
 def save_pickle(obj, path):
   """Create dir and save file."""
@@ -58,24 +137,63 @@ def transfer_one_folder(id_folder, save_dir, id, max_count_per_id):
     destFileList = [os.path.basename(p) for p in dest_paths]
     return destFileList
 
-def save_partitions(train_images, test_images, partition_file):
+def save_partitions(train_images, gallery_images, query_images, partition_file):
     # save training tst
+    trainval_im_names = [os.path.basename(p) for p in train_images]
     trainval_ids = list(set([parse_new_im_name(n, 'id')
                              for n in train_images]))
     # Sort ids, so that id-to-label mapping remains the same when running
     # the code on different machines.
     trainval_ids.sort()
     trainval_ids2labels = dict(zip(trainval_ids, range(len(trainval_ids))))
+
+    partitions = partition_train_val_set(
+        trainval_im_names, parse_new_im_name, num_val_ids=100)
+
+    train_im_names = partitions['train_im_names']
+    train_ids = list(set([parse_new_im_name(n, 'id')
+                          for n in partitions['train_im_names']]))
+    # Sort ids, so that id-to-label mapping remains the same when running
+    # the code on different machines.
+    train_ids.sort()
+    train_ids2labels = dict(zip(train_ids, range(len(train_ids))))
+
+    val_marks = [0, ] * len(partitions['val_query_im_names']) \
+                + [1, ] * len(partitions['val_gallery_im_names'])
+    val_im_names = list(partitions['val_query_im_names']) \
+                   + list(partitions['val_gallery_im_names'])
+
+    query_im_names = [os.path.basename(p) for p in query_images]
+    gallery_im_names = [os.path.basename(p) for p in gallery_images]
+    test_im_names = list(query_im_names) \
+                    + list(gallery_im_names)
+    test_marks = [0, ] * len(query_im_names) \
+                 + [1, ] * len(gallery_im_names)
+
+
     partitions = {'trainval_im_names': trainval_im_names,
                   'trainval_ids2labels': trainval_ids2labels,
                   'train_im_names': trainval_im_names,
                   'train_ids2labels': trainval_ids2labels,
-                  'val_im_names': [],
-                  'val_marks': [],
-                  'test_im_names': [],
-                  'test_marks': []}
+                  'val_im_names': val_im_names,
+                  'val_marks': val_marks,
+                  'test_im_names': test_im_names,
+                  'test_marks': test_marks}
     save_pickle(partitions, partition_file)
     print('Partition file saved to {}'.format(partition_file))
+
+
+def split_test_query(full_list):
+    test_list = []
+    query_list = []
+    for p in full_list:
+        n = numpy.random.choice(4)
+        if n == 0:
+            query_list.append(p)
+        else:
+            test_list.append(p)
+
+    return test_list, query_list
 
 
 def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_id):
@@ -98,7 +216,8 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
         folder_only = os.path.basename(folder)
         if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
             continue
-        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id_prefix, max_count_per_id)
+        id = id_prefix+int(folder_only)
+        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id, max_count_per_id)
         dest_image_list = dest_image_list + dest_image_paths
     return dest_image_list
 
@@ -107,9 +226,10 @@ def transform(input_folder, save_dir, file_range, id_prefix, max_count_per_id):
     train_folder = os.path.join(input_folder, 'train')
     train_dest_images = transform_train_test(train_folder, save_dir, file_range, id_prefix, max_count_per_id)
     test_folder = os.path.join(input_folder, 'test')
-    test_dest_images = transform_train_test(test_folder, save_dir, file_range, id_prefix, max_count_per_id)
+    test_query_dest_images = transform_train_test(test_folder, save_dir, file_range, id_prefix, max_count_per_id)
+    gallery_dest_images, query_dest_images = split_test_query(test_query_dest_images)
     partition_file = os.path.join(save_dir, 'partitions.pkl')
-    save_partitions(train_dest_images, test_dest_images, partition_file)
+    save_partitions(train_dest_images, gallery_dest_images, query_dest_images, partition_file)
 
 
 if __name__ == '__main__':
