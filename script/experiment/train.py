@@ -308,7 +308,8 @@ def main():
   print('cfg.__dict__')
   pprint.pprint(cfg.__dict__)
   print('-' * 60)
-
+  import datetime
+  start_time = datetime.datetime.now()
   ###########
   # Dataset #
   ###########
@@ -631,7 +632,9 @@ def main():
   ########
 
   test(load_model_weight=False)
-
+  end_time = datetime.datetime.now()
+  time_delta = end_time - start_time
+  print("total time elapse is {0}".format(str(time_delta)))
 
 if __name__ == '__main__':
   main()
