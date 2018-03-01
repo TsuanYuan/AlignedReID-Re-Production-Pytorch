@@ -76,7 +76,7 @@ if __name__ == '__main__':
   import argparse
 
   parser = argparse.ArgumentParser(
-    description="Combine Trainval Set of Market1501, CUHK03, DukeMTMC-reID")
+    description="Combine Trainval Set of Market1501, CUHK03, DukeMTMC-reID and user defined folder")
 
   # Image directory and partition file of transformed datasets
 
