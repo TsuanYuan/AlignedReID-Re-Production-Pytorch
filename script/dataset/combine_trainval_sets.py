@@ -91,6 +91,17 @@ if __name__ == '__main__':
     default=ospeu('~/Dataset/market1501/partitions.pkl')
   )
 
+  parser.add_argument(
+    '--mars_im_dir',
+    type=str,
+    default=ospeu('~/Dataset/mars/images')
+  )
+  parser.add_argument(
+    '--mars_partition_file',
+    type=str,
+    default=ospeu('~/Dataset/mars/partitions.pkl')
+  )
+
   cuhk03_im_type = ['detected', 'labeled'][0]
   parser.add_argument(
     '--cuhk03_im_dir',
@@ -128,19 +139,21 @@ if __name__ == '__main__':
   parser.add_argument(
     '--save_dir',
     type=str,
-    default=ospeu('~/Dataset/market1501_cuhk03_duke')
+    default=ospeu('~/Dataset/market1501_cuhk03_duke_mars_folder')
   )
 
   args = parser.parse_args()
 
   im_dirs = [
     ospap(ospeu(args.market1501_im_dir)),
+    ospap(ospeu(args.mars_im_dir)),
     ospap(ospeu(args.cuhk03_im_dir)),
     ospap(ospeu(args.duke_im_dir)),
     ospap(ospeu(args.folder_im_dir))
   ]
   partition_files = [
     ospap(ospeu(args.market1501_partition_file)),
+    ospap(ospeu(args.mars_partition_file)),
     ospap(ospeu(args.cuhk03_partition_file)),
     ospap(ospeu(args.duke_partition_file)),
     ospap(ospeu(args.folder_partition_file))
