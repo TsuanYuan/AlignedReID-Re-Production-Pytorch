@@ -12,6 +12,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.nn.parallel import DataParallel
 
+import datetime
 import time
 import os.path as osp
 from tensorboardX import SummaryWriter
@@ -249,7 +250,7 @@ class Config(object):
     if args.exp_dir == '':
       self.exp_dir = osp.join(
         'exp/train_ml',
-        '{}'.format(self.dataset),
+        '{}_{}'.format(str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")),self.dataset),
         #
         ('nf_' if self.normalize_feature else 'not_nf_') +
         ('ohs_' if self.local_dist_own_hard_sample else 'not_ohs_') +
@@ -311,7 +312,7 @@ class ExtractFeature(object):
 
 def main():
   cfg = Config()
-
+  start_time = datetime.datetime.now()
   # Redirect logs to both console and file.
   if cfg.log_to_file:
     ReDirectSTD(cfg.stdout_file, 'stdout', False)
@@ -845,6 +846,10 @@ def main():
 
   test(load_model_weight=False)
 
+  end_time = datetime.datetime.now()
+  time_delta = end_time - start_time
+  print("total time elapse is {0}".format(str(time_delta)))
+  print("model file is saved at {0}".format(cfg.exp_dir))
 
 if __name__ == '__main__':
   main()

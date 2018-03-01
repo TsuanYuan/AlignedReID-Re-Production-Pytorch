@@ -637,6 +637,6 @@ def main():
   time_delta = end_time - start_time
   print("total time elapse is {0}".format(str(time_delta)))
   print("model file is saved at {0}".format(cfg.exp_dir))
-  
+
 if __name__ == '__main__':
   main()
