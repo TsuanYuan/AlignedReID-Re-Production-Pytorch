@@ -22,10 +22,10 @@ def create_dataset(
   ########################################
   # Specify Directory and Partition File #
   ########################################
-
+  dir = osp.dirname(__file__)
   if name == 'market1501':
-    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501/images')
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501/partitions.pkl')
+    im_dir = ospeu(osp.join(dir,'../../Dataset/market1501/images'))
+    partition_file = ospeu(osp.join(dir,'../../Dataset/market1501/partitions.pkl'))
   elif name == 'cuhk03':
     im_type = ['detected', 'labeled'][0]
     im_dir = ospeu(ospj('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/cuhk03', im_type, 'images'))
