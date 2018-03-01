@@ -161,5 +161,7 @@ if __name__ == '__main__':
 
   save_dir = ospap(ospeu(args.save_dir))
   may_make_dir(save_dir)
-
+  import datetime
+  print("starting time --->>> {0}".format(datetime.datetime.now()))
   combine_trainval_sets(im_dirs, partition_files, save_dir)
+  print("end time --->>> {0}".format(datetime.datetime.now()))
