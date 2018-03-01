@@ -53,7 +53,7 @@ class Config(object):
                         choices=['market1501', 'cuhk03', 'duke', 'combined'])
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
-
+    parser.add_argument('--base_model', type=str, default='resnet50')
     # Only for training set.
     parser.add_argument('--resize_h_w', type=eval, default=(256, 128))
     parser.add_argument('--crop_prob', type=float, default=0)
@@ -115,7 +115,7 @@ class Config(object):
 
     self.dataset = args.dataset
     self.trainset_part = args.trainset_part
-
+    self.base_model = args.base_model
     # Image Processing
 
     # Just for training set
@@ -355,7 +355,7 @@ def main():
   ###########
 
   models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=len(train_set.ids2labels))
+                  num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
             for _ in range(cfg.num_models)]
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])

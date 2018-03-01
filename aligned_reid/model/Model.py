@@ -4,12 +4,16 @@ import torch.nn.init as init
 import torch.nn.functional as F
 
 from .resnet import resnet50
-
+from torchvision.models import inception_v3
 
 class Model(nn.Module):
-  def __init__(self, local_conv_out_channels=128, num_classes=None):
+  def __init__(self, local_conv_out_channels=128, num_classes=None, base_model='resnet50'):
     super(Model, self).__init__()
-    self.base = resnet50(pretrained=True)
+    if base_model == 'resnet50':
+      self.base = resnet50(pretrained=True)
+    elif base_model == 'inception_v3':
+      self.base = inception_v3(pretrained=True)
+
     planes = 2048
     self.local_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
     self.local_bn = nn.BatchNorm2d(local_conv_out_channels)

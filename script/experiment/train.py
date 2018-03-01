@@ -72,6 +72,7 @@ class Config(object):
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
     parser.add_argument('--model_weight_file', type=str, default='')
+    parser.add_argument('--base_model', type=str, default='resnet50')
 
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
@@ -190,6 +191,7 @@ class Config(object):
     # local loss weight
     self.l_loss_weight = args.l_loss_weight
 
+    self.base_model = args.base_model
     #############
     # Training  #
     #############
@@ -249,7 +251,7 @@ class Config(object):
         'run{}'.format(self.run),
       )
     else:
-      self.exp_dir = args.exp_dir+'datetime_{}_'.format(str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
+      self.exp_dir = args.exp_dir
 
     self.stdout_file = osp.join(
       self.exp_dir, 'stdout_{}.txt'.format(time_str()))
@@ -333,7 +335,7 @@ def main():
   ###########
 
   model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                num_classes=len(train_set.ids2labels))
+                num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
   # Model wrapper
   model_w = DataParallel(model)
 
