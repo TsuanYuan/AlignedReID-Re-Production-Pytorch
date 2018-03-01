@@ -5,7 +5,7 @@ import os
 import shutil
 import pickle
 import numpy
-
+import glob
 
 new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
 
@@ -125,8 +125,8 @@ def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
     return dest_path
 
 def transfer_one_folder(id_folder, save_dir, id, max_count_per_id):
-    jpgList = listAllVideoFilesWithCameraKey(id_folder, '.jpg')
-    jpgList += listAllVideoFilesWithCameraKey(id_folder, '.jpeg')
+    jpgList = glob.glob(os.path.join(id_folder, '*.jpg'))
+    jpgList += glob.glob(os.path.join(id_folder, '*.jpeg'))
     cameraIDs = {}
     dest_paths = []
     for k, jpgPath in enumerate(jpgList):
