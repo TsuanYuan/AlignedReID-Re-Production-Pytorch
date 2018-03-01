@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.parallel import DataParallel
 
+import datetime
 import time
 import os.path as osp
 from tensorboardX import SummaryWriter
@@ -227,9 +228,9 @@ class Config(object):
     if args.exp_dir == '':
       self.exp_dir = osp.join(
         'exp/train',
-        '{}'.format(self.dataset),
+        '{}_{}'.format(str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")),self.dataset),
         #
-        ('nf_' if self.normalize_feature else 'not_nf_') +
+        ( 'nf_' if self.normalize_feature else 'not_nf_') +
         ('ohs_' if self.local_dist_own_hard_sample else 'not_ohs_') +
         'gm_{}_'.format(tfs(self.global_margin)) +
         'lm_{}_'.format(tfs(self.local_margin)) +
@@ -248,7 +249,7 @@ class Config(object):
         'run{}'.format(self.run),
       )
     else:
-      self.exp_dir = args.exp_dir
+      self.exp_dir = args.exp_dir+'datetime_{}_'.format(str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
 
     self.stdout_file = osp.join(
       self.exp_dir, 'stdout_{}.txt'.format(time_str()))
@@ -308,7 +309,7 @@ def main():
   print('cfg.__dict__')
   pprint.pprint(cfg.__dict__)
   print('-' * 60)
-  import datetime
+
   start_time = datetime.datetime.now()
   ###########
   # Dataset #
@@ -635,6 +636,7 @@ def main():
   end_time = datetime.datetime.now()
   time_delta = end_time - start_time
   print("total time elapse is {0}".format(str(time_delta)))
-
+  print("model file is saved at {0}".format(cfg.exp_dir))
+  
 if __name__ == '__main__':
   main()
