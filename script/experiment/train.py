@@ -118,7 +118,8 @@ class Config(object):
     self.crop_prob = args.crop_prob
     self.crop_ratio = args.crop_ratio
     self.resize_h_w = args.resize_h_w
-
+    if args.base_model != 'resnet50':
+      self.resize_h_w = (227,227)
     # Whether to scale by 1/255
     self.scale_im = True
     self.im_mean = [0.486, 0.459, 0.408]

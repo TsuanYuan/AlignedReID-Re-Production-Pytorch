@@ -145,20 +145,20 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   im_dirs = [
-    ospap(ospeu(args.market1501_im_dir)),
+    #ospap(ospeu(args.market1501_im_dir)),
     ospap(ospeu(args.mars_im_dir)),
     ospap(ospeu(args.cuhk03_im_dir)),
     ospap(ospeu(args.duke_im_dir)),
     ospap(ospeu(args.folder_im_dir))
   ]
   partition_files = [
-    ospap(ospeu(args.market1501_partition_file)),
+    #ospap(ospeu(args.market1501_partition_file)),
     ospap(ospeu(args.mars_partition_file)),
     ospap(ospeu(args.cuhk03_partition_file)),
     ospap(ospeu(args.duke_partition_file)),
     ospap(ospeu(args.folder_partition_file))
   ]
-
+  
   save_dir = ospap(ospeu(args.save_dir))
   may_make_dir(save_dir)
   import datetime
