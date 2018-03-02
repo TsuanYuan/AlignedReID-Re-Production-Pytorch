@@ -21,6 +21,9 @@ def transfer_folder(source_folder, dest_folder, id_prefix, folder_range):
             print "warning: target folder {0} already exist, will delete the original one".format(target_folder)
             shutil.rmtree(target_folder)
         else:
+            zero_folder = os.path.join(source_folder,subfolder, '0')
+            if os.path.isdir(zero_folder):
+                shutil.rmtree(zero_folder)
             shutil.copytree(os.path.join(source_folder,subfolder), target_folder)
 
 if __name__ == '__main__':
