@@ -342,7 +342,7 @@ def main():
   test_sets = []
   test_set_names = []
   if cfg.dataset == 'combined':
-    for name in ['market1501', 'cuhk03', 'duke']:
+    for name in ['market1501', 'cuhk03', 'duke', 'folder']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
