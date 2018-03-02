@@ -9,6 +9,7 @@ def transfer_folder(source_folder, dest_folder, id_prefix, folder_range):
     subfolders = os.listdir(source_folder)
     if folder_range[1] < 0:
         folder_range[1] = len(subfolders)
+    print "total number of subfolders is {0}".format(str(len(subfolders)))
     for i in range(folder_range[0], folder_range[1]):
         subfolder = subfolders[i]
         folder_only = os.path.basename(subfolder)
