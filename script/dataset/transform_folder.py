@@ -212,12 +212,12 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
         os.makedirs(dest_image_dir)
     dest_image_list = []
     for k in range(start_idx, end_idx):
-        folder = os.path.join(folder, id_folder_list[k])
-        folder_only = os.path.basename(folder)
+        subfolder = os.path.join(folder, id_folder_list[k])
+        folder_only = os.path.basename(subfolder)
         if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
             continue
         id = id_prefix+int(folder_only)
-        dest_image_paths = transfer_one_folder(folder, dest_image_dir, id, max_count_per_id)
+        dest_image_paths = transfer_one_folder(subfolder, dest_image_dir, id, max_count_per_id)
         dest_image_list = dest_image_list + dest_image_paths
     return dest_image_list
 
