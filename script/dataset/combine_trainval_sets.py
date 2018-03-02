@@ -158,7 +158,7 @@ if __name__ == '__main__':
     ospap(ospeu(args.duke_partition_file)),
     ospap(ospeu(args.folder_partition_file))
   ]
-  
+
   save_dir = ospap(ospeu(args.save_dir))
   may_make_dir(save_dir)
   import datetime

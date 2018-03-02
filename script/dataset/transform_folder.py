@@ -150,13 +150,13 @@ def save_partitions(train_images, gallery_images, query_images, partition_file):
     partitions = partition_train_val_set(
         trainval_im_names, parse_new_im_name, num_val_ids=100)
 
-    train_im_names = partitions['train_im_names']
-    train_ids = list(set([parse_new_im_name(n, 'id')
-                          for n in partitions['train_im_names']]))
+    # train_im_names = partitions['train_im_names']
+    # train_ids = list(set([parse_new_im_name(n, 'id')
+     #                     for n in partitions['train_im_names']]))
     # Sort ids, so that id-to-label mapping remains the same when running
     # the code on different machines.
-    train_ids.sort()
-    train_ids2labels = dict(zip(train_ids, range(len(train_ids))))
+    # train_ids.sort()
+    # train_ids2labels = dict(zip(train_ids, range(len(train_ids))))
 
     val_marks = [0, ] * len(partitions['val_query_im_names']) \
                 + [1, ] * len(partitions['val_gallery_im_names'])
