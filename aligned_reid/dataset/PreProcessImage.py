@@ -73,20 +73,57 @@ class PreProcessIm(object):
       im[h_start: h_start + new_size[1], w_start: w_start + new_size[0], :])
     return im
 
-  def pre_process_im(self, im):
+  @staticmethod
+  def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
+    color = [0, 0, 0] # zero padding
+    aspect_ratio = desired_size[0]/float(desired_size[1])
+    current_ar = im.shape[0]/float(im.shape[1])
+    if current_ar > aspect_ratio: # current height is too high, pad width
+      delta_w = int(round(im.shape[0]/aspect_ratio - im.shape[1]))
+      left, right = delta_w / 2, delta_w - (delta_w / 2)
+      new_im = cv2.copyMakeBorder(im, 0, 0, left, right, cv2.BORDER_CONSTANT,
+                                  value=color)
+    else: # current width is too wide, pad height
+      delta_h = int(round(im.shape[1]*aspect_ratio - im.shape[0]))
+      top, bottom = delta_h/2, delta_h - (delta_h / 2)
+      new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
+                                  value=color)
+    #debug
+    import scipy.misc
+    scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+    return new_im
+    # old_size = im.shape[:2]  # old_size is in (height, width) format
+    # ratio = min(float(desired_size[0]) / old_size[0], float(desired_size[1]) / old_size[1])
+    # new_size = tuple([int(x * ratio) for x in old_size])
+    #
+    # # new_size should be in (width, height) format
+    # im = cv2.resize(im, (new_size[1], new_size[0]))
+    #
+    # delta_w = desired_size - new_size[1]
+    # delta_h = desired_size - new_size[0]
+    # top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+    # left, right = delta_w / 2, delta_w - (delta_w / 2)
+    #
+    # color = [0, 0, 0]
+    # new_im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT,
+    #                             value=color)
+
+  def pre_process_im(self, im, desired_size=(256, 128)):
     """Pre-process image.
     `im` is a numpy array with shape [H, W, 3], e.g. the result of
     matplotlib.pyplot.imread(some_im_path), or
     numpy.asarray(PIL.Image.open(some_im_path))."""
 
+    im = self.crop_pad_fixed_aspect_ratio(im, desired_size)
     # Randomly crop a sub-image.
     if ((self.crop_ratio < 1)
         and (self.crop_prob > 0)
         and (self.prng.uniform() < self.crop_prob)):
       h_ratio = self.prng.uniform(self.crop_ratio, 1)
-      w_ratio = self.prng.uniform(self.crop_ratio, 1)
+      w_ratio = h_ratio
       crop_h = int(im.shape[0] * h_ratio)
       crop_w = int(im.shape[1] * w_ratio)
+
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
 
     # Resize.
