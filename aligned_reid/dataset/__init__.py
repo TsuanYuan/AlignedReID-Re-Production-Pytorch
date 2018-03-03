@@ -13,7 +13,7 @@ def create_dataset(
     name='market1501',
     part='trainval',
     **kwargs):
-  assert name in ['market1501', 'cuhk03', 'duke', 'folder', 'combined'], \
+  assert name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test','combined'], \
     "Unsupported Dataset {}".format(name)
 
   assert part in ['trainval', 'train', 'val', 'test'], \
@@ -36,6 +36,9 @@ def create_dataset(
   elif name == 'folder':
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions.pkl')
+  elif name == 'folder_train_test':
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/partitions.pkl.testtrain.pkl')
   elif name == 'combined':
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
