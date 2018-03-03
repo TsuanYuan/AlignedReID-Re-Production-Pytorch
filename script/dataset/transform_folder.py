@@ -182,6 +182,20 @@ def save_partitions(train_images, gallery_images, query_images, partition_file):
     save_pickle(partitions, partition_file)
     print('Partition file saved to {}'.format(partition_file))
 
+    train_query_ims, train_gallery_ims= split_test_query(trainval_im_names)
+    testtrain_marks =  [0, ] * len(train_query_ims) \
+                 + [1, ] * len(train_gallery_ims)
+    partitions_testtrain = {'trainval_im_names': trainval_im_names,
+                  'trainval_ids2labels': trainval_ids2labels,
+                  'train_im_names': trainval_im_names,
+                  'train_ids2labels': trainval_ids2labels,
+                  'val_im_names': val_im_names,
+                  'val_marks': val_marks,
+                  'test_im_names': trainval_im_names,
+                  'test_marks': testtrain_marks}
+    partitions_testtrain_file = partition_file + ".testtrain.pkl"
+    save_pickle(partitions_testtrain, partitions_testtrain_file)
+    print('Partition train test file saved to {}'.format(partition_file))
 
 def split_test_query(full_list):
     test_list = []
