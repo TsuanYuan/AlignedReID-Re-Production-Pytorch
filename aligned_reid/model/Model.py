@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 
-from .resnet import resnet50, resnet18
+from .resnet import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 
@@ -13,6 +13,9 @@ class Model(nn.Module):
     if base_model == 'resnet50':
       self.base = resnet50(pretrained=True)
       planes = 2048
+    elif  base_model == 'resnet34':
+      self.base = resnet34(pretrained=True)
+      planes = 512
     elif base_model == 'resnet18':
       self.base = resnet18(pretrained=True)
       planes = 512
@@ -22,7 +25,8 @@ class Model(nn.Module):
     elif base_model == 'squeezenet':
       self.base = squeezenet1_0(pretrained=True)
       planes = 1000  # not correct
-
+    else:
+      raise RuntimeError("unknown base model!")
 
     self.local_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
     self.local_bn = nn.BatchNorm2d(local_conv_out_channels)
