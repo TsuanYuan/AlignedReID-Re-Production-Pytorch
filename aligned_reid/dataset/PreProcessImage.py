@@ -89,8 +89,8 @@ class PreProcessIm(object):
       new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
                                   value=color)
     #debug
-    import scipy.misc
-    scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+    # import scipy.misc
+    # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
     # old_size = im.shape[:2]  # old_size is in (height, width) format
     # ratio = min(float(desired_size[0]) / old_size[0], float(desired_size[1]) / old_size[1])
