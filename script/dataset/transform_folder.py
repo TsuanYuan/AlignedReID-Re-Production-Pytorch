@@ -313,7 +313,7 @@ if __name__ == '__main__':
                       default=5)
 
   args = parser.parse_args()
-  image_folder = os.path.abspath(os.path.expanduser(args.image_folder))
+  image_folder = os.path.abspath(os.path.expanduser(args.raw_folder))
   save_dir = os.path.abspath(os.path.expanduser(args.save_dir))
   transform_original(image_folder, save_dir, args.num_test, args.num_folds, args.id_prefix, args.max_count_per_id)
 
