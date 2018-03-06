@@ -284,7 +284,7 @@ def split_train_test(all_images_list, num_test, num_folds, save_dir):
         if person_id not in id_dict.keys():
             id_dict[person_id] = []
         id_dict[person_id].append(image_path)
-    print("split {0} tests in {1} folds out of {2} all ids".format(str(num_test),str(num_folds), str(len(id_dict))))
+    print("split {0} tests in {1} folds out of all {2} ids".format(str(num_test),str(num_folds), str(len(id_dict))))
     for k in range(num_folds):
         randome_sample_train_test(id_dict, num_test, k, save_dir)
 
