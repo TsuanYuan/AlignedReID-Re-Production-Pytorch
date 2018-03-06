@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from .resnet import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
+from torchvision.models import vgg16_bn, vgg11_bn, vgg13_bn
 
 class Model(nn.Module):
   def __init__(self, local_conv_out_channels=128, num_classes=None, base_model='resnet50'):
@@ -25,6 +26,14 @@ class Model(nn.Module):
     elif base_model == 'squeezenet':
       self.base = squeezenet1_0(pretrained=True)
       planes = 1000  # not correct
+    elif base_model == 'vgg16':
+      vgg = vgg16_bn(pretrained=True)
+      self.base = vgg.features
+      planes = 512
+    elif base_model == 'vgg11':
+      vgg = vgg11_bn(pretrained=True)
+      self.base = vgg.features
+      planes = 512
     else:
       raise RuntimeError("unknown base model!")
 

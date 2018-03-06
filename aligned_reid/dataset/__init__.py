@@ -39,6 +39,11 @@ def create_dataset(
   elif name == 'folder_train_test':
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/partitions.pkl.testtrain.pkl')
+  elif name == 'public3':
+    assert part in ['trainval'], \
+      "Only trainval part of the combined dataset is available now."
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501_cuhk03_duke/trainval_images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/market1501_cuhk03_duke/partitions.pkl')
   elif name == 'combined':
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
