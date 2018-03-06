@@ -160,7 +160,8 @@ if __name__ == '__main__':
   if len(args.folder_im_dir) > 0:
     im_dirs.append(ospap(ospeu(args.folder_im_dir)))
     partition_files.append(ospap(ospeu(args.folder_partition_file)))
-
+      
+  print("data sets to be combined are {0}".format(str(im_dirs)))
   # im_dirs = [
   #   ospap(ospeu(args.market1501_im_dir)),
   #   ospap(ospeu(args.mars_im_dir)),
