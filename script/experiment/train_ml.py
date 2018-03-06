@@ -50,7 +50,7 @@ class Config(object):
     parser.add_argument('-r', '--run', type=int, default=1)
     parser.add_argument('--set_seed', type=str2bool, default=False)
     parser.add_argument('--dataset', type=str, default='market1501',
-                        choices=['market1501', 'cuhk03', 'duke', 'combined'])
+                        choices=['market1501', 'cuhk03', 'duke', 'combined', 'public3', 'public4'])
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
     parser.add_argument('--base_model', type=str, default='resnet50')
@@ -342,6 +342,11 @@ def main():
   test_sets = []
   test_set_names = []
   if cfg.dataset == 'combined':
+    for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
+      cfg.test_set_kwargs['name'] = name
+      test_sets.append(create_dataset(**cfg.test_set_kwargs))
+      test_set_names.append(name)
+  elif cfg.dataset == 'public3' or cfg.dataset == 'public4':
     for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
