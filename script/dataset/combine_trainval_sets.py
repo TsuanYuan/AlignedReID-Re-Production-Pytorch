@@ -83,23 +83,23 @@ if __name__ == '__main__':
   parser.add_argument(
     '--market1501_im_dir',
     type=str,
-    default=ospeu('~/Dataset/market1501/images')
+    default=''
   )
   parser.add_argument(
     '--market1501_partition_file',
     type=str,
-    default=ospeu('~/Dataset/market1501/partitions.pkl')
+    default=''
   )
 
   parser.add_argument(
     '--mars_im_dir',
     type=str,
-    default=ospeu('~/Dataset/mars/images')
+    default=''
   )
   parser.add_argument(
     '--mars_partition_file',
     type=str,
-    default=ospeu('~/Dataset/mars/partitions.pkl')
+    default=''
   )
 
   cuhk03_im_type = ['detected', 'labeled'][0]
@@ -107,57 +107,74 @@ if __name__ == '__main__':
     '--cuhk03_im_dir',
     type=str,
     # Remember to select the detected or labeled set.
-    default=ospeu('~/Dataset/cuhk03/{}/images'.format(cuhk03_im_type))
+    default=''
   )
   parser.add_argument(
     '--cuhk03_partition_file',
     type=str,
     # Remember to select the detected or labeled set.
-    default=ospeu('~/Dataset/cuhk03/{}/partitions.pkl'.format(cuhk03_im_type))
+    default=''
   )
 
   parser.add_argument(
     '--duke_im_dir',
     type=str,
-    default=ospeu('~/Dataset/duke/images'))
+    default='')
   parser.add_argument(
     '--duke_partition_file',
     type=str,
-    default=ospeu('~/Dataset/duke/partitions.pkl')
+    default=''
   )
 
   parser.add_argument(
     '--folder_im_dir',
     type=str,
-    default=ospeu('~/Dataset/folder/images'))
+    default='')
   parser.add_argument(
     '--folder_partition_file',
     type=str,
-    default=ospeu('~/Dataset/folder/partitions.pkl')
+    default=''
   )
 
   parser.add_argument(
     '--save_dir',
     type=str,
-    default=ospeu('~/Dataset/market1501_cuhk03_duke_mars_folder')
+    default=''
   )
 
   args = parser.parse_args()
+  im_dirs = []
+  partition_files = []
+  if len(args.market1501_im_dir) > 0:
+    im_dirs.append(ospap(ospeu(args.market1501_im_dir)))
+    partition_files.append(ospap(ospeu(args.market1501_partition_file)))
+  if len(args.mars_im_dir) > 0:
+    im_dirs.append(ospap(ospeu(args.mars_im_dir)))
+    partition_files.append(ospap(ospeu(args.mars_partition_file)))
+  if len(args.cuhk03_im_dir) > 0:
+    im_dirs.append(ospap(ospeu(args.cuhk03_im_dir)))
+    partition_files.append(ospap(ospeu(args.cuhk03_partition_file)))
+  if len(args.duke_im_dir) > 0:
+    im_dirs.append(ospap(ospeu(args.duke_im_dir)))
+    partition_files.append(ospap(ospeu(args.duke_partition_file)))
+  if len(args.folder_im_dir) > 0:
+    im_dirs.append(ospap(ospeu(args.folder_im_dir)))
+    partition_files.append(ospap(ospeu(args.folder_partition_file)))
 
-  im_dirs = [
-    ospap(ospeu(args.market1501_im_dir)),
-    ospap(ospeu(args.mars_im_dir)),
-    ospap(ospeu(args.cuhk03_im_dir)),
-    ospap(ospeu(args.duke_im_dir)),
-    ospap(ospeu(args.folder_im_dir))
-  ]
-  partition_files = [
-    ospap(ospeu(args.market1501_partition_file)),
-    ospap(ospeu(args.mars_partition_file)),
-    ospap(ospeu(args.cuhk03_partition_file)),
-    ospap(ospeu(args.duke_partition_file)),
-    ospap(ospeu(args.folder_partition_file))
-  ]
+  # im_dirs = [
+  #   ospap(ospeu(args.market1501_im_dir)),
+  #   ospap(ospeu(args.mars_im_dir)),
+  #   ospap(ospeu(args.cuhk03_im_dir)),
+  #   ospap(ospeu(args.duke_im_dir)),
+  #   ospap(ospeu(args.folder_im_dir))
+  # ]
+  # partition_files = [
+  #   ospap(ospeu(args.market1501_partition_file)),
+  #   ospap(ospeu(args.mars_partition_file)),
+  #   ospap(ospeu(args.cuhk03_partition_file)),
+  #   ospap(ospeu(args.duke_partition_file)),
+  #   ospap(ospeu(args.folder_partition_file))
+  # ]
 
   save_dir = ospap(ospeu(args.save_dir))
   may_make_dir(save_dir)
