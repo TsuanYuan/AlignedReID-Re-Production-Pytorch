@@ -6,6 +6,8 @@ import shutil
 import pickle
 import numpy
 import glob
+import random
+import re
 
 new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
 
@@ -218,7 +220,7 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
     end_idx = int(end_idx)
     if end_idx < 0 or end_idx > n:
         end_idx = n
-    print "transfer start={0}, end={1} of total {2} ID folders".format(str(start_idx), str(end_idx), str(n))
+    print "transfer start={0}, end={1} of total {2} ID folders to {3}".format(str(start_idx), str(end_idx), str(n), save_dir)
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
     dest_image_dir = os.path.join(save_dir, 'images')
@@ -228,9 +230,19 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
     for k in range(start_idx, end_idx):
         subfolder = os.path.join(folder, id_folder_list[k])
         folder_only = os.path.basename(subfolder)
-        if folder_only.isdigit() == False or int(folder_only) == 0:  # ignore junk/distractor folder
+        folder_predix = folder_only
+        if folder_only.find("head") >= 0:
             continue
-        id = id_prefix+int(folder_only)
+        if folder_only.find("upper_body") >=0:
+            p = re.compile("(.*)_upper_body")
+            folder_predix = p.search(folder_only).group(1)
+        if folder_only.find("full_body") >=0:
+            p = re.compile("(.*)_full_body")
+            folder_predix = p.search(folder_only).group(1)
+
+        if folder_predix.isdigit() is False or int(folder_predix) == 0:  # ignore junk/distractor folder
+            continue
+        id = id_prefix+int(folder_predix)
         dest_image_paths = transfer_one_folder(subfolder, dest_image_dir, id, max_count_per_id)
         dest_image_list = dest_image_list + dest_image_paths
     return dest_image_list
@@ -245,6 +257,43 @@ def transform(input_folder, save_dir, file_range, id_prefix, max_count_per_id):
     partition_file = os.path.join(save_dir, 'partitions.pkl')
     save_partitions(train_dest_images, gallery_dest_images, query_dest_images, partition_file)
 
+def randome_sample_train_test(id_dict, num_test, partition_id, save_dir):
+    person_ids = id_dict.keys()
+    random.shuffle(person_ids)
+    random_ids = person_ids
+    test_ids = random_ids[0:num_test]
+    train_ids = random_ids[num_test:]
+    train_ims = []
+    test_ims = []
+    for id in train_ids:
+        for im in id_dict[id]:
+            train_ims.append(im)
+    for id in test_ids:
+        for im in id_dict[id]:
+            test_ims.append(im)
+    gallery_dest_images, query_dest_images = split_test_query(test_ims)
+    partition_file = os.path.join(save_dir, 'partitions_{0}.pkl'.format(str(partition_id)))
+    save_partitions(train_ims, gallery_dest_images, query_dest_images, partition_file)
+
+
+def split_train_test(all_images_list, num_test, num_folds, save_dir):
+    id_dict = {}
+    for image_path in all_images_list:
+        file_only = os.path.basename(image_path)
+        person_id = file_only[0:8]
+        if person_id not in id_dict.keys():
+            id_dict[person_id] = []
+        id_dict[person_id].append(image_path)
+    print("split {0} tests in {1} folds out of {2} all ids".format(str(num_test),str(num_folds), str(len(id_dict))))
+    for k in range(num_folds):
+        randome_sample_train_test(id_dict, num_test, k, save_dir)
+
+
+def transform_original(input_folder, save_dir, num_test, num_folds, id_prefix, max_count_per_id):
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+    all_images_list = transform_train_test(input_folder, save_dir, "0,-1", id_prefix, max_count_per_id)
+    split_train_test(all_images_list, num_test, num_folds, save_dir)
 
 if __name__ == '__main__':
   import argparse
@@ -258,8 +307,15 @@ if __name__ == '__main__':
                       default=100000)
   parser.add_argument('--max_count_per_id', type=int, help="max count to sample in one id", required=False,
                       default=1000)
+  parser.add_argument('--num_test',  type=int, help="num ids in test set", required=False,
+                      default=100)
+  parser.add_argument('--num_folds', type=int, help="num folds in cross validation tests", required=False,
+                      default=5)
+
   args = parser.parse_args()
   image_folder = os.path.abspath(os.path.expanduser(args.image_folder))
   save_dir = os.path.abspath(os.path.expanduser(args.save_dir))
-  transform(image_folder, save_dir, args.folder_range, args.id_prefix, args.max_count_per_id)
+  transform_original(image_folder, save_dir, args.num_test, args.num_folds, args.id_prefix, args.max_count_per_id)
+
+  #transform(image_folder, save_dir, args.folder_range, args.id_prefix, args.max_count_per_id)
 
