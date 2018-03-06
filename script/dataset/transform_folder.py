@@ -299,12 +299,12 @@ if __name__ == '__main__':
   import argparse
 
   parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
-  parser.add_argument('--image_folder', type=str, help="dataset_original_folder", required=True)
-  parser.add_argument('--save_dir', type=str, help="save_folder", required=True)
+  parser.add_argument('raw_folder', type=str, help="dataset_original_folder")
+  parser.add_argument('save_dir', type=str, help="save_folder")
   parser.add_argument('--folder_range', type=str, help="range of folders to process in one batch", required=False,
                       default='0,-1')
   parser.add_argument('--id_prefix', type=int, help="prefix to add on an ID", required=False,
-                      default=100000)
+                      default=0)
   parser.add_argument('--max_count_per_id', type=int, help="max count to sample in one id", required=False,
                       default=1000)
   parser.add_argument('--num_test',  type=int, help="num ids in test set", required=False,
