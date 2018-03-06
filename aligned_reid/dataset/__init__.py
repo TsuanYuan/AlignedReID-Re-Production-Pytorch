@@ -13,7 +13,7 @@ def create_dataset(
     name='market1501',
     part='trainval',
     **kwargs):
-  assert name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test','combined'], \
+  assert name in ['market1501', 'cuhk03', 'duke', 'public3','folder', 'folder_train_test','combined'], \
     "Unsupported Dataset {}".format(name)
 
   assert part in ['trainval', 'train', 'val', 'test'], \
