@@ -74,6 +74,15 @@ class PreProcessIm(object):
     return im
 
   @staticmethod
+  def rand_flip_lr_im(im, prng=np.random):
+    """flip left-right randomly `im` to `new_size`: [new_w, new_h]."""
+    if prng.rand(1) [0] > 0.5:
+      im_new = np.fliplr(im)
+    else:
+      im_new = im
+    return im_new
+
+  @staticmethod
   def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
     color = [0, 0, 0] # zero padding
     aspect_ratio = desired_size[0]/float(desired_size[1])
@@ -125,7 +134,7 @@ class PreProcessIm(object):
       crop_w = int(im.shape[1] * w_ratio)
 
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
-
+    im = self.rand_flip_lr_im(im, prng=self.prng)
     # Resize.
     if (self.resize_h_w is not None) \
         and (self.resize_h_w != (im.shape[0], im.shape[1])):
