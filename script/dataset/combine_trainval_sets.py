@@ -49,7 +49,7 @@ def move_ims(
 def combine_trainval_sets(
     im_dirs,
     partition_files,
-    save_dir, partition_file_only=False):
+    save_dir, save_partition_file='', partition_file_only=False):
   new_im_dir = ospj(save_dir, 'trainval_images')
   may_make_dir(new_im_dir)
   new_im_names = []
@@ -68,7 +68,11 @@ def combine_trainval_sets(
   partitions = {'trainval_im_names': new_im_names,
                 'trainval_ids2labels': dict(zip(new_ids, new_ids)),
                 }
-  partition_file = ospj(save_dir, 'partitions.pkl')
+  if len(save_partition_file) == 0:
+     pf = 'partitions.pkl'
+  else:
+     pf = save_partition_file
+  partition_file = ospj(save_dir, pf)
   save_pickle(partitions, partition_file)
   print('Partition file saved to {}'.format(partition_file))
 
@@ -144,6 +148,12 @@ if __name__ == '__main__':
   )
 
   parser.add_argument(
+    '--save_partition_file',
+    type=str,
+    default=''
+  )
+
+  parser.add_argument(
     '--partition_file_only',
     action='store_true',
     default=False,
@@ -188,5 +198,5 @@ if __name__ == '__main__':
   may_make_dir(save_dir)
   import datetime
   print("starting time --->>> {0}".format(datetime.datetime.now()))
-  combine_trainval_sets(im_dirs, partition_files, save_dir, args.parition_file_only)
+  combine_trainval_sets(im_dirs, partition_files, save_dir, args.save_partition_file, args.parition_file_only)
   print("end time --->>> {0}".format(datetime.datetime.now()))
