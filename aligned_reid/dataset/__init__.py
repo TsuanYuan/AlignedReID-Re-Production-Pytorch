@@ -2,7 +2,7 @@ import numpy as np
 import os.path as osp
 ospj = osp.join
 ospeu = osp.expanduser
-
+import re
 from ..utils.utils import load_pickle
 from ..utils.dataset_utils import parse_im_name
 from .TrainSet import TrainSet
@@ -13,7 +13,7 @@ def create_dataset(
     name='market1501',
     part='trainval',
     **kwargs):
-  assert name in ['market1501', 'cuhk03', 'duke', 'public3','public4','folder', 'folder_train_test','combined'], \
+  assert name in ['market1501', 'cuhk03', 'duke', 'public3','public4','folder0', 'folder1','folder2', 'folder3','folder4', 'combined'], \
     "Unsupported Dataset {}".format(name)
 
   assert part in ['trainval', 'train', 'val', 'test'], \
@@ -33,12 +33,6 @@ def create_dataset(
   elif name == 'duke':
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/duke/images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/duke/partitions.pkl')
-  elif name == 'folder':
-    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/images')
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions.pkl')
-  elif name == 'folder_train_test':
-    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/images')
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_train_test/partitions.pkl.testtrain.pkl')
   elif name == 'public3':
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
@@ -49,12 +43,16 @@ def create_dataset(
       "Only trainval part of the combined dataset is available now."
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/public4/trainval_images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/public4/partitions.pkl')
-
   elif name == 'combined':
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/trainval_images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/partitions.pkl')
+  elif name.find('folder') >=0:
+    p = re.compile("folder(.*)")
+    folder_num = p.search(name).group(1)
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions{0}.pkl'.format(folder_num))
 
   ##################
   # Create Dataset #
