@@ -359,14 +359,14 @@ def main():
   # Models  #
   ###########
 
-  models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=None, base_model=cfg.base_model)
-            for _ in range(cfg.num_models)]
-  print("##### classification loss is turned off ! #####")
-
   # models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
-  #                 num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+  #                 num_classes=None, base_model=cfg.base_model)
   #           for _ in range(cfg.num_models)]
+  # print("##### classification loss is turned off ! #####")
+
+  models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
+                  num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+            for _ in range(cfg.num_models)]
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])
               for i in range(cfg.num_models)]

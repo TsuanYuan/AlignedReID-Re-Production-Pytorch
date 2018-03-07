@@ -323,12 +323,12 @@ def main():
   test_sets = []
   test_set_names = []
   if cfg.dataset == 'combined':
-    for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
+    for name in ['market1501', 'cuhk03', 'duke', 'folder0', 'folder1', 'folder2', 'folder3', 'folder4']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
   elif cfg.dataset == 'public3' or cfg.dataset == 'public4':
-    for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
+    for name in ['market1501', 'cuhk03', 'duke', 'folder0', 'folder1', 'folder2', 'folder3', 'folder4']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
@@ -340,11 +340,11 @@ def main():
   # Models  #
   ###########
 
-  model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                num_classes=None, base_model=cfg.base_model)
-  print("##### classification loss is turned off ! #####")
   # model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-  #               num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+  #               num_classes=None, base_model=cfg.base_model)
+  # print("##### classification loss is turned off ! #####")
+  model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+                num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
   # Model wrapper
   model_w = DataParallel(model)
 
