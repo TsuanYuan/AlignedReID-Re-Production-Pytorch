@@ -52,7 +52,7 @@ def create_dataset(
     p = re.compile("folder(.*)")
     folder_num = p.search(name).group(1)
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/images')
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions{0}.pkl'.format(folder_num))
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions_{0}.pkl'.format(folder_num))
 
   ##################
   # Create Dataset #
