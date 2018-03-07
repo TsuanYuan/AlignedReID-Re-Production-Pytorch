@@ -342,12 +342,12 @@ def main():
   test_sets = []
   test_set_names = []
   if cfg.dataset == 'combined':
-    for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
+    for name in ['market1501', 'cuhk03', 'duke', 'folder0', 'folder1', 'folder2', 'folder3', 'folder4']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
   elif cfg.dataset == 'public3' or cfg.dataset == 'public4':
-    for name in ['market1501', 'cuhk03', 'duke', 'folder', 'folder_train_test']:
+    for name in ['market1501', 'cuhk03', 'duke', 'folder0', 'folder1', 'folder2', 'folder3', 'folder4']:
       cfg.test_set_kwargs['name'] = name
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
