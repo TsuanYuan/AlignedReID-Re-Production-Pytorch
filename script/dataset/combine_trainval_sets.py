@@ -49,19 +49,20 @@ def move_ims(
 def combine_trainval_sets(
     im_dirs,
     partition_files,
-    save_dir):
+    save_dir, partition_file_only=False):
   new_im_dir = ospj(save_dir, 'trainval_images')
   may_make_dir(new_im_dir)
   new_im_names = []
   new_start_id = 0
   for im_dir, partition_file in zip(im_dirs, partition_files):
     partitions = load_pickle(partition_file)
-    im_paths = [ospj(im_dir, n) for n in partitions['trainval_im_names']]
-    im_paths.sort()
-    new_im_names_, id_mapping = move_ims(
-      im_paths, new_im_dir, parse_im_name, new_im_name_tmpl, new_start_id)
-    new_start_id += len(id_mapping)
-    new_im_names += new_im_names_
+    if not partition_file_only:  # not only partition differs
+      im_paths = [ospj(im_dir, n) for n in partitions['trainval_im_names']]
+      im_paths.sort()
+      new_im_names_, id_mapping = move_ims(
+        im_paths, new_im_dir, parse_im_name, new_im_name_tmpl, new_start_id)
+      new_start_id += len(id_mapping)
+      new_im_names += new_im_names_
 
   new_ids = range(new_start_id)
   partitions = {'trainval_im_names': new_im_names,
@@ -142,6 +143,12 @@ if __name__ == '__main__':
     default=''
   )
 
+  parser.add_argument(
+    '--partition_file_only',
+    action='store_true',
+    default=False,
+  )
+
   args = parser.parse_args()
   im_dirs = []
   partition_files = []
@@ -181,5 +188,5 @@ if __name__ == '__main__':
   may_make_dir(save_dir)
   import datetime
   print("starting time --->>> {0}".format(datetime.datetime.now()))
-  combine_trainval_sets(im_dirs, partition_files, save_dir)
+  combine_trainval_sets(im_dirs, partition_files, save_dir, args.parition_file_only)
   print("end time --->>> {0}".format(datetime.datetime.now()))
