@@ -232,13 +232,16 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
         folder_only = os.path.basename(subfolder)
         folder_predix = folder_only
         if folder_only.find("head") >= 0:
+            print('{0} are skipped'.format(folder_only))
             continue
         if folder_only.find("upper_body") >=0:
-            p = re.compile("(.*)_upper_body")
+            p = re.compile("(.*)_upper")
             folder_predix = p.search(folder_only).group(1)
+            print('{0} are merged into {1}'.format(folder_predix, folder_only))
         if folder_only.find("full_body") >=0:
             p = re.compile("(.*)_full_body")
             folder_predix = p.search(folder_only).group(1)
+            print('{0} are merged into {1}'.format(folder_predix, folder_only))
 
         if folder_predix.isdigit() is False or int(folder_predix) == 0:  # ignore junk/distractor folder
             continue
