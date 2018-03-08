@@ -25,7 +25,8 @@ def move_ims(
     new_im_dir,
     parse_im_name,
     new_im_name_tmpl,
-    new_start_id):
+    new_start_id,
+    no_image_transfer=False):
   """Rename and move images to new directory."""
   ids = [parse_im_name(osp.basename(p), 'id') for p in ori_im_paths]
   cams = [parse_im_name(osp.basename(p), 'cam') for p in ori_im_paths]
@@ -41,7 +42,8 @@ def move_ims(
     new_id = id_mapping[id]
     cnt[(new_id, cam)] += 1
     new_im_name = new_im_name_tmpl.format(new_id, cam, cnt[(new_id, cam)] - 1)
-    shutil.copy(im_path, ospj(new_im_dir, new_im_name))
+    if not no_image_transfer:  # only get path if true
+      shutil.copy(im_path, ospj(new_im_dir, new_im_name))
     new_im_names.append(new_im_name)
   return new_im_names, id_mapping
 
@@ -56,13 +58,12 @@ def combine_trainval_sets(
   new_start_id = 0
   for im_dir, partition_file in zip(im_dirs, partition_files):
     partitions = load_pickle(partition_file)
-    if not partition_file_only:  # not only partition differs
-      im_paths = [ospj(im_dir, n) for n in partitions['trainval_im_names']]
-      im_paths.sort()
-      new_im_names_, id_mapping = move_ims(
-        im_paths, new_im_dir, parse_im_name, new_im_name_tmpl, new_start_id)
-      new_start_id += len(id_mapping)
-      new_im_names += new_im_names_
+    im_paths = [ospj(im_dir, n) for n in partitions['trainval_im_names']]
+    im_paths.sort()
+    new_im_names_, id_mapping = move_ims(
+      im_paths, new_im_dir, parse_im_name, new_im_name_tmpl, new_start_id, partition_file_only)
+    new_start_id += len(id_mapping)
+    new_im_names += new_im_names_
 
   new_ids = range(new_start_id)
   partitions = {'trainval_im_names': new_im_names,
