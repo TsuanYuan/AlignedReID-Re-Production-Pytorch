@@ -64,7 +64,8 @@ def combine_trainval_sets(
       im_paths, new_im_dir, parse_im_name, new_im_name_tmpl, new_start_id, partition_file_only)
     new_start_id += len(id_mapping)
     new_im_names += new_im_names_
-
+  # first time run on a folder_all sets that all images are included in partitions['trainval_im_names']
+  # second time run on a folder_ready sets that partitions['trainval_im_names'] defines only training images
   new_ids = range(new_start_id)
   partitions = {'trainval_im_names': new_im_names,
                 'trainval_ids2labels': dict(zip(new_ids, new_ids)),
