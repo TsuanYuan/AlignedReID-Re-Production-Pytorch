@@ -43,11 +43,13 @@ def create_dataset(
       "Only trainval part of the combined dataset is available now."
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/public4/trainval_images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/public4/partitions.pkl')
-  elif name == 'combined':
+  elif name.find('combined')>=0:
     assert part in ['trainval'], \
       "Only trainval part of the combined dataset is available now."
-    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/trainval_images')
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/partitions.pkl')
+    p = re.compile("combined(.*)")
+    combine_num = p.search(name).group(1)
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated_{0}/trainval_images'.format(combine_num))
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/partitions_{0}.pkl'.format(combine_num))
   elif name.find('folder') >=0:
     p = re.compile("folder(.*)")
     folder_num = p.search(name).group(1)
