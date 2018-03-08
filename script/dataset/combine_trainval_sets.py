@@ -198,5 +198,5 @@ if __name__ == '__main__':
   may_make_dir(save_dir)
   import datetime
   print("starting time --->>> {0}".format(datetime.datetime.now()))
-  combine_trainval_sets(im_dirs, partition_files, save_dir, args.save_partition_file, args.parition_file_only)
+  combine_trainval_sets(im_dirs, partition_files, save_dir, args.save_partition_file, args.partition_file_only)
   print("end time --->>> {0}".format(datetime.datetime.now()))
