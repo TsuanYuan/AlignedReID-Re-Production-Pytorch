@@ -13,7 +13,7 @@ def create_dataset(
     name='market1501',
     part='trainval',
     **kwargs):
-  assert name in ['market1501', 'cuhk03', 'duke', 'public3','public4','folder_all','folder0', 'folder1','folder2', 'folder3','folder4', 'combined4'], \
+  assert name in ['zeros','market1501', 'cuhk03', 'duke', 'public3','public4','folder_all','folder0', 'folder1','folder2', 'folder3','folder4', 'combined4'], \
     "Unsupported Dataset {}".format(name)
 
   assert part in ['trainval', 'train', 'val', 'test'], \
@@ -26,6 +26,9 @@ def create_dataset(
   if name == 'market1501':
     im_dir = ospeu(osp.join(dir,'../../Dataset/market1501/images'))
     partition_file = ospeu(osp.join(dir,'../../Dataset/market1501/partitions.pkl'))
+  elif name == 'zeros':
+    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/zeros/images')
+    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/zeros/partitions_0.pkl')
   elif name == 'cuhk03':
     im_type = ['detected', 'labeled'][0]
     im_dir = ospeu(ospj(dir,'../../Dataset/cuhk03', im_type, 'images'))
