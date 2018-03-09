@@ -75,6 +75,7 @@ class Config(object):
     parser.add_argument('-ldmlw', '--ldm_loss_weight', type=float, default=0.)
 
     parser.add_argument('--only_test', type=str2bool, default=False)
+    parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
 
@@ -226,7 +227,7 @@ class Config(object):
     self.staircase_decay_multiply_factor = args.staircase_decay_multiply_factor
     # Number of epochs to train
     self.total_epochs = args.total_epochs
-
+    self.test_num_classids = args.test_num_classids
     # How often (in batches) to log. If only need to log the average
     # information for each epoch, set this to a large value, e.g. 1e10.
     self.log_steps = 1e10
@@ -365,7 +366,7 @@ def main():
   # print("##### classification loss is turned off ! #####")
   nc = len(train_set.ids2labels)
   if cfg.only_test:
-    nc = len(test_sets[0].ids2labels)
+    nc = cfg.test_num_classids
   models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
                   num_classes=nc, base_model=cfg.base_model)
             for _ in range(cfg.num_models)]
