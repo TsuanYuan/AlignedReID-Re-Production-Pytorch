@@ -50,7 +50,7 @@ class Config(object):
     parser.add_argument('-r', '--run', type=int, default=1)
     parser.add_argument('--set_seed', type=str2bool, default=False)
     parser.add_argument('--dataset', type=str, default='market1501',
-                        choices=['market1501', 'cuhk03', 'duke', 'combined',  'folder0','folder1','folder2','folder3','folder4', 'public4'])
+                        choices=['market1501', 'cuhk03', 'duke', 'combined4',  'folder0','folder1','folder2','folder3','folder4', 'public4'])
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
     parser.add_argument('--base_model', type=str, default='resnet50')

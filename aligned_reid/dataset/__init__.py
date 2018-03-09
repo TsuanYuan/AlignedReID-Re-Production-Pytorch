@@ -13,7 +13,7 @@ def create_dataset(
     name='market1501',
     part='trainval',
     **kwargs):
-  assert name in ['market1501', 'cuhk03', 'duke', 'public3','public4','folder0', 'folder1','folder2', 'folder3','folder4', 'combined'], \
+  assert name in ['market1501', 'cuhk03', 'duke', 'public3','public4','folder0', 'folder1','folder2', 'folder3','folder4', 'combined4'], \
     "Unsupported Dataset {}".format(name)
 
   assert part in ['trainval', 'train', 'val', 'test'], \
@@ -48,8 +48,8 @@ def create_dataset(
       "Only trainval part of the combined dataset is available now."
     p = re.compile("combined(.*)")
     combine_num = p.search(name).group(1)
-    im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated_{0}/trainval_images'.format(combine_num))
-    partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/combined_annotated/partitions_{0}.pkl'.format(combine_num))
+    im_dir = ospeu('/ssd/qyuan/combined_annotated_{0}/trainval_images'.format(combine_num))
+    partition_file = ospeu('/ssd/qyuan/combined_annotated_{0}/partitions_{0}.pkl'.format(combine_num))
   elif name.find('folder') >=0:
     p = re.compile("folder(.*)")
     folder_num = p.search(name).group(1)
