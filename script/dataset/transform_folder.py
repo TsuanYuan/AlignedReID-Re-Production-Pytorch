@@ -129,6 +129,7 @@ def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
 def transfer_one_folder(id_folder, save_dir, id, max_count_per_id):
     jpgList = glob.glob(os.path.join(id_folder, '*.jpg'))
     jpgList += glob.glob(os.path.join(id_folder, '*.jpeg'))
+    jpgList += glob.glob(os.path.join(id_folder, '*.png'))
     cameraIDs = {}
     dest_paths = []
     for k, jpgPath in enumerate(jpgList):
