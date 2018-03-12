@@ -236,7 +236,8 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True):
   map_location = (lambda storage, loc: storage) if load_to_cpu else None
   ckpt = torch.load(ckpt_file, map_location=map_location)
   for m, sd in zip(modules_optims, ckpt['state_dicts']):
-    m.load_state_dict(sd)
+    if m is not None:
+      m.load_state_dict(sd)
   if verbose:
     print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
       ckpt_file, ckpt['ep'], ckpt['scores']))
