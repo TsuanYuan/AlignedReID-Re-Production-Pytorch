@@ -47,9 +47,9 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
-    parser.add_argument('im_folder', type=str, help="images folder", required=True)
-    parser.add_argument('im_rows_file', type=str, help="file with image name rows", required=True)
-    parser.add_argument('output_file', type=str, help="output image file", required=True)
+    parser.add_argument('im_folder', type=str, help="images folder")
+    parser.add_argument('im_rows_file', type=str, help="file with image name rows")
+    parser.add_argument('output_file', type=str, help="output image file")
     args = parser.parse_args()
 
     plot_ims(args.im_folder, args.im_rows_file, args.output_file)
