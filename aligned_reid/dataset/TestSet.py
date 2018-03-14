@@ -221,7 +221,7 @@ class TestSet(Dataset):
       for k in range(0, n_q, step):
         dist_row = global_q_g_dist[k,:]
         g_sorted_idx = np.argsort(dist_row)
-        im_row = [im_names[q_inds][k]] + im_names[g_inds][g_sorted_idx]
+        im_row = [im_names[q_inds][k]] + im_names[g_inds][g_sorted_idx].tolist()
         im_rows.append(im_row)
       if not osp.isdir(output_folder):
         import os
