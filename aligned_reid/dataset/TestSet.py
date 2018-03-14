@@ -219,7 +219,7 @@ class TestSet(Dataset):
       im_rows = []
 
       for k in range(0, n_q, step):
-        dist_row = global_g_g_dist[k,:]
+        dist_row = global_q_g_dist[k,:]
         g_sorted_idx = np.argsort(dist_row)
         im_row = [im_names[q_inds][k]] + im_names[g_inds][g_sorted_idx]
         im_rows.append(im_row)
@@ -231,7 +231,7 @@ class TestSet(Dataset):
       with open(output_pickle, 'wb') as f:
         pickle.dump(im_rows, f, pickle.HIGHEST_PROTOCOL)
         print("output im_rows at {0}".format(output_pickle))
-            
+
     ###################
     # Global Distance #
     ###################
