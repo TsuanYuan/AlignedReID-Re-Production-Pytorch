@@ -213,16 +213,20 @@ class TestSet(Dataset):
           local_dist, x, y, 0, 0, x_num_splits, y_num_splits, verbose=True)
       return z
 
-    def dump_query_results(global_q_g_dist, q_inds, g_inds, im_names, output_folder='/tmp/aligned_reid_query_gallery', num_items=64):
+    def dump_query_results(global_q_g_dist, q_inds, g_inds, im_names, ids, output_folder='/tmp/aligned_reid_query_gallery', num_items=64):
       n_q = global_q_g_dist.shape[0]
       step = max(1,(n_q-1)/num_items)
       im_rows = []
-
+      id_rows = []
       for k in range(0, n_q, step):
         dist_row = global_q_g_dist[k,:]
         g_sorted_idx = np.argsort(dist_row)
         im_row = [im_names[q_inds][k]] + im_names[g_inds][g_sorted_idx].tolist()
-        im_rows.append(im_row)
+        id_row = [ids[q_inds][k]] + ids[g_inds][g_sorted_idx].tolist()
+        id_row = np.array(id_row) == id_row[0]
+        id_row = id_row.tolist()
+        im_rows.append(list(im_row))
+        id_rows.append(list(id_row))
       if not osp.isdir(output_folder):
         import os
         os.makedirs(output_folder)
@@ -230,6 +234,7 @@ class TestSet(Dataset):
       import pickle
       with open(output_pickle, 'wb') as f:
         pickle.dump(im_rows, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(id_rows, f, pickle.HIGHEST_PROTOCOL)
         print("output im_rows at {0}".format(output_pickle))
 
     ###################
@@ -242,7 +247,7 @@ class TestSet(Dataset):
         global_feats[q_inds], global_feats[g_inds], type='euclidean')
 
     with measure_time('plot distance result with image query and gallery'):
-      dump_query_results(global_q_g_dist, q_inds, g_inds, im_names)
+      dump_query_results(global_q_g_dist, q_inds, g_inds, im_names,ids)
 
     with measure_time('Computing scores for Global Distance...'):
       mAP, cmc_scores = compute_score(global_q_g_dist)

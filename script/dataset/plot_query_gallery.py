@@ -26,20 +26,27 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 
     return new_im
 
-def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 20):
+def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 50):
     with open(rows_file, 'rb') as f:
         im_rows = pickle.load(f)
+        id_rows = pickle.load(f)
         f.close()
     n_row = len(im_rows)
     n_per_row = min(top_k, len(im_rows[0]))
     canvas = numpy.zeros((im_size[0]*n_row, im_size[1]*n_per_row, 3), dtype=numpy.uint8)
+
     for k in range(n_row):
         im_row = im_rows[k]
+        id_row = id_rows[k]
         for j in range(n_per_row):
             im_path = os.path.join(im_folder, im_row[j])
+            flag = id_row[j]
             im = cv2.imread(im_path)
             im_pad = crop_pad_fixed_aspect_ratio(im, desired_size=im_size)
             im_pad = cv2.resize(im_pad, im_size[::-1])
+            if flag:
+                box_color =(0, 255, 0)
+                cv2.rectangle(im_pad, (0,0), im_size, box_color, 4)
             canvas[k*im_size[0]:(k+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
     cv2.imwrite(output_file, canvas)
 
