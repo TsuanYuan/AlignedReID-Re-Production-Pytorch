@@ -29,6 +29,7 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 50):
     with open(rows_file, 'rb') as f:
         im_rows = pickle.load(f)
+        id_rows_tf = pickle.load(f)
         id_rows = pickle.load(f)
         f.close()
     n_row = len(im_rows)
@@ -37,10 +38,11 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 50):
 
     for k in range(n_row):
         im_row = im_rows[k]
+        id_row_tf = id_rows_tf[k]
         id_row = id_rows[k]
         for j in range(n_per_row):
             im_path = os.path.join(im_folder, im_row[j])
-            flag = id_row[j]
+            flag = id_row_tf[j]
             im = cv2.imread(im_path)
             im_pad = crop_pad_fixed_aspect_ratio(im, desired_size=im_size)
             im_pad = cv2.resize(im_pad, im_size[::-1])
@@ -49,6 +51,8 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 50):
             else:
                 box_color =(0, 0, 255)
             cv2.rectangle(im_pad, (0,0), (im_size[1]-4, im_size[0]-4), box_color, 4)
+            id = id_row[j]
+            cv2.putText(im_pad, str(id),(10,10), cv2.FONT_HERSHEY_SIMPLEX, 4, (0,255,0))
             canvas[k*im_size[0]:(k+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
     cv2.imwrite(output_file, canvas)
 
