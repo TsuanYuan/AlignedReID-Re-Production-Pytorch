@@ -173,7 +173,6 @@ def save_partitions(train_images, gallery_images, query_images, partition_file):
     test_marks = [0, ] * len(query_im_names) \
                  + [1, ] * len(gallery_im_names)
 
-
     partitions = {'trainval_im_names': trainval_im_names,
                   'trainval_ids2labels': trainval_ids2labels,
                   'train_im_names': trainval_im_names,
