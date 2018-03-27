@@ -238,7 +238,7 @@ class TestSet(Dataset):
         pickle.dump(im_rows, f, pickle.HIGHEST_PROTOCOL)
         pickle.dump(id_rows_tf, f, pickle.HIGHEST_PROTOCOL)
         pickle.dump(id_rows, f, pickle.HIGHEST_PROTOCOL)
-        print("output im_rows at {0}".format(output_pickle))
+        print("output im_rows output at {0}".format(output_pickle))
 
     ###################
     # Global Distance #

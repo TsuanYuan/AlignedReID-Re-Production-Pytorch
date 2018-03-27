@@ -203,7 +203,7 @@ def split_test_query(full_list):
     test_list = []
     query_list = []
     for p in full_list:
-        n = numpy.random.choice(4)
+        n = numpy.random.choice(2)
         if n == 0:
             query_list.append(p)
         else:
