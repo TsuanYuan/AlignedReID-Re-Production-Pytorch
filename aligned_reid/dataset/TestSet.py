@@ -213,9 +213,9 @@ class TestSet(Dataset):
           local_dist, x, y, 0, 0, x_num_splits, y_num_splits, verbose=True)
       return z
 
-    def dump_query_results(global_q_g_dist, q_inds, g_inds, im_names, ids, output_folder='/tmp/aligned_reid_query_gallery', num_items=64):
+    def dump_query_results(global_q_g_dist, q_inds, g_inds, im_names, ids, output_folder='/tmp/aligned_reid_query_gallery', num_items=512):
       n_q = global_q_g_dist.shape[0]
-      step = 1 #max(1,(n_q-1)/num_items)
+      step = max(1,(n_q-1)/num_items)
       im_rows = []
       id_rows = []
       id_rows_tf = []

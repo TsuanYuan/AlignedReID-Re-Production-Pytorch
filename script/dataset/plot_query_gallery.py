@@ -35,7 +35,7 @@ def find_rows_with_errors(id_rows_tf, top_k=10, error_th=3):
             row_ids.append(k)
     return row_ids
 
-def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 10):
+def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 32):
     with open(rows_file, 'rb') as f:
         im_rows = pickle.load(f)
         id_rows_tf = pickle.load(f)
@@ -48,7 +48,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 10):
     n_per_row = min(top_k, len(im_rows[0]))
     canvas = numpy.zeros((im_size[0]*n_row, im_size[1]*n_per_row, 3), dtype=numpy.uint8)
 
-    for k in row_ids:
+    for i, k in enumerate(row_ids):
         im_row = im_rows[k]
         id_row_tf = id_rows_tf[k]
         id_row = id_rows[k]
@@ -65,9 +65,13 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 10):
             cv2.rectangle(im_pad, (0,0), (im_size[1]-4, im_size[0]-4), box_color, 4)
             id = id_row[j]
             cv2.putText(im_pad, str(id),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-            canvas[k*im_size[0]:(k+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
-    cv2.imwrite(output_file, canvas)
-
+            canvas[i*im_size[0]:(i+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
+    max_row_num = 65500
+    if canvas.shape[0]>max_row_num:
+        canvas = canvas[0:max_row_num,:,:]
+    #cv2.imwrite(output_file, canvas)
+    import scipy.misc
+    scipy.misc.imsave(output_file, canvas)
 if __name__ == '__main__':
     import argparse
 
