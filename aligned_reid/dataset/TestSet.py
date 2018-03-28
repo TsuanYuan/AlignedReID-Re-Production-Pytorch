@@ -215,7 +215,7 @@ class TestSet(Dataset):
 
     def dump_query_results(global_q_g_dist, q_inds, g_inds, im_names, ids, output_folder='/tmp/aligned_reid_query_gallery', num_items=64):
       n_q = global_q_g_dist.shape[0]
-      step = max(1,(n_q-1)/num_items)
+      step = 1 #max(1,(n_q-1)/num_items)
       im_rows = []
       id_rows = []
       id_rows_tf = []

@@ -26,17 +26,29 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 
     return new_im
 
-def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 50):
+
+def find_rows_with_errors(id_rows_tf, top_k=10, error_th=3):
+    row_ids = []
+    for k in range(len(id_rows_tf)):
+        num_top_error = top_k - sum(id_rows_tf[k][0:top_k])
+        if num_top_error >= error_th:
+            row_ids.append(k)
+    return row_ids
+
+def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 10):
     with open(rows_file, 'rb') as f:
         im_rows = pickle.load(f)
         id_rows_tf = pickle.load(f)
         id_rows = pickle.load(f)
         f.close()
-    n_row = len(im_rows)
+
+    #n_row = len(im_rows)
+    row_ids = find_rows_with_errors(id_rows_tf, top_k=top_k, error_th=3)
+    n_row = len(row_ids)
     n_per_row = min(top_k, len(im_rows[0]))
     canvas = numpy.zeros((im_size[0]*n_row, im_size[1]*n_per_row, 3), dtype=numpy.uint8)
 
-    for k in range(n_row):
+    for k in row_ids:
         im_row = im_rows[k]
         id_row_tf = id_rows_tf[k]
         id_row = id_rows[k]
