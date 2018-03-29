@@ -35,7 +35,7 @@ def find_rows_with_errors(id_rows_tf, top_k=10, error_th=3):
             row_ids.append(k)
     return row_ids
 
-def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 32):
+def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 16):
     with open(rows_file, 'rb') as f:
         im_rows = pickle.load(f)
         id_rows_tf = pickle.load(f)
@@ -61,7 +61,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 32):
             if flag:
                 box_color =(0, 255, 0)
             else:
-                box_color =(0, 0, 255)
+                box_color =(255, 0, 0)
             cv2.rectangle(im_pad, (0,0), (im_size[1]-4, im_size[0]-4), box_color, 4)
             id = id_row[j]
             cv2.putText(im_pad, str(id),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
