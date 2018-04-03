@@ -10,7 +10,7 @@ import scipy.misc
 import transform_folder
 import cv2
 
-HEAD_DETECTION_TH = 0.90
+HEAD_DETECTION_TH = 0.80
 
 
 def enforce_box(box, image_w, image_h):
@@ -117,9 +117,58 @@ def crop_head_images(image_folder, annotation_folder, save_dir, id_prefix):
 
     return dest_image_list
 
+def load_head_keypoint_mask_jsons(head_json, keypoint_json, mask_json):
+    with open(head_json, 'r') as fp:
+        head_data = json.load(fp)
+    with open(keypoint_json, 'r') as fp:
+        keypoint_data = json.load(fp)
+    with open(mask_json, 'r') as fp:
+        mask_data = json.load(fp)
+    return head_data, keypoint_data, mask_data
 
-def transform(image_folder, annotation_folder, save_dir, num_test, num_folds, id_prefix, max_count_per_id):
-    dest_image_list = crop_head_images(image_folder, annotation_folder, save_dir, id_prefix)
+def cross_check_head_keypoint_mask(head_data, keypoint_data, mask_data):
+    head_head = []
+    keypoint_heads = []
+    for box in head_data['boxes']:
+        if box[4] > HEAD_DETECTION_TH:
+            head_head.append(box)
+    for i,box in enumerate(keypoint_data['boxes']):
+        if box[4] > HEAD_DETECTION_TH:
+            keypoint_heads.append((keypoint_data['keypoints'][0][0], keypoint_data['keypoints'][1][0]))
+    # if keypoint head inside head box
+    verified_box = None
+    for head_box in head_head:
+        for keypoint_head in keypoint_heads:
+            if keypoint_head[0] >= head_box[0] and  keypoint_head[0] < head_box[2] and keypoint_head[1] >= head_box[1] and keypoint_head[1] < head_box[3]:
+                verified_box = head_box
+    return verified_box
+
+def merge_anntoations_and_crop(image_folder, save_folder):
+    mask_folder = image_folder+'_mask'
+    keypoint_folder = image_folder+'_keypoint'
+    head_folder = image_folder+'_head_box'
+    mask_person_folders = os.listdir(mask_folder)
+    for person_folder in mask_person_folders:
+        mask_jsons = glob.glob(os.path.join(mask_folder, person_folder, '*.json'))
+        target_folder = os.path.join(save_folder, person_folder)
+        for mask_json in mask_jsons:
+            file_only = os.path.basename(mask_json)
+            file_base = file_only[0:-10]
+            keypoint_json = os.path.join(keypoint_folder, person_folder, file_base+'_keypoint.json')
+            head_json = os.path.join(head_folder, person_folder, file_base+'_head.json')
+            data = load_head_keypoint_mask_jsons(head_json, keypoint_json, mask_json)
+            verified_head_box = cross_check_head_keypoint_mask(data[0], data[1], data[2])
+            if verified_head_box is not None:
+                head_box_square = extend_square(verified_head_box)
+                image_file = os.path.join(image_folder, person_folder, file_base+'.jpg')
+                image = scipy.misc.imread(image_file)
+                head_crop = crop_extended_box(image, head_box_square, extension=2.0)
+                target_file = os.path.join()
+
+
+def transform(image_folder, save_dir, num_test, num_folds, id_prefix):
+    dest_image_list = merge_anntoations_and_crop(image_folder, save_dir)
+    #dest_image_list = crop_head_images(image_folder, annotations, save_dir, id_prefix)
     transform_folder.split_train_test(dest_image_list, num_test, num_folds, save_dir)
 
 
@@ -128,7 +177,7 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
   parser.add_argument('crop_folder', type=str, help="folder with image crops")
-  parser.add_argument('annotation_folder', type=str, help="folder with annotations keypoints, head")
+  #parser.add_argument('annotation_folder', type=str, help="folder with annotations keypoints, head")
   parser.add_argument('save_dir', type=str, help="output folder")
   parser.add_argument('--id_prefix', type=int, help="prefix to add on an ID", required=False,
                       default=0)
@@ -140,5 +189,5 @@ if __name__ == '__main__':
                       default=5)
 
   args = parser.parse_args()
-  transform(args.crop_folder, args.annotation_folder, args.save_dir,
-                   args.num_test, args.num_folds, args.id_prefix, args.max_count_per_id)
+  transform(args.crop_folder, args.save_dir,
+                   args.num_test, args.num_folds, args.id_prefix)
