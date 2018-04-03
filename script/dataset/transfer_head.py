@@ -55,6 +55,8 @@ def transfer_all_four(raw_folder, save_dir,id_prefix, folder_range):
     if not os.path.isdir(head_save_dir):
         os.makedirs(head_save_dir)
     transfer_folder(head_folder, head_save_dir, id_prefix, folder_range)
+    raw_folder = os.path.normpath(raw_folder)
+    save_dir = os.path.normpath(save_dir)
     kp_folder = raw_folder + '_keypoint'
     kp_save_dir = save_dir + '_keypoint'
     if not os.path.isdir(kp_save_dir):
