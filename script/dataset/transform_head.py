@@ -14,10 +14,10 @@ HEAD_DETECTION_TH = 0.80
 
 
 def enforce_box(box, image_w, image_h):
-    if box[2] > image_w:
-        box[2] = image_w
-    if box[3] > image_h:
-        box[3] = image_h
+    if box[2] >= image_w:
+        box[2] = image_w-1
+    if box[3] >= image_h:
+        box[3] = image_h-1
     if box[0] < 0:
         box[0] = 0
     if box[1] < 0:
@@ -55,6 +55,7 @@ def crop_extended_box(image, box=None, extension=2.0):
 
 
 def extend_square(box):
+    box = numpy.array(box)
     center = box[0:2] + box[2:4]/2
     radius = numpy.max(box[2:4])/2
     new_box = numpy.array([center[0]-radius, center[1]-radius, radius*2, radius*2])
@@ -134,7 +135,7 @@ def cross_check_head_keypoint_mask(head_data, keypoint_data, mask_data):
             head_head.append(box)
     for i,box in enumerate(keypoint_data['boxes']):
         if box[4] > HEAD_DETECTION_TH:
-            keypoint_heads.append((keypoint_data['keypoints'][0][0], keypoint_data['keypoints'][1][0]))
+            keypoint_heads.append((keypoint_data['keypoints'][0][0][0], keypoint_data['keypoints'][0][1][0]))
     # if keypoint head inside head box
     verified_box = None
     for head_box in head_head:
@@ -148,9 +149,14 @@ def merge_anntoations_and_crop(image_folder, save_folder):
     keypoint_folder = image_folder+'_keypoint'
     head_folder = image_folder+'_head_box'
     mask_person_folders = os.listdir(mask_folder)
+    dest_images = []
     for person_folder in mask_person_folders:
         mask_jsons = glob.glob(os.path.join(mask_folder, person_folder, '*.json'))
         target_folder = os.path.join(save_folder, person_folder)
+        if not os.path.isdir(target_folder):
+            os.makedirs(target_folder)
+        count = 0
+        cameraIDs={}
         for mask_json in mask_jsons:
             file_only = os.path.basename(mask_json)
             file_base = file_only[0:-10]
@@ -159,12 +165,18 @@ def merge_anntoations_and_crop(image_folder, save_folder):
             data = load_head_keypoint_mask_jsons(head_json, keypoint_json, mask_json)
             verified_head_box = cross_check_head_keypoint_mask(data[0], data[1], data[2])
             if verified_head_box is not None:
+                count+=1
+                verified_head_box = numpy.array(verified_head_box)
+                verified_head_box[2:4] = verified_head_box[2:4] - verified_head_box[0:2]
                 head_box_square = extend_square(verified_head_box)
                 image_file = os.path.join(image_folder, person_folder, file_base+'.jpg')
                 image = scipy.misc.imread(image_file)
-                head_crop = crop_extended_box(image, head_box_square, extension=2.0)
-                target_file = os.path.join()
+                head_crop, new_box = crop_extended_box(image, head_box_square, extension=2.0)
+                dest_path = transform_folder.transfer_one_image(image_file, target_folder, int(person_folder), count, cameraIDs)
 
+                scipy.misc.imsave(dest_path, head_crop)
+                dest_images.append(os.path.basename(dest_path))
+    return dest_images
 
 def transform(image_folder, save_dir, num_test, num_folds, id_prefix):
     dest_image_list = merge_anntoations_and_crop(image_folder, save_dir)
