@@ -10,7 +10,7 @@ import scipy.misc
 import transform_folder
 import cv2
 
-HEAD_DETECTION_TH = 0.80
+HEAD_DETECTION_TH = 0.90
 
 
 def enforce_box(box, image_w, image_h):
@@ -128,20 +128,24 @@ def load_head_keypoint_mask_jsons(head_json, keypoint_json, mask_json):
     return head_data, keypoint_data, mask_data
 
 def cross_check_head_keypoint_mask(head_data, keypoint_data, mask_data):
-    head_head = []
-    keypoint_heads = []
+    head_box = None
+    keypoint_head = None
+    max_score = HEAD_DETECTION_TH
     for box in head_data['boxes']:
-        if box[4] > HEAD_DETECTION_TH:
-            head_head.append(box)
+        if box[4] > max_score:
+            head_box = box
+            max_score = box[4]
+    max_score = HEAD_DETECTION_TH
     for i,box in enumerate(keypoint_data['boxes']):
-        if box[4] > HEAD_DETECTION_TH:
-            keypoint_heads.append((keypoint_data['keypoints'][0][0][0], keypoint_data['keypoints'][0][1][0]))
+        if box[4] > max_score:
+            max_score = box[4]
+            keypoint_head = (keypoint_data['keypoints'][i][0][0], keypoint_data['keypoints'][i][1][0])
     # if keypoint head inside head box
     verified_box = None
-    for head_box in head_head:
-        for keypoint_head in keypoint_heads:
-            if keypoint_head[0] >= head_box[0] and  keypoint_head[0] < head_box[2] and keypoint_head[1] >= head_box[1] and keypoint_head[1] < head_box[3]:
-                verified_box = head_box
+    if head_box is None or keypoint_head is None:
+        return verified_box
+    if keypoint_head[0] >= head_box[0] and  keypoint_head[0] < head_box[2] and keypoint_head[1] >= head_box[1] and keypoint_head[1] < head_box[3]:
+        verified_box = head_box
     return verified_box
 
 def merge_anntoations_and_crop(image_folder, save_folder):
