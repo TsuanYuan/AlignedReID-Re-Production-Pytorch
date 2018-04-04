@@ -154,11 +154,11 @@ def merge_anntoations_and_crop(image_folder, save_folder):
     head_folder = image_folder+'_head_box'
     mask_person_folders = os.listdir(mask_folder)
     dest_images = []
+    dest_image_dir = os.path.join(save_folder, 'images')
+    if not os.path.isdir(dest_image_dir):
+        os.makedirs(dest_image_dir)
     for person_folder in mask_person_folders:
         mask_jsons = glob.glob(os.path.join(mask_folder, person_folder, '*.json'))
-        target_folder = os.path.join(save_folder, person_folder)
-        if not os.path.isdir(target_folder):
-            os.makedirs(target_folder)
         count = 0
         cameraIDs={}
         for mask_json in mask_jsons:
@@ -180,7 +180,7 @@ def merge_anntoations_and_crop(image_folder, save_folder):
                 image_file = os.path.join(image_folder, person_folder, file_base+'.jpg')
                 image = scipy.misc.imread(image_file)
                 head_crop, new_box = crop_extended_box(image, head_box_square, extension=2.0)
-                dest_path = transform_folder.transfer_one_image(image_file, target_folder, int(person_folder), count, cameraIDs)
+                dest_path = transform_folder.transfer_one_image(image_file, dest_image_dir, int(person_folder), count, cameraIDs)
 
                 scipy.misc.imsave(dest_path, head_crop)
                 dest_images.append(os.path.basename(dest_path))
