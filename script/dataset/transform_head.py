@@ -165,7 +165,11 @@ def merge_anntoations_and_crop(image_folder, save_folder):
             file_only = os.path.basename(mask_json)
             file_base = file_only[0:-10]
             keypoint_json = os.path.join(keypoint_folder, person_folder, file_base+'_keypoint.json')
+            if not os.path.isfile(keypoint_json):
+                continue
             head_json = os.path.join(head_folder, person_folder, file_base+'_head.json')
+            if not os.path.isfile(head_json):
+                continue
             data = load_head_keypoint_mask_jsons(head_json, keypoint_json, mask_json)
             verified_head_box = cross_check_head_keypoint_mask(data[0], data[1], data[2])
             if verified_head_box is not None:
