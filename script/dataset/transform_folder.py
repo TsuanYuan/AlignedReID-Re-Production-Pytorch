@@ -72,16 +72,20 @@ def partition_train_val_set(im_names, parse_im_name,
     if num_selected_ids >= num_val_ids:
       break
 
-  query_inds = numpy.hstack(query_inds)
-  gallery_inds = numpy.hstack(gallery_inds)
-  val_inds = numpy.hstack([query_inds, gallery_inds])
-  trainval_inds = numpy.arange(len(im_names))
-  train_inds = numpy.setdiff1d(trainval_inds, val_inds)
+  if len(im_names) > 0:
+      query_inds = numpy.hstack(query_inds)
+      gallery_inds = numpy.hstack(gallery_inds)
+      val_inds = numpy.hstack([query_inds, gallery_inds])
+      trainval_inds = numpy.arange(len(im_names))
+      train_inds = numpy.setdiff1d(trainval_inds, val_inds)
 
-  train_inds = numpy.sort(train_inds)
-  query_inds = numpy.sort(query_inds)
-  gallery_inds = numpy.sort(gallery_inds)
-
+      train_inds = numpy.sort(train_inds)
+      query_inds = numpy.sort(query_inds)
+      gallery_inds = numpy.sort(gallery_inds)
+  else:
+      train_inds = []
+      query_inds = []
+      gallery_inds = []
   partitions = dict(train_im_names=im_names[train_inds],
                     val_query_im_names=im_names[query_inds],
                     val_gallery_im_names=im_names[gallery_inds])
