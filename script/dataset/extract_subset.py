@@ -24,7 +24,7 @@ def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_bas
         sub_sets = os.listdir(raw_folder)
         for sub_set in sub_sets:
             sub_set_name = os.path.basename(os.path.normpath(sub_set))
-            if sub_set_name.isdigit() is False or int(sub_set_name) == 0:  # ignore junk/distractor folder
+            if sub_set_name.isdigit() is False:  # ignore junk/distractor folder
                 continue
             sub_set_folder = transfer_folder.check_body_head_sub_folders(os.path.join(raw_folder,sub_set), ishead=False)
             if sub_set_folder is None:
