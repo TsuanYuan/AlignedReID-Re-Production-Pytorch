@@ -45,7 +45,11 @@ def apply_image_mask(sub_set_folder, dest_folder, occlusion_mask_list, im_mean=(
         base_name, ext = os.path.splitext(image_name)
         mask_name = base_name+'_mask.json'
         mask_file = os.path.join(mask_folder, mask_name)
-        mask = extract_mask(mask_file)
+        try:
+            mask = extract_mask(mask_file)
+        except:
+            mask = None
+            print 'error extracting mask from {0}'.format(mask_file)
         if mask is not None:
             image = scipy.misc.imread(image_file)
             mask_3 = numpy.dstack((mask, mask, mask))
