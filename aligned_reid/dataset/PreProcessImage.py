@@ -13,7 +13,8 @@ class PreProcessIm(object):
       im_std=None,
       mirror_type=None,
       batch_dims='NCHW',
-      prng=np.random):
+      prng=np.random,
+      masks=None):
     """
     Args:
       crop_prob: the probability of each image to go through cropping
@@ -132,8 +133,8 @@ class PreProcessIm(object):
       w_ratio = h_ratio
       crop_h = int(im.shape[0] * h_ratio)
       crop_w = int(im.shape[1] * w_ratio)
-
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
+
     im = self.rand_flip_lr_im(im, prng=self.prng)
     # Resize.
     if (self.resize_h_w is not None) \

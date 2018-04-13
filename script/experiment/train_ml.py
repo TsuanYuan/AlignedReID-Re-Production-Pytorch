@@ -5,6 +5,7 @@ from __future__ import print_function
 import sys
 sys.path.insert(0, '.')
 
+import cPickle
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -54,6 +55,7 @@ class Config(object):
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
     parser.add_argument('--base_model', type=str, default='resnet50')
+
     # Only for training set.
     parser.add_argument('--resize_h_w', type=eval, default=(256, 128))
     parser.add_argument('--crop_prob', type=float, default=0)
@@ -62,7 +64,7 @@ class Config(object):
     parser.add_argument('--ims_per_id', type=int, default=4)
     parser.add_argument('--customized_folder_path', type=str, default='customized')
     parser.add_argument('--partition_number', type=int, default=0)
-
+    parser.add_argument('--masks_path', type=str, default='')
     parser.add_argument('--log_to_file', type=str2bool, default=True)
     parser.add_argument('--normalize_feature', type=str2bool, default=True)
     parser.add_argument('--local_dist_own_hard_sample',
@@ -144,6 +146,9 @@ class Config(object):
     self.customized_folder_path = args.customized_folder_path
     self.partition_number = args.partition_number
 
+    with open(args.masks_path,'rb') as mf:
+      self.masks = cPickle.load(mf)
+
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -167,7 +172,8 @@ class Config(object):
       crop_prob=self.crop_prob,
       crop_ratio=self.crop_ratio,
       mirror_type=self.train_mirror_type,
-      prng=prng)
+      prng=prng,
+      masks=self.masks)
     self.train_set_kwargs.update(dataset_kwargs)
 
     prng = np.random
