@@ -22,6 +22,7 @@ class Dataset(object):
     pre_process_im_kwargs = train_kwargs.copy()
     pre_process_im_kwargs.pop('customized_folder_path', None)
     pre_process_im_kwargs.pop('partition_number', None)
+    pre_process_im_kwargs.pop('occlusion_masks', None)
     self.pre_process_im = PreProcessIm(
       prng=prng,
       **pre_process_im_kwargs)

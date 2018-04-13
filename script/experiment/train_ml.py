@@ -147,7 +147,7 @@ class Config(object):
     self.partition_number = args.partition_number
 
     with open(args.masks_path,'rb') as mf:
-      self.masks = cPickle.load(mf)
+      self.occlusion_masks = cPickle.load(mf)
 
     dataset_kwargs = dict(
       name=self.dataset,
@@ -173,7 +173,7 @@ class Config(object):
       crop_ratio=self.crop_ratio,
       mirror_type=self.train_mirror_type,
       prng=prng,
-      masks=self.masks)
+      occlusion_masks=self.occlusion_masks)
     self.train_set_kwargs.update(dataset_kwargs)
 
     prng = np.random

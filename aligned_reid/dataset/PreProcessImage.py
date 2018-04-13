@@ -14,7 +14,8 @@ class PreProcessIm(object):
       mirror_type=None,
       batch_dims='NCHW',
       prng=np.random,
-      masks=None):
+      occlusion_masks=None
+      ):
     """
     Args:
       crop_prob: the probability of each image to go through cropping
@@ -44,6 +45,7 @@ class PreProcessIm(object):
     self.mirror_type = mirror_type
     self.check_batch_dims(batch_dims)
     self.batch_dims = batch_dims
+    self.occlusion_masks = occlusion_masks
     self.prng = prng
 
   def __call__(self, im):
