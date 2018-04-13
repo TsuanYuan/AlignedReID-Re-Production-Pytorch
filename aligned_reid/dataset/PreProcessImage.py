@@ -135,7 +135,10 @@ class PreProcessIm(object):
     left_right = np.random.randint(left_right_range[0], left_right_range[1])
     im_mean_255 = np.round(np.array(im_mean) * 255).astype(np.uint8)
     if left_right >= 0:
-      occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (left_right, 0)), mode='constant')[0:-down, 0:-left_right]
+      if left_right>0:
+        occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (left_right, 0)), mode='constant')[0:-down, 0:-left_right]
+      else:
+        occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (left_right, 0)), mode='constant')[0:-down, :]
     else:
       occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (0, -left_right)), mode='constant')[0:-down, -left_right:]
 
