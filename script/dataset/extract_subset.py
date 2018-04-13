@@ -108,7 +108,7 @@ def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_bas
     print "data from {0} are transfered to training and test sets in {1}".format(str(raw_folder_list), save_dir)
     mask_file = os.path.join(save_dir, 'mask_list.pkl')
     with open(mask_file, 'wb') as f:
-        cPickle.dump(occlusion_mask_list, mask_file, cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(occlusion_mask_list, f, cPickle.HIGHEST_PROTOCOL)
     print "segmentation masks are saved at {0}".format(mask_file)
 
 if __name__ == '__main__':
