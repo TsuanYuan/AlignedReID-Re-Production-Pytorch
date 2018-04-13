@@ -46,8 +46,11 @@ class PreProcessIm(object):
     self.mirror_type = mirror_type
     self.check_batch_dims(batch_dims)
     self.batch_dims = batch_dims
-    with open(masks_path, 'rb') as mf:
-      self.occlusion_masks = cPickle.load(mf)
+    if masks_path is not None:
+      with open(masks_path, 'rb') as mf:
+        self.occlusion_masks = cPickle.load(mf)
+    else:
+      self.occlusion_masks = []
     self.prng = prng
 
   def __call__(self, im):
@@ -156,8 +159,9 @@ class PreProcessIm(object):
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
 
     im = self.rand_flip_lr_im(im, prng=self.prng)
-    occlusion_mask = self.occlusion_masks[np.random.randint(len(self.occlusion_masks))]
-    im = self.apply_occlusion_masks(im, occlusion_mask)
+    if len(self.occlusion_masks) > 0:
+      occlusion_mask = self.occlusion_masks[np.random.randint(len(self.occlusion_masks))]
+      im = self.apply_occlusion_masks(im, occlusion_mask)
     scipy.misc.imsave('/tmp/masked_crop.jpg', im)
     print 'saved a masked patch at /tmp/masked_crop.jpg'
     # Resize.
