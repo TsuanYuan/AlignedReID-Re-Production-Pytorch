@@ -1,7 +1,11 @@
 import numpy as np
 import cv2
 import scipy.ndimage
+import scipy.misc
 import cPickle
+import uuid
+import os
+
 
 class PreProcessIm(object):
   def __init__(
@@ -109,21 +113,6 @@ class PreProcessIm(object):
     # import scipy.misc
     # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
-    # old_size = im.shape[:2]  # old_size is in (height, width) format
-    # ratio = min(float(desired_size[0]) / old_size[0], float(desired_size[1]) / old_size[1])
-    # new_size = tuple([int(x * ratio) for x in old_size])
-    #
-    # # new_size should be in (width, height) format
-    # im = cv2.resize(im, (new_size[1], new_size[0]))
-    #
-    # delta_w = desired_size - new_size[1]
-    # delta_h = desired_size - new_size[0]
-    # top, bottom = delta_h / 2, delta_h - (delta_h / 2)
-    # left, right = delta_w / 2, delta_w - (delta_w / 2)
-    #
-    # color = [0, 0, 0]
-    # new_im = cv2.copyMakeBorder(im, top, bottom, left, right, cv2.BORDER_CONSTANT,
-    #                             value=color)
 
   @staticmethod
   def apply_occlusion_masks(im, occlusion_mask, down_shift=(0.25, 0.75), left_right_shift=(-0.5, 0.5),im_mean=(0.486, 0.459, 0.408)):
@@ -167,8 +156,10 @@ class PreProcessIm(object):
     if len(self.occlusion_masks) > 0:
       occlusion_mask = self.occlusion_masks[np.random.randint(len(self.occlusion_masks))]
       im = self.apply_occlusion_masks(im, occlusion_mask)
-    scipy.misc.imsave('/tmp/masked_crop.jpg', im)
-    print 'saved a masked patch at /tmp/masked_crop.jpg'
+    # for debug
+    fname = str(uuid.uuid4())+'.jpg'
+    scipy.misc.imsave(os.path.join('/tmp/occlusions/', fname), im)
+    #print 'saved a masked patch at /tmp/masked_crop.jpg'
     # Resize.
     if (self.resize_h_w is not None) \
         and (self.resize_h_w != (im.shape[0], im.shape[1])):

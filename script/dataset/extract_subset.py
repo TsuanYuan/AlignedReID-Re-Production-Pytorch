@@ -17,6 +17,10 @@ def extract_mask(mask_json_file, score_th=0.975):
     #max_score = score_th
     off_middle = 1.0
     best_mask = None
+    if mask_data['boxes'] is None or len(mask_data['boxes'])==0:
+        return best_mask
+    if mask_data['segments'] is None or len(mask_data['segments'])==0:
+        return best_mask
     for box, mask in zip(mask_data['boxes'],mask_data['segments']):
         if box[4] > score_th:
             # ignore too small masks
@@ -57,11 +61,9 @@ def apply_image_mask(sub_set_folder, dest_folder, occlusion_mask_list, im_mean=(
         base_name, ext = os.path.splitext(image_name)
         mask_name = base_name+'_mask.json'
         mask_file = os.path.join(mask_folder, mask_name)
-        #try:
+        if not os.path.isfile(mask_file):
+            continue
         mask = extract_mask(mask_file)
-        #except:
-        #    mask = None
-        #    print 'error extracting mask from {0}'.format(mask_file)
         if mask is not None:
             image = scipy.misc.imread(image_file)
             mask_3 = numpy.dstack((mask, mask, mask))
