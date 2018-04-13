@@ -126,7 +126,7 @@ class PreProcessIm(object):
     #                             value=color)
 
   @staticmethod
-  def apply_occlusion_masks(im, occlusion_mask, down_shift=(0.35, 0.75), left_right_shift=(-0.5, 0.5),im_mean=(0.486, 0.459, 0.408)):
+  def apply_occlusion_masks(im, occlusion_mask, down_shift=(0.25, 0.75), left_right_shift=(-0.5, 0.5),im_mean=(0.486, 0.459, 0.408)):
     occlusion_mask_sc = scipy.ndimage.zoom(occlusion_mask, (float(im.shape[0]) / occlusion_mask.shape[0], float(im.shape[1]) / occlusion_mask.shape[1]), order=0)
     occlusion_mask_sc = occlusion_mask_sc.astype(np.uint8)
     down_range = np.round(im.shape[0] * np.array(down_shift)).astype(int)

@@ -11,15 +11,27 @@ import numpy
 import pycocotools.mask as mask_util
 import cPickle
 
-def extract_mask(mask_json_file, score_th=0.5):
+def extract_mask(mask_json_file, score_th=0.975):
     with open(mask_json_file, 'r') as f:
         mask_data = json.load(f)
-    max_score = score_th
+    #max_score = score_th
+    off_middle = 1.0
     best_mask = None
     for box, mask in zip(mask_data['boxes'],mask_data['segments']):
-        if box[4] > max_score:
-            max_score = box[4]
-            best_mask = mask_util.decode(mask)
+        if box[4] > score_th:
+            # ignore too small masks
+            m = mask_util.decode(mask)
+            ratio = numpy.sum(m.astype(int), dtype=float) / m.shape[0] / m.shape[1]
+            if ratio > 0.10:
+                # how much it is off the middle
+                xg,yg = numpy.meshgrid(range(m.shape[1]), range(m.shape[0]))
+                mean_x = numpy.mean(xg*m)
+                mean_y = numpy.mean(yg*m)
+                d = numpy.linalg.norm([mean_x-m.shape[1]/2, mean_y-m.shape[0]/2 ])/numpy.mean(m.shape)
+                if d < off_middle:
+                    off_middle = d
+                    best_mask = m
+
     return best_mask
 
 def align_masks(mask, occlusion_mask, down_shift=(0.35,0.75), left_right_shift=(-0.5, 0.5)):
@@ -45,11 +57,11 @@ def apply_image_mask(sub_set_folder, dest_folder, occlusion_mask_list, im_mean=(
         base_name, ext = os.path.splitext(image_name)
         mask_name = base_name+'_mask.json'
         mask_file = os.path.join(mask_folder, mask_name)
-        try:
-            mask = extract_mask(mask_file)
-        except:
-            mask = None
-            print 'error extracting mask from {0}'.format(mask_file)
+        #try:
+        mask = extract_mask(mask_file)
+        #except:
+        #    mask = None
+        #    print 'error extracting mask from {0}'.format(mask_file)
         if mask is not None:
             image = scipy.misc.imread(image_file)
             mask_3 = numpy.dstack((mask, mask, mask))
