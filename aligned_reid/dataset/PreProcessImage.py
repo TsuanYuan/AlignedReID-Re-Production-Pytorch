@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-import scipy.misc
+import scipy.ndimage
 import cPickle
 
 class PreProcessIm(object):
@@ -127,7 +127,8 @@ class PreProcessIm(object):
 
   @staticmethod
   def apply_occlusion_masks(im, occlusion_mask, down_shift=(0.35, 0.75), left_right_shift=(-0.5, 0.5),im_mean=(0.486, 0.459, 0.408)):
-    occlusion_mask_sc = scipy.misc.imresize(occlusion_mask, im.shape[0:2], interp='nearest')
+    occlusion_mask_sc = scipy.ndimage.zoom(occlusion_mask, (float(im.shape[0]) / occlusion_mask.shape[0], float(im.shape[1]) / occlusion_mask.shape[1]), order=0)
+    occlusion_mask_sc = occlusion_mask_sc.astype(np.uint8)
     down_range = np.round(im.shape[0] * np.array(down_shift)).astype(int)
     down = np.random.randint(down_range[0], down_range[1])
     left_right_range = np.round(im.shape[1] * np.array(left_right_shift)).astype(int)
@@ -136,9 +137,10 @@ class PreProcessIm(object):
     if left_right >= 0:
       occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (left_right, 0)), mode='constant')[0:-down, 0:-left_right]
     else:
-      occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (0, -left_right)), mode='constant')[0:-down, -left_right:0]
+      occlusion_mask_sc = np.pad(occlusion_mask_sc, ((down, 0), (0, -left_right)), mode='constant')[0:-down, -left_right:]
+
     for i in range(3):
-      im[:,:,i] = im[:,:,i] * (1 - occlusion_mask_sc)+occlusion_mask_sc*im_mean_255[i]
+      im[:, :, i] = im[:, :, i] * (1 - occlusion_mask_sc) + occlusion_mask_sc * im_mean_255[i]
     return im
 
   def pre_process_im(self, im, desired_size=(256, 128)):
