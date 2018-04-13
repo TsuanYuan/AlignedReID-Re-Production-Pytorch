@@ -50,7 +50,7 @@ class PreProcessIm(object):
     self.mirror_type = mirror_type
     self.check_batch_dims(batch_dims)
     self.batch_dims = batch_dims
-    if masks_path is not None:
+    if masks_path is not None and len(masks_path)>0 and os.path.isfile(masks_path):
       with open(masks_path, 'rb') as mf:
         self.occlusion_masks = cPickle.load(mf)
     else:
