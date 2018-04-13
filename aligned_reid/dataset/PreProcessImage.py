@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import scipy.misc
+import cPickle
 
 class PreProcessIm(object):
   def __init__(
@@ -14,7 +15,7 @@ class PreProcessIm(object):
       mirror_type=None,
       batch_dims='NCHW',
       prng=np.random,
-      occlusion_masks=None
+      masks_path=None
       ):
     """
     Args:
@@ -45,7 +46,8 @@ class PreProcessIm(object):
     self.mirror_type = mirror_type
     self.check_batch_dims(batch_dims)
     self.batch_dims = batch_dims
-    self.occlusion_masks = occlusion_masks
+    with open(masks_path, 'rb') as mf:
+      self.occlusion_masks = cPickle.load(mf)
     self.prng = prng
 
   def __call__(self, im):

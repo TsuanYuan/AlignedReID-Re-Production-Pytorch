@@ -145,9 +145,7 @@ class Config(object):
     self.test_shuffle = False
     self.customized_folder_path = args.customized_folder_path
     self.partition_number = args.partition_number
-
-    with open(args.masks_path,'rb') as mf:
-      self.occlusion_masks = cPickle.load(mf)
+    self.masks_path = args.masks_path
 
     dataset_kwargs = dict(
       name=self.dataset,
@@ -173,7 +171,7 @@ class Config(object):
       crop_ratio=self.crop_ratio,
       mirror_type=self.train_mirror_type,
       prng=prng,
-      occlusion_masks=self.occlusion_masks)
+      masks_path=self.masks_path)
     self.train_set_kwargs.update(dataset_kwargs)
 
     prng = np.random
