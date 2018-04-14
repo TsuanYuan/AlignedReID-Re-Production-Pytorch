@@ -97,7 +97,7 @@ def copy_folder(source_folder, dest_folder, max_num_files):
             shutil.copy(sample_file, dest_folder)
 
 def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_base=10000,
-                        mask_on=False, max_per_id=300):
+                        mask_on=False, max_per_id=300, skip_ids=None):
     test_folder = os.path.join(save_dir,'test')
     train_folder = os.path.join(save_dir, 'train')
     if not os.path.isdir(test_folder):
@@ -122,7 +122,12 @@ def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_bas
             if sub_set_folder is None:
                 continue
             tail2_path = os.path.join(raw_folder_name, sub_set_name)
-            dest_sub_set_name = str(int(sub_set_name)+prefix)
+            sub_set_number = int(sub_set_name)+prefix
+            if skip_ids is not None and len(skip_ids) > 0:
+                if sub_set_number in skip_ids:
+                    continue
+
+            dest_sub_set_name = str(sub_set_number)
             if tail2_path in test_subsets:
                 dest_folder = os.path.join(test_folder, dest_sub_set_name)
             else:
@@ -151,7 +156,10 @@ if __name__ == '__main__':
     parser.add_argument('test_subsets_file', type=str, help="list of person id folders for test only")
     parser.add_argument('--mask_on', action='store_true',default=False, help="whether to apply masks on image")
     parser.add_argument('--max_per_id', type=int, default=300, help='subsample a person id if too many')
+    parser.add_argument('--skip_ids', nargs='+',type=int,  default=[], help='ids to skip')
     args = parser.parse_args()
     print 'max crops from an ID is {0}'.format(str(args.max_per_id))
+    print 'ids to skip are {0}'.format(str(args.skip_ids))
+
     transfer_train_test(args.folder_list_file, args.save_dir, args.test_subsets_file,
-                        mask_on=args.mask_on, max_per_id=args.max_per_id)
+                        mask_on=args.mask_on, max_per_id=args.max_per_id, skip_ids=args.skip_ids)
