@@ -83,8 +83,6 @@ def apply_image_mask(sub_set_folder, dest_folder, occlusion_mask_list, im_mean=(
             occlusion_mask_list.append(mask)
 
 def copy_folder(source_folder, dest_folder, max_num_files):
-    if not os.path.isdir(dest_folder):
-        os.makedirs(dest_folder)
     jpg_list = glob.glob(os.path.join(source_folder, '*.jpg'))
     jpeg_list = glob.glob(os.path.join(source_folder, '*.jpeg'))
     png_list = glob.glob(os.path.join(source_folder, '*.png'))
@@ -92,6 +90,8 @@ def copy_folder(source_folder, dest_folder, max_num_files):
     if len(source_files) <= max_num_files:
         shutil.copytree(source_folder, dest_folder)
     else:
+        if not os.path.isdir(dest_folder):
+            os.makedirs(dest_folder)
         sample_files = random.sample(source_files, max_num_files)
         for sample_file in sample_files:
             shutil.copy(sample_file, dest_folder)
