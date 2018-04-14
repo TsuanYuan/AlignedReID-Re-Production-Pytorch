@@ -67,7 +67,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 20):
             cv2.rectangle(im_pad, (0,0), (im_size[1]-4, im_size[0]-4), box_color, 4)
             id = id_row[j]
             cv2.putText(im_pad, str(id),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-            cv2.putText(im_pad, str('%.4f'%dist_row[j]), (im_size[0]-40,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+            cv2.putText(im_pad, str('%.4f'%dist_row[j]), (im_size[0]-40,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255,255,0), 2)
             canvas[i*im_size[0]:(i+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
     max_row_num = 65500
     if canvas.shape[0]>max_row_num:
