@@ -219,6 +219,7 @@ class TestSet(Dataset):
       im_rows = []
       id_rows = []
       id_rows_tf = []
+      dist_rows = []
       for k in range(0, n_q, step):
         dist_row = global_q_g_dist[k,:]
         g_sorted_idx = np.argsort(dist_row)
@@ -226,9 +227,11 @@ class TestSet(Dataset):
         id_row = [ids[q_inds][k]] + ids[g_inds][g_sorted_idx].tolist()
         id_row_tf = np.array(id_row) == id_row[0]
         id_row_tf = id_row_tf.tolist()
+        sorted_dist_row = [0.0] + dist_row[g_sorted_idx].tolist()
         im_rows.append(list(im_row))
         id_rows_tf.append(list(id_row_tf))
         id_rows.append(list(id_row))
+        dist_rows.append(sorted_dist_row)
       if not osp.isdir(output_folder):
         import os
         os.makedirs(output_folder)
@@ -238,6 +241,7 @@ class TestSet(Dataset):
         pickle.dump(im_rows, f, pickle.HIGHEST_PROTOCOL)
         pickle.dump(id_rows_tf, f, pickle.HIGHEST_PROTOCOL)
         pickle.dump(id_rows, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(dist_rows, f, pickle.HIGHEST_PROTOCOL)
         print("output im_rows output at {0}".format(output_pickle))
 
     ###################

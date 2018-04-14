@@ -40,6 +40,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 20):
         im_rows = pickle.load(f)
         id_rows_tf = pickle.load(f)
         id_rows = pickle.load(f)
+        dist_rows = pickle.load(f)
         f.close()
 
     #n_row = len(im_rows)
@@ -52,6 +53,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 20):
         im_row = im_rows[k]
         id_row_tf = id_rows_tf[k]
         id_row = id_rows[k]
+        dist_row = dist_rows[k]
         for j in range(n_per_row):
             im_path = os.path.join(im_folder, im_row[j])
             flag = id_row_tf[j]
@@ -65,6 +67,7 @@ def plot_ims(im_folder, rows_file, output_file, im_size=(256,128), top_k = 20):
             cv2.rectangle(im_pad, (0,0), (im_size[1]-4, im_size[0]-4), box_color, 4)
             id = id_row[j]
             cv2.putText(im_pad, str(id),(10,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
+            cv2.putText(im_pad, str('%.4f'%dist_row[j]), (im_size[0]-40,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
             canvas[i*im_size[0]:(i+1)*im_size[0], j*im_size[1]:(j+1)*im_size[1],:] = im_pad
     max_row_num = 65500
     if canvas.shape[0]>max_row_num:
