@@ -10,6 +10,7 @@ import scipy.misc
 import numpy
 import pycocotools.mask as mask_util
 import cPickle
+import random
 
 def extract_mask(mask_json_file, score_th=0.975):
     with open(mask_json_file, 'r') as f:
@@ -81,7 +82,22 @@ def apply_image_mask(sub_set_folder, dest_folder, occlusion_mask_list, im_mean=(
             scipy.misc.imsave(dest_path, image_with_mask)
             occlusion_mask_list.append(mask)
 
-def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_base=10000, mask_on=False):
+def copy_folder(source_folder, dest_folder, max_num_files):
+    if not os.path.isdir(dest_folder):
+        os.makedirs(dest_folder)
+    jpg_list = glob.glob(os.path.join(source_folder, '*.jpg'))
+    jpeg_list = glob.glob(os.path.join(source_folder, '*.jpeg'))
+    png_list = glob.glob(os.path.join(source_folder, '*.png'))
+    source_files = jpeg_list+jpg_list+png_list
+    if len(source_files) <= max_num_files:
+        shutil.copytree(source_folder, dest_folder)
+    else:
+        sample_files = random.sample(source_files, max_num_files)
+        for sample_file in sample_files:
+            shutil.copy(sample_file, dest_folder)
+
+def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_base=10000,
+                        mask_on=False, max_per_id=300):
     test_folder = os.path.join(save_dir,'test')
     train_folder = os.path.join(save_dir, 'train')
     if not os.path.isdir(test_folder):
@@ -117,7 +133,8 @@ def transfer_train_test(raw_folder_list, save_dir, test_subsets_file, prefix_bas
                 if mask_on:
                     apply_image_mask(sub_set_folder, dest_folder,occlusion_mask_list)
                 else:
-                    shutil.copytree(sub_set_folder, dest_folder)
+                    copy_folder(sub_set_folder, dest_folder, max_per_id)
+                    #shutil.copytree(sub_set_folder, dest_folder)
 
     print "data from {0} are transfered to training and test sets in {1}".format(str(raw_folder_list), save_dir)
     mask_file = os.path.join(save_dir, 'mask_list.pkl')
@@ -133,7 +150,8 @@ if __name__ == '__main__':
     parser.add_argument('save_dir', type=str, help="saved target folder")
     parser.add_argument('test_subsets_file', type=str, help="list of person id folders for test only")
     parser.add_argument('--mask_on', action='store_true',default=False, help="whether to apply masks on image")
-
+    parser.add_argument('--max_per_id', type=int, default=300, help='subsample a person id if too many')
     args = parser.parse_args()
-
-    transfer_train_test(args.folder_list_file, args.save_dir, args.test_subsets_file, mask_on=args.mask_on)
+    print 'max crops from an ID is {0}'.format(str(args.max_per_id))
+    transfer_train_test(args.folder_list_file, args.save_dir, args.test_subsets_file,
+                        mask_on=args.mask_on, max_per_id=args.max_per_id)
