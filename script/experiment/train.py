@@ -73,6 +73,8 @@ class Config(object):
     parser.add_argument('--model_weight_file', type=str, default='')
     parser.add_argument('--base_model', type=str, default='resnet50')
     parser.add_argument('--customized_folder_path', type=str, default='customized')
+    parser.add_argument('--partition_number', type=int, default=0)
+    
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
@@ -134,6 +136,8 @@ class Config(object):
     self.test_final_batch = True
     self.test_mirror_type = ['random', 'always', None][2]
     self.test_shuffle = False
+    self.customized_folder_path = args.customized_folder_path
+    self.partition_number = args.partition_number
 
     dataset_kwargs = dict(
       name=self.dataset,
@@ -142,7 +146,10 @@ class Config(object):
       im_mean=self.im_mean,
       im_std=self.im_std,
       batch_dims='NCHW',
-      num_prefetch_threads=self.prefetch_threads)
+      num_prefetch_threads=self.prefetch_threads,
+      customized_folder_path = args.customized_folder_path,
+      partition_number=args.partition_number
+    )
 
     prng = np.random
     if self.seed is not None:
