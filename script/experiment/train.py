@@ -47,10 +47,9 @@ class Config(object):
     parser.add_argument('-r', '--run', type=int, default=1)
     parser.add_argument('--set_seed', type=str2bool, default=False)
     parser.add_argument('--dataset', type=str, default='market1501',
-                        choices=['market1501', 'cuhk03', 'duke', 'folder0','folder1','folder2','folder3','folder4','folder_all','combined4', 'public4'])
+                        choices=['customized', 'zeros', 'market1501', 'cuhk03', 'duke', 'combined4', 'folder0', 'folder1', 'folder2', 'folder3', 'folder4', 'folder_all', 'public4'])
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
-
     # Only for training set.
     parser.add_argument('--resize_h_w', type=eval, default=(256, 128))
     parser.add_argument('--crop_prob', type=float, default=0)
