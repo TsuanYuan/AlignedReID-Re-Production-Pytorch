@@ -71,7 +71,7 @@ class Config(object):
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
     parser.add_argument('--model_weight_file', type=str, default='')
-    parser.add_argument('--base_model', type=str, default='resnet50')
+    parser.add_argument('--base_model', type=str, default='resnet18')
     parser.add_argument('--customized_folder_path', type=str, default='customized')
     parser.add_argument('--partition_number', type=int, default=0)
     
