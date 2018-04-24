@@ -72,7 +72,7 @@ class Config(object):
     parser.add_argument('--exp_dir', type=str, default='')
     parser.add_argument('--model_weight_file', type=str, default='')
     parser.add_argument('--base_model', type=str, default='resnet50')
-
+    parser.add_argument('--customized_folder_path', type=str, default='customized')
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
