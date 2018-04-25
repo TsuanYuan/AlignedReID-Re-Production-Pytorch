@@ -197,7 +197,7 @@ def pair_example_mining(dist_mat, labels):
   dist_p = dist_mat[is_pos].contiguous().view(-1,1)
   # `dist_an` means distance(anchor, negative)
   # both `dist_an` and `relative_n_inds` with shape [N, 1]
-  dist_n = dist_mat[is_neg].contiguous().view(-1, 1)
+  dist_n = dist_mat[is_neg].contiguous().view(1, -1)
   dist_np = (dist_n-dist_p).view(-1)
   dist_labels = torch.ones(dist_np.size(0))
   return dist_np, dist_labels
