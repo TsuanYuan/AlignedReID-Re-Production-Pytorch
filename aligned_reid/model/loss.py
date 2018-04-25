@@ -183,7 +183,26 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
   return dist_ap, dist_an
 
 
-def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
+def pair_example_mining(dist_mat, labels):
+  assert len(dist_mat.size()) == 2
+  assert dist_mat.size(0) == dist_mat.size(1)
+  N = dist_mat.size(0)
+
+  # shape [N, N]
+  is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
+  is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
+
+  # `dist_ap` means distance(anchor, positive)
+  # both `dist_ap` and `relative_p_inds` with shape [N, 1]
+  dist_p = dist_mat[is_pos].contiguous().view(-1,1)
+  # `dist_an` means distance(anchor, negative)
+  # both `dist_an` and `relative_n_inds` with shape [N, 1]
+  dist_n = dist_mat[is_neg].contiguous().view(-1, 1)
+  dist_np = (dist_n-dist_p).view(-1)
+  dist_labels = torch.ones(dist_np.size(0))
+  return dist_np, dist_labels
+
+def global_loss(tri_loss, pair_loss, global_feat, labels, normalize_feature=True):
   """
   Args:
     tri_loss: a `TripletLoss` object
@@ -213,7 +232,9 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
   dist_mat = euclidean_dist(global_feat, global_feat)
   dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
     dist_mat, labels, return_inds=True)
-  loss = tri_loss(dist_ap, dist_an)
+  dist_np, labels_np = pair_example_mining(dist_mat, labels)
+
+  loss = tri_loss(dist_ap, dist_an)+pair_loss(dist_np, labels_np)
   return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
 
 

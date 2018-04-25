@@ -20,6 +20,7 @@ import argparse
 from aligned_reid.dataset import create_dataset
 from aligned_reid.model.Model import Model
 from aligned_reid.model.TripletLoss import TripletLoss
+from aligned_reid.model.PairLoss import PairLoss
 from aligned_reid.model.loss import global_loss
 from aligned_reid.model.loss import local_loss
 
@@ -346,6 +347,7 @@ def main():
   # Models  #
   ###########
 
+<<<<<<< HEAD
   if cfg.id_loss_weight == 0:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
                  num_classes=None, base_model=cfg.base_model)
@@ -353,6 +355,13 @@ def main():
   else:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
                 num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+=======
+  model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+                 num_classes=None, base_model=cfg.base_model)
+  print("##### classification loss is turned off ! #####")
+  #model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+  #              num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+>>>>>>> 24fa7edd2a619b40d7495c0c2c1bb563bc7ee384
   # Model wrapper
   model_w = DataParallel(model)
 
@@ -362,6 +371,7 @@ def main():
 
   id_criterion = nn.CrossEntropyLoss()
   g_tri_loss = TripletLoss(margin=cfg.global_margin)
+  g_pair_loss = PairLoss(margin=cfg.global_margin)
   l_tri_loss = TripletLoss(margin=cfg.local_margin)
 
   optimizer = optim.Adam(model.parameters(),
@@ -469,12 +479,13 @@ def main():
       ims_var = Variable(TVT(torch.from_numpy(ims).float()))
       labels_t = TVT(torch.from_numpy(labels).long())
       labels_var = Variable(labels_t)
-
-      global_feat, local_feat, logits = model_w(ims_var)
+      logits = None
+      global_feat, local_feat,logits  = model_w(ims_var)
 
       g_loss, p_inds, n_inds, g_dist_ap, g_dist_an, g_dist_mat = global_loss(
-        g_tri_loss, global_feat, labels_t,
+        g_tri_loss, g_pair_loss, global_feat, labels_t,
         normalize_feature=cfg.normalize_feature)
+
 
       if cfg.l_loss_weight == 0:
         l_loss = 0
