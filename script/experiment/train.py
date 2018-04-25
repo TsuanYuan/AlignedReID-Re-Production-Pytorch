@@ -347,7 +347,7 @@ def main():
   # Models  #
   ###########
 
-<<<<<<< HEAD
+
   if cfg.id_loss_weight == 0:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
                  num_classes=None, base_model=cfg.base_model)
@@ -355,13 +355,13 @@ def main():
   else:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
                 num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
-=======
-  model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                 num_classes=None, base_model=cfg.base_model)
-  print("##### classification loss is turned off ! #####")
-  #model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-  #              num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
->>>>>>> 24fa7edd2a619b40d7495c0c2c1bb563bc7ee384
+# =======
+#   model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+#                  num_classes=None, base_model=cfg.base_model)
+#   print("##### classification loss is turned off ! #####")
+#   #model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+#   #              num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+# >>>>>>> 24fa7edd2a619b40d7495c0c2c1bb563bc7ee384
   # Model wrapper
   model_w = DataParallel(model)
 
