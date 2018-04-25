@@ -373,6 +373,7 @@ def main():
 
   id_criterion = nn.CrossEntropyLoss()
   g_tri_loss = TripletLoss(margin=cfg.global_margin)
+  print('### pair loss added! ####')
   g_pair_loss = PairLoss(margin=cfg.global_margin)
   l_tri_loss = TripletLoss(margin=cfg.local_margin)
 
