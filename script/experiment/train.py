@@ -75,7 +75,8 @@ class Config(object):
     parser.add_argument('--base_model', type=str, default='resnet18')
     parser.add_argument('--customized_folder_path', type=str, default='customized')
     parser.add_argument('--partition_number', type=int, default=0)
-    
+    parser.add_argument('--test_num_classids', type=int, default=5)
+
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
@@ -221,7 +222,7 @@ class Config(object):
 
     # Only test and without training.
     self.only_test = args.only_test
-
+    self.test_num_classids = args.test_num_classids
     self.resume = args.resume
 
     #######
@@ -346,15 +347,16 @@ def main():
   ###########
   # Models  #
   ###########
-
-
+  nc = len(train_set.ids2labels)
+  if cfg.only_test:
+    nc = cfg.test_num_classids
   if cfg.id_loss_weight == 0:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                 num_classes=None, base_model=cfg.base_model)
+                 num_classes=nc, base_model=cfg.base_model)
     print("##### classification loss is turned off ! #####")
   else:
     model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
+                num_classes=nc, base_model=cfg.base_model)
 # =======
 #   model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
 #                  num_classes=None, base_model=cfg.base_model)
