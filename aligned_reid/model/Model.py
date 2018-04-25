@@ -67,4 +67,4 @@ class Model(nn.Module):
       logits = self.fc(global_feat)
       return global_feat, local_feat, logits
 
-    return global_feat, local_feat
+    return global_feat, local_feat, None

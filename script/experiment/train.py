@@ -346,10 +346,12 @@ def main():
   # Models  #
   ###########
 
-  # model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
-  #               num_classes=None, base_model=cfg.base_model)
-  # print("##### classification loss is turned off ! #####")
-  model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+  if cfg.id_loss_weight == 0:
+    model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
+                 num_classes=None, base_model=cfg.base_model)
+    print("##### classification loss is turned off ! #####")
+  else:
+    model = Model(local_conv_out_channels=cfg.local_conv_out_channels,
                 num_classes=len(train_set.ids2labels), base_model=cfg.base_model)
   # Model wrapper
   model_w = DataParallel(model)
