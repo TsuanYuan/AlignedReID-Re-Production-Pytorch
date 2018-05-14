@@ -50,6 +50,7 @@ class Model(nn.Module):
         feat = self.base(x)
         global_feat = F.avg_pool2d(feat, feat.size()[2:])
         condensed_feat = self.fc(global_feat)
+        condensed_feat = F.normalize(condensed_feat, p=2, dim=1)
         quality_weight_fc = self.quality_weight_fc(self.global_feat) # quality measure of the feature
         condensed_feat_with_quality = torch.cat((condensed_feat, quality_weight_fc),0)
         return condensed_feat_with_quality
