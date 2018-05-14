@@ -117,7 +117,7 @@ def dump_error_results(file_list, distances, id_pairs, output_path):
     cv2.imwrite(output_path, canvas)
 
 
-def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/tmp/s2s_results/'):
+def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/tmp/s2s_results/', file_tag=''):
     person_ids = numpy.array(person_id_list)
     #id_dm = sklearn.metrics.pairwise_distances(person_ids.reshape(1,-1))
     id_dm = numpy.subtract(person_ids, person_ids.reshape(1,-1).transpose())
@@ -139,10 +139,10 @@ def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/
     # dump results
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
-    canvas_path = os.path.join(output_folder, 'same_pairs.jpg')
+    canvas_path = os.path.join(output_folder, 'same_pairs_{0}.jpg'.format(file_tag))
     dump_error_results(file_list, highest_same_distances, top_same_pairs, canvas_path)
     mlog.info('same pair top cases are at {0}'.format(canvas_path))
-    canvas_path = os.path.join(output_folder, 'diff_pairs.jpg')
+    canvas_path = os.path.join(output_folder, 'diff_pairs_{0}.jpg'.format(file_tag))
     dump_error_results(file_list, lowest_diff_distances, top_diff_pairs, canvas_path)
     mlog.info('diff pair top cases are at {0}'.format(canvas_path))
     return auc95, dist_th
@@ -163,7 +163,7 @@ def process(data_folder, ext, min_seq_size, aggregation_type):
             person_id_list += person_id_seqs
 
     distance_matrix = compute_distance_matrix(feature_seq_list, aggregation_type)
-    auc95, dist_th = compute_metrics(distance_matrix, person_id_list, file_seq_list)
+    auc95, dist_th = compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=aggregation_type)
     mlog.info('AUC95={0} at dist_th={1} on data set {2} with model extension {3} and compare option {4}'
             .format('%.3f'%auc95, '%.3f'%dist_th, data_folder, ext, aggregation_type))
 
