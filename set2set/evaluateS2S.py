@@ -110,7 +110,7 @@ def dump_error_results(file_list, distances, id_pairs, output_path):
                     y_start = count*image_size[0]*2+pid*image_size[0]
                     x_start = imi*image_size[1]
                     canvas[y_start:y_start+image_size[0], x_start:x_start+image_size[1],:] = imr
-        dist = '%.3f'%distances[count]
+        dist = '%.6f'%distances[count]
         box_color = (0, 255, 0)
         cv2.rectangle(canvas, (0, count*image_size[0]*2), (images_per_row*image_size[1] - 4, (count+1)*image_size[0]*2), box_color, 4)
         cv2.putText(canvas, "d={0}".format(str(dist)), (10, count*image_size[0]*2+60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
