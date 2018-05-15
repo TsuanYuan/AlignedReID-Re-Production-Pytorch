@@ -39,7 +39,7 @@ def partition_subsequences(feature_list, descriptor_files, min_size):
 def load_person_id_descriptors(person_folder, ext):
     desc_files = glob.glob(os.path.join(person_folder, '*.'+ext))
     # load all descriptors
-    descriptors = [numpy.fromfile(desc_file) for desc_file in desc_files]
+    descriptors = [numpy.fromfile(desc_file, dtype=numpy.float32) for desc_file in desc_files]
     return descriptors, desc_files
 
 
@@ -60,10 +60,11 @@ def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='mi
 
 def compute_distance_matrix(feature_seq_list, aggregation_type):
     n = len(feature_seq_list)
-    dist_matrix = numpy.ones((n,n))
+    dist_matrix = numpy.zeros((n,n))
     for i in range(n):
         for j in range(n):
-            dist_matrix[i,j] = compute_sequence_matching(feature_seq_list[i], feature_seq_list[j], aggregation_type)
+            if i!=j:
+                dist_matrix[i,j] = compute_sequence_matching(feature_seq_list[i], feature_seq_list[j], aggregation_type)
 
     return dist_matrix
 
