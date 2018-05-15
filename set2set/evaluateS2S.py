@@ -84,7 +84,7 @@ def report_AUC95(same_distances, diff_distances):
     tpr005 = tpr[0:idx]
     auc95 = sklearn.metrics.auc(fpr005, tpr005)/fp_th
 
-    return auc95, thresholds[idx]
+    return auc95, 1-thresholds[idx]
 
 
 def dump_error_results(file_list, distances, id_pairs, output_path):
