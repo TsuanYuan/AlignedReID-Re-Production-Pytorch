@@ -18,7 +18,7 @@ mlog.setLevel(level)
 def partition_subsequences(feature_list, descriptor_files, min_size):
     n = len(feature_list)
     if n < min_size*2:
-        return None
+        return None, None
     seq_ends = [min_size, min_size*3, min_size*6, min_size*10, min_size*15, min_size*21, min_size*28]  # e.g. when min_size=4, lengths are 4, 8, 12, 16 and the rest
     feature_seq_list = []
     file_list = []
@@ -158,6 +158,8 @@ def process(data_folder, ext, min_seq_size, aggregation_type):
             person_id = int(sub_folder)
             descriptors, desc_files = load_person_id_descriptors(os.path.join(data_folder,sub_folder), ext)
             feature_seqs, file_seqs = partition_subsequences(descriptors, desc_files, min_seq_size)
+            if feature_seqs is None:
+                continue
             person_id_seqs = [person_id]*len(feature_seqs)
             feature_seq_list += feature_seqs
             file_seq_list += file_seqs
