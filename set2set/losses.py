@@ -7,6 +7,7 @@ Quan Yuan
 import torch
 from torch import nn
 from torch.nn import functional
+import numpy
 
 """
 Shorthands for loss:
@@ -62,6 +63,58 @@ def euclidean_distances(x, y=None):
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
+def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
+
+    # weighted feature
+    weight_size = list(weight.size())
+    feature_size = list(feature.size())
+    weight_fold = weight.view(weight_size[0], -1, seq_size)
+    assert numpy.all(weight_fold.data.numpy() > 0)
+    weight_size = list(weight_fold.size())
+
+    weight_expand = weight_fold.unsqueeze(3).expand(weight_size[0], weight_size[1], weight_size[2], feature_size[2])
+    feature_fold = feature.view((feature_size[0], -1, seq_size, feature_size[2]))
+    # assert unit length
+    # t = torch.pow(feature_fold, 2).sum(3)
+    # assert torch.abs(t-1.0) < 0.01
+    feature_expand_seq = feature_fold * weight_expand
+
+    num_feature_per_id = list(feature_expand_seq.size())[1]
+    summed_feature_seq = feature_expand_seq.sum(2).squeeze()  # weighted sum
+    summed_feature = summed_feature_seq.view((-1, feature_size[2]))  # unfold to [n*m, 255]
+    summed_feature_normalize = functional.normalize(summed_feature, p=2, dim=1)  # normalized after weighted sum
+    pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1)  # unfold to [n*m]
+
+    N = pid_expand.size()[0]  # number of weighted features
+    is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t())
+    is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
+    dist_mat = euclidean_distances(summed_feature_normalize)
+
+    # `dist_ap` means distance of same pairs
+    dist_ap = torch.max(
+        dist_mat[is_pos].contiguous())
+    # `dist_an` means distance of diff pairs
+    dist_an = torch.min(
+        dist_mat[is_neg].contiguous())
+    loss = dist_an + margin - dist_ap
+    return loss
+
+
+def element_loss_func(feature, pids, margin):
+    N = pids.size()[0]  # number of weighted features
+    is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
+    is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
+    dist_mat = euclidean_distances(feature)
+    # `dist_ap` means distance of same pairs
+    dist_ap = torch.max(
+        dist_mat[is_pos].contiguous())
+    # `dist_an` means distance of diff pairs
+    dist_an = torch.min(
+        dist_mat[is_neg].contiguous())
+    loss = dist_an + margin - dist_ap
+    return loss
+
+
 class WeightedAverageLoss(nn.Module):
     """Weighted avearge loss.
     assume the last element of the feature is a weight vector
@@ -73,40 +126,13 @@ class WeightedAverageLoss(nn.Module):
 
 
     def forward(self, x, pids, margin=0.1):
-        feature = x[:,:,:-1].contiguous()
-        weight = x[:,:, -1].contiguous()
-        # weighted feature
+        feature = x[:, :, :-1].contiguous()
+        weight = x[:, :, -1].contiguous()
+        # sequence reID loss
+        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, margin)
+        # element reID loss
         weight_size = list(weight.size())
-        feature_size = list(feature.size())
-        weight_fold = weight.view(weight_size[0],-1, self.seq_size)
-        weight_size = list(weight_fold.size())
-        weight_fold = functional.softmax(weight_fold, 2)
-        weight_expand = weight_fold.unsqueeze(3).expand(weight_size[0],weight_size[1],weight_size[2], feature_size[2])
-        feature_fold = feature.view((feature_size[0],-1, self.seq_size, feature_size[2]))
-        # assert unit length
-        # t = torch.pow(feature_fold, 2).sum(3)
-        # assert torch.abs(t-1.0) < 0.01
-        feature_expand_seq = feature_fold * weight_expand
-
-        num_feature_per_id = list(feature_expand_seq.size())[1]
-        summed_feature_seq = feature_expand_seq.sum(2).squeeze() # weighted sum
-        summed_feature = summed_feature_seq.view((-1, feature_size[2])) # unfold to [n*m, 255]
-        summed_feature_normalize = functional.normalize(summed_feature, p=2, dim=1) # normalized after weighted sum
-        pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1) # unfold to [n*m]
-
-        N = pid_expand.size()[0]  # number of weighted features
-        is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t())
-        is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
-        dist_mat = euclidean_distances(summed_feature_normalize)
-
-        # `dist_ap` means distance(anchor, positive)
-        # both `dist_ap` and `relative_p_inds` with shape [N, 1]
-        dist_ap = torch.max(
-            dist_mat[is_pos].contiguous())
-        # `dist_an` means distance(anchor, negative)
-        # both `dist_an` and `relative_n_inds` with shape [N, 1]
-        dist_an = torch.min(
-            dist_mat[is_neg].contiguous())
-        # shape [N]
-        loss = dist_an+margin-dist_ap
-        return loss
+        pids_expand = pids.expand(weight_size).contiguous().view(-1)
+        feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
+        element_loss = element_loss_func(feature_expand, pids_expand, margin)
+        return seq_loss+element_loss

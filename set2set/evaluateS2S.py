@@ -6,6 +6,7 @@ Quan Yuan
 import os, glob
 import numpy
 import sklearn.metrics
+import sklearn.preprocessing
 import logging
 import argparse
 import cv2
@@ -42,6 +43,25 @@ def load_person_id_descriptors(person_folder, ext):
     descriptors = [numpy.fromfile(desc_file, dtype=numpy.float32) for desc_file in desc_files]
     return descriptors, desc_files
 
+def softmax(x, theta=1.0):
+    ps = numpy.exp(x * theta)
+    ps /= numpy.sum(ps+1e-8)
+    return ps
+
+def compute_seq_distance(desc_w1, desc_w2):
+    # assume the weight at the end of a desciptor
+    w1 = desc_w1[:, -1]
+    w1 = softmax(w1)
+    desc1 = desc_w1[:, :-1]
+    w2 = desc_w2[:, -1]
+    w2 = softmax(w2)
+    desc2 = desc_w2[:,:-1]
+    desc_ws1 = numpy.dot(w1, desc1) #numpy.sum(desc1*numpy.expand_dims(w1, 1), axis=0)
+    desc_ws1 = sklearn.preprocessing.normalize(desc_ws1)
+    desc_ws2 = numpy.dot(w2, desc2)
+    desc_ws2 = sklearn.preprocessing.normalize(desc_ws2)
+    d = 1-numpy.dot(desc_ws1,desc_ws2)
+    return d
 
 def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='min'):
     desc1 = numpy.array(descriptors_1)
@@ -54,6 +74,9 @@ def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='mi
             return numpy.percentile(dist_matrix, 10)
         else:
             raise Exception('undefined matching option for crops!')
+    elif aggregation_type == 'seq':
+        # assume the last element is a weight
+        return compute_seq_distance(desc1, desc2)
     else:
         raise Exception('undefined matching method!')
 

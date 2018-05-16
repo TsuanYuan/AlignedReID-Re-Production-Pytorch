@@ -48,8 +48,10 @@ class WeightedReIDFeatureModel(nn.Module):
     def forward(self, x):
         feat = self.base(x)
         global_feat = torch.squeeze(F.avg_pool2d(feat, feat.size()[2:]))
+        if len(list(global_feat.size())) == 1:
+            global_feat = global_feat.unsqueeze(0)
         condensed_feat = self.fc(global_feat)
         feat = F.normalize(condensed_feat, p=2, dim=1)
-        quality_weight_fc = self.quality_weight_fc(global_feat)  # quality measure of the feature
+        quality_weight_fc = torch.exp(self.quality_weight_fc(global_feat))  # quality measure of the feature
         condensed_feat_with_quality = torch.cat((feat, quality_weight_fc),1)
         return condensed_feat_with_quality

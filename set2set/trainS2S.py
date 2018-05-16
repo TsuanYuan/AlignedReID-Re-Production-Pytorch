@@ -56,7 +56,11 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms, sample_size=sample_size)
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
-    if torch.cuda.is_available() and gpu_id>=0:
+
+    if not torch.cuda.is_available():
+        gpu_id = -1
+
+    if gpu_id>=0:
         model = Model.WeightedReIDFeatureModel().cuda(device=gpu_id)
     else:
         model = Model.WeightedReIDFeatureModel()
@@ -78,9 +82,13 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
             person_ids = sample_batched['person_id']
             actual_size = list(images.size()) #
             images = images.view([actual_size[0]*sample_size,3,256,128])
-            outputs = model(Variable(images.cuda(device=gpu_id)))
+            if gpu_id >= 0:
+                outputs = model(Variable(images.cuda(device=gpu_id)))
+                person_ids.cuda(device=gpu_id)
+            else:
+                outputs = model(Variable(images))
             outputs = outputs.view([actual_size[0], sample_size, -1])
-            loss = loss_function(outputs, person_ids.cuda(device=gpu_id))
+            loss = loss_function(outputs, person_ids)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
