@@ -6,6 +6,7 @@ Quan Yuan
 import torch.utils.data, torch.optim
 from DataLoader import ReIDAppearanceSet2SetDataset
 import argparse
+import os
 
 from torchvision import transforms
 import transforms_reid, Model
@@ -43,7 +44,7 @@ def train(epoch, model, criterion, optimizer, trainloader, use_gpu):
                 epoch+1, args.max_epoch, batch_idx+1, len(trainloader), losses.val, losses.avg
             ))
 
-def main(data_folder, sample_size, batch_size, seq_size, use_gpu=-1):
+def main(data_folder, model_folder, sample_size, batch_size, seq_size, use_gpu=-1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -59,6 +60,12 @@ def main(data_folder, sample_size, batch_size, seq_size, use_gpu=-1):
         model = Model.WeightedReIDFeatureModel().cuda(device=use_gpu)
     else:
         model = Model.WeightedReIDFeatureModel()
+    if not os.path.isdir(model_folder):
+        os.makedirs(model_folder)
+    else:
+        print('model folder {0} already exist, will overwrite it.'.format(model_folder))
+    model_file = os.path.join(model_folder, 'model.ckpt')
+    print('model path is {0}'.format(model_file))
 
     loss_function = losses.WeightedAverageLoss(seq_size=seq_size)
 
@@ -78,20 +85,23 @@ def main(data_folder, sample_size, batch_size, seq_size, use_gpu=-1):
             loss.backward()
             optimizer.step()
             average_meter.update(loss.data.numpy(), person_ids.size(0))
-            log_str = "epoch={0}, iter={1}, train_margin={2}".format(str(epoch), str(i_batch), str(average_meter.val))
-            print(log_str)
+            if (i_batch+1)%2==0:
+                log_str = "epoch={0}, iter={1}, train_margin={2}".format(str(epoch), str(i_batch), str(average_meter.val))
+                print(log_str)
+                torch.save(model, model_file)
+    print('model saved to {0}'.format(model_file))
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
+    parser.add_argument('model_folder', type=str, help="folder to save the model")
     parser.add_argument('--sample_size', type=int, default=32, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=8, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--seq_size', type=int, default=4, help="num images in a sequence, will folder sample_size by seq_size")
-
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
     print('  sample_size={0}, batch_size={1}, seq_size={2}'.format(str(args.sample_size), str(args.batch_size), str(args.seq_size)))
-    main(args.data_folder, args.sample_size, args.batch_size, args.seq_size, use_gpu=args.gpu_id)
+    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size, use_gpu=args.gpu_id)
