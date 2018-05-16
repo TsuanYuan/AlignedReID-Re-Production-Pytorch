@@ -80,11 +80,11 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
             images = images.view([actual_size[0]*sample_size,3,256,128])
             outputs = model(Variable(images.cuda(device=gpu_id)))
             outputs = outputs.view([actual_size[0], sample_size, -1])
-            loss = loss_function(outputs, person_ids)
+            loss = loss_function(outputs, person_ids.cuda(device=gpu_id))
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            average_meter.update(loss.data.numpy(), person_ids.size(0))
+            average_meter.update(loss.data.numpy(), person_ids.cpu().size(0))
             if (i_batch+1)%2==0:
                 log_str = "epoch={0}, iter={1}, train_margin={2}".format(str(epoch), str(i_batch), str(average_meter.val))
                 print(log_str)
