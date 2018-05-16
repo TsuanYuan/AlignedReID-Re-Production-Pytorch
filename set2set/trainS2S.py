@@ -43,7 +43,7 @@ def train(epoch, model, criterion, optimizer, trainloader, use_gpu):
                 epoch+1, args.max_epoch, batch_idx+1, len(trainloader), losses.val, losses.avg
             ))
 
-def main(data_folder):
+def main(data_folder, sample_size, batch_size, seq_size, use_gpu=-1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -52,33 +52,46 @@ def main(data_folder):
                                               transforms_reid.RandomCrop((256,128)),
                                               transforms_reid.ToTensor(),
                                              ])
-
-    sample_size = 8
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms, sample_size=sample_size)
-    batch_size = 4
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
-                            shuffle=True, num_workers=4)
-    use_gpu = True
-    loss_function = losses.WeightedAverageLoss()
-    model = Model.WeightedReIDFeatureModel()
+                            shuffle=True, num_workers=8)
+    if torch.cuda.is_available() and use_gpu>=0:
+        model = Model.WeightedReIDFeatureModel().cuda(device=use_gpu)
+    else:
+        model = Model.WeightedReIDFeatureModel()
+
+    loss_function = losses.WeightedAverageLoss(seq_size=seq_size)
 
     optimizer = init_optim('adam', model.parameters(), lr=0.001, weight_decay=5e-04)
     average_meter = utils.AverageMeter()
-    for i_batch, sample_batched in enumerate(dataloader):
-        images = sample_batched['images']
-        person_ids = sample_batched['person_id']
-        images = images.view([batch_size*sample_size,3,256,128])
-        outputs = model(Variable(images))
-        outputs = outputs.view([batch_size, sample_size, -1])
-        loss = loss_function(outputs, person_ids)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        average_meter.update(loss.item(), person_ids.size(0))
+    num_epochs = 100
+    for epoch in range(num_epochs):
+        for i_batch, sample_batched in enumerate(dataloader):
+            images = sample_batched['images']
+            person_ids = sample_batched['person_id']
+            actual_size = list(images.size()) #
+            images = images.view([actual_size[0]*sample_size,3,256,128])
+            outputs = model(Variable(images))
+            outputs = outputs.view([actual_size[0], sample_size, -1])
+            loss = loss_function(outputs, person_ids)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            average_meter.update(loss.data.numpy(), person_ids.size(0))
+            log_str = "epoch={0}, iter={1}, train_margin={2}".format(str(epoch), str(i_batch), str(average_meter.val))
+            print(log_str)
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
+    parser.add_argument('--sample_size', type=int, default=32, help="total number of images of each ID in a sample")
+    parser.add_argument('--batch_size', type=int, default=8, help="num samples in a mini-batch, each sample is a sequence of images")
+    parser.add_argument('--seq_size', type=int, default=4, help="num images in a sequence, will folder sample_size by seq_size")
+
+    parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     args = parser.parse_args()
-    main(args.data_folder)
+    print('training_parameters:')
+    print('  data_folder={0}'.format(args.data_folder))
+    print('  sample_size={0}, batch_size={1}, seq_size={2}'.format(str(args.sample_size), str(args.batch_size), str(args.seq_size)))
+    main(args.data_folder, args.sample_size, args.batch_size, args.seq_size, use_gpu=args.gpu_id)

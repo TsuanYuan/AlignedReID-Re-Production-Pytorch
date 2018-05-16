@@ -32,7 +32,7 @@ class ReIDAppearanceSet2SetDataset(Dataset):
                 if len(jpgs) >= sample_size:
                     self.person_id_im_paths[person_id] = jpgs
                 else:
-                    warnings.showwarning('skipped person id = {0} for the size is smaller than the sample_size={1}'.format(str(person_id), str(sample_size)))
+                    print('skipped person id = {0} for the size {1} is smaller than the sample_size={2}'.format(str(person_id), str(len(jpgs)), str(sample_size)))
 
         self.transform = transform
         self.sample_size = sample_size
