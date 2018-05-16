@@ -96,7 +96,7 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
     # `dist_an` means distance of diff pairs
     dist_an = torch.min(
         dist_mat[is_neg].contiguous())
-    loss = dist_an + margin - dist_ap
+    loss = dist_ap + margin - dist_an
     return loss
 
 
@@ -111,7 +111,7 @@ def element_loss_func(feature, pids, margin):
     # `dist_an` means distance of diff pairs
     dist_an = torch.min(
         dist_mat[is_neg].contiguous())
-    loss = dist_an + margin - dist_ap
+    loss = dist_ap + margin - dist_an
     return loss
 
 
