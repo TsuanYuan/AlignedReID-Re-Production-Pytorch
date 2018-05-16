@@ -44,7 +44,7 @@ def train(epoch, model, criterion, optimizer, trainloader, use_gpu):
                 epoch+1, args.max_epoch, batch_idx+1, len(trainloader), losses.val, losses.avg
             ))
 
-def main(data_folder, model_folder, sample_size, batch_size, seq_size, use_gpu=-1):
+def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -56,8 +56,8 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, use_gpu=-
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms, sample_size=sample_size)
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
-    if torch.cuda.is_available() and use_gpu>=0:
-        model = Model.WeightedReIDFeatureModel().cuda(device=use_gpu)
+    if torch.cuda.is_available() and gpu_id>=0:
+        model = Model.WeightedReIDFeatureModel().cuda(device=gpu_id)
     else:
         model = Model.WeightedReIDFeatureModel()
     if not os.path.isdir(model_folder):
@@ -78,7 +78,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, use_gpu=-
             person_ids = sample_batched['person_id']
             actual_size = list(images.size()) #
             images = images.view([actual_size[0]*sample_size,3,256,128])
-            outputs = model(Variable(images))
+            outputs = model(Variable(images.cuda(device=gpu_id)))
             outputs = outputs.view([actual_size[0], sample_size, -1])
             loss = loss_function(outputs, person_ids)
             optimizer.zero_grad()
@@ -104,4 +104,5 @@ if __name__ == '__main__':
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
     print('  sample_size={0}, batch_size={1}, seq_size={2}'.format(str(args.sample_size), str(args.batch_size), str(args.seq_size)))
-    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size, use_gpu=args.gpu_id)
+    torch.backends.cudnn.benchmark = False
+    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size, gpu_id=args.gpu_id)
