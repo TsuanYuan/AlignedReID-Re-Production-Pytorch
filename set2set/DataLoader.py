@@ -34,7 +34,7 @@ class ReIDAppearanceSet2SetDataset(Dataset):
                     self.person_id_im_paths[person_id] = jpgs
                 else:
                     skip_count+=1
-        print('skipped {0} sets for the size are smaller than the sample_size={1}'.format(str(skip_count), str(sample_size)))
+        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(sample_size)))
 
         self.transform = transform
         self.sample_size = sample_size
