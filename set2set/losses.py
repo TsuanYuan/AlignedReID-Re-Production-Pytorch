@@ -69,7 +69,7 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
     weight_size = list(weight.size())
     feature_size = list(feature.size())
     weight_fold = weight.view(weight_size[0], -1, seq_size)
-    assert numpy.all(weight_fold.data.numpy() > 0)
+    #assert numpy.all(weight_fold.data.numpy() > 0)
     weight_size = list(weight_fold.size())
 
     weight_expand = weight_fold.unsqueeze(3).expand(weight_size[0], weight_size[1], weight_size[2], feature_size[2])
