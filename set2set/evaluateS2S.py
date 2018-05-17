@@ -57,10 +57,10 @@ def compute_seq_distance(desc_w1, desc_w2):
     w2 = softmax(w2)
     desc2 = desc_w2[:,:-1]
     desc_ws1 = numpy.dot(w1, desc1) #numpy.sum(desc1*numpy.expand_dims(w1, 1), axis=0)
-    desc_ws1 = sklearn.preprocessing.normalize(desc_ws1)
+    desc_ws1 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws1, axis=0))
     desc_ws2 = numpy.dot(w2, desc2)
-    desc_ws2 = sklearn.preprocessing.normalize(desc_ws2)
-    d = 1-numpy.dot(desc_ws1,desc_ws2)
+    desc_ws2 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws2, axis=0))
+    d = 1-numpy.dot(numpy.squeeze(desc_ws1),numpy.squeeze(desc_ws2))
     return d
 
 def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='min'):
