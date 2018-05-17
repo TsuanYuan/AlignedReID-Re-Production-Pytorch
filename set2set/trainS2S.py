@@ -4,6 +4,7 @@ Quan Yuan
 2018-05-15
 """
 import torch.utils.data, torch.optim
+import torch.backends.cudnn
 from DataLoader import ReIDAppearanceSet2SetDataset
 import argparse
 import os
@@ -24,7 +25,7 @@ def init_optim(optim, params, lr, weight_decay):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1, margin=0.1):
+def main(data_folder, model_folder, sample_size, batch_size, seq_size, num_epochs=200, gpu_id=-1, margin=0.1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -57,7 +58,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
     optimizer = init_optim('adam', model.parameters(), lr=0.001, weight_decay=5e-04)
     average_meter = utils.AverageMeter()
     pdist = torch.nn.PairwiseDistance(p=2)
-    num_epochs = 200
+
     for epoch in range(num_epochs):
         for i_batch, sample_batched in enumerate(dataloader):
             images_5d = sample_batched['images']
@@ -83,11 +84,13 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
                 print('    last_feature={0}'.format(str(outputs[-1,-1,0:6].data.cpu().numpy())))
                 pd = pdist(outputs[0,0,:-1].squeeze().unsqueeze(0), outputs[-1,-1,:-1].squeeze().unsqueeze(0))
                 print('    distance between ={0}'.format(str(pd.data.cpu().numpy())))
+                if (epoch+1) %(num_epochs/4)==0:
+                    torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
                 torch.save(model, model_file)
     print('model saved to {0}'.format(model_file))
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
     parser.add_argument('model_folder', type=str, help="folder to save the model")
@@ -96,10 +99,12 @@ if __name__ == '__main__':
     parser.add_argument('--seq_size', type=int, default=4, help="num images in a sequence, will folder sample_size by seq_size")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
+    parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
     print('  sample_size={0}, batch_size={1}, seq_size={2}, margin={3}'.
           format(str(args.sample_size), str(args.batch_size), str(args.seq_size), str(args.margin)))
     torch.backends.cudnn.benchmark = False
-    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size, gpu_id=args.gpu_id, margin=args.margin)
+    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
+         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch)
