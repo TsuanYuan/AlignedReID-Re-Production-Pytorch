@@ -72,7 +72,10 @@ def process(model_path, folder, device, force_compute_desc, ext, debug):
     # if torch.has_cudnn:
     #     model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
     # else:
-    model = torch.load(model_path, map_location = lambda storage, loc: storage)
+    if device >=0:
+        model = torch.load(model_path, map_location='cuda:{0}'.format(device))
+    else:
+        model = torch.load(model_path, map_location = lambda storage, loc: storage)
     get_descriptors(folder, model,force_compute=force_compute_desc, ext=ext, debug=debug)
 
 if __name__ == '__main__':
@@ -87,7 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('ext', type=str,
                         help='the ext to appearance descriptor file')
 
-    parser.add_argument('--device_id', type=int, default=0, required=False,
+    parser.add_argument('--device_id', type=int, default=-1, required=False,
                         help='the gpu id')
 
     parser.add_argument('--force_descriptor', action='store_true', default=False,
