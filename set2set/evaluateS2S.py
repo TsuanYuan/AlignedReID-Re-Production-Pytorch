@@ -63,7 +63,7 @@ def compute_seq_distance(desc_w1, desc_w2):
     d = 1-numpy.dot(numpy.squeeze(desc_ws1),numpy.squeeze(desc_ws2))
     return d
 
-def compaute_seq_distance_options(desc_w1, desc_w2, option='average'):
+def compute_seq_distance_options(desc_w1, desc_w2, option='average'):
     w1 = desc_w1[:, -1]
     # w1 = softmax(w1)
     w1 /= numpy.sum(w1+1e-8)
@@ -104,10 +104,10 @@ def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='mi
         else:
             raise Exception('undefined matching option for crops!')
     elif aggregation_type == 'average':
-        return compaute_seq_distance_options(desc1, desc2) # sklearn.metrics.pairwise_distances(numpy.expand_dims(m1,axis=0), numpy.expand_dims(m2,axis=0), metric="euclidean")
+        return compute_seq_distance_options(desc1, desc2) # sklearn.metrics.pairwise_distances(numpy.expand_dims(m1,axis=0), numpy.expand_dims(m2,axis=0), metric="euclidean")
     elif aggregation_type == 'seq':
         # assume the last element is a weight
-        return compaute_seq_distance_options(desc1, desc2, option='seq')
+        return compute_seq_distance_options(desc1, desc2, option='seq')
     else:
         raise Exception('undefined matching method!')
 

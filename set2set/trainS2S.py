@@ -25,7 +25,8 @@ def init_optim(optim, params, lr, weight_decay):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def main(data_folder, model_folder, sample_size, batch_size, seq_size, num_epochs=200, gpu_id=-1, margin=0.1):
+def main(data_folder, model_folder, sample_size, batch_size, seq_size,
+         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18'):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -43,7 +44,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, num_epoch
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDFeatureModel().cuda(device=gpu_id)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model).cuda(device=gpu_id)
     else:
         model = Model.WeightedReIDFeatureModel()
     if not os.path.isdir(model_folder):
@@ -100,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
+    parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
@@ -107,4 +109,4 @@ if __name__ == '__main__':
           format(str(args.sample_size), str(args.batch_size), str(args.seq_size), str(args.margin)))
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
-         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch)
+         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model)
