@@ -63,6 +63,35 @@ def compute_seq_distance(desc_w1, desc_w2):
     d = 1-numpy.dot(numpy.squeeze(desc_ws1),numpy.squeeze(desc_ws2))
     return d
 
+def compaute_seq_distance_options(desc_w1, desc_w2, option='average'):
+    w1 = desc_w1[:, -1]
+    # w1 = softmax(w1)
+    w1 /= numpy.sum(w1+1e-8)
+    desc1 = desc_w1[:, :-1]
+    w2 = desc_w2[:, -1]
+    w2 /= numpy.sum(w2+1e-8)
+    # w2 = softmax(w2)
+    desc2 = desc_w2[:, :-1]
+    if option=='average':
+        return compaute_average_seq_distance(desc1, desc2)
+    else:
+        desc_ws1 = numpy.mean(desc1*numpy.expand_dims(w1, 1), axis=0)
+        desc_ws1 /= numpy.sqrt(numpy.sum(desc_ws1 ** 2))
+        #desc_ws1 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws1, axis=0))
+        desc_ws2 = numpy.mean(desc1*numpy.expand_dims(w1, 1), axis=0)
+        desc_ws2 /= numpy.sqrt(numpy.sum(desc_ws2 ** 2))
+        #desc_ws2 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws2, axis=0))
+        d = 1 - numpy.dot(desc_ws1.astype(float), desc_ws2.astype(float))
+    return d
+
+def compaute_average_seq_distance(desc1, desc2):
+    m1 = numpy.mean(desc1, axis=0)
+    m2 = numpy.mean(desc2, axis=0)
+    m1 = m1 / numpy.sqrt(numpy.sum(m1 ** 2))
+    m2 = m2 / numpy.sqrt(numpy.sum(m2 ** 2))
+    d = 1 - numpy.dot(m1.astype(float), m2.astype(float))
+    return d
+
 def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='min'):
     desc1 = numpy.array(descriptors_1)
     desc2 = numpy.array(descriptors_2)
@@ -75,15 +104,10 @@ def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='mi
         else:
             raise Exception('undefined matching option for crops!')
     elif aggregation_type == 'average':
-        m1 = numpy.mean(desc1,axis=0)
-        m2 = numpy.mean(desc2,axis=0)
-        m1 = m1/numpy.sqrt(numpy.sum(m1**2))
-        m2 = m2/numpy.sqrt(numpy.sum(m2**2))
-        d = 1-numpy.dot(m1.astype(float),m2.astype(float))
-        return d # sklearn.metrics.pairwise_distances(numpy.expand_dims(m1,axis=0), numpy.expand_dims(m2,axis=0), metric="euclidean")
+        return compaute_seq_distance_options(desc1, desc2) # sklearn.metrics.pairwise_distances(numpy.expand_dims(m1,axis=0), numpy.expand_dims(m2,axis=0), metric="euclidean")
     elif aggregation_type == 'seq':
         # assume the last element is a weight
-        return compute_seq_distance(desc1, desc2)
+        return compaute_seq_distance_options(desc1, desc2, option='seq')
     else:
         raise Exception('undefined matching method!')
 
