@@ -38,7 +38,7 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=MAX_COUNT_PER_
                     descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
                 else:
                     descriptor_var = model(Variable(torch.from_numpy(imt).float()))
-                descriptor = descriptor_var.data.numpy()
+                descriptor = descriptor_var.data.cpu().numpy()
                 descriptor.tofile(descriptor_file)
                 # only for debug
                 if debug:
