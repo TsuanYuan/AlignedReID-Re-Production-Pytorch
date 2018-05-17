@@ -51,10 +51,10 @@ def softmax(x, theta=1.0):
 def compute_seq_distance(desc_w1, desc_w2):
     # assume the weight at the end of a desciptor
     w1 = desc_w1[:, -1]
-    w1 = softmax(w1)
+    #w1 = softmax(w1)
     desc1 = desc_w1[:, :-1]
     w2 = desc_w2[:, -1]
-    w2 = softmax(w2)
+    #w2 = softmax(w2)
     desc2 = desc_w2[:,:-1]
     desc_ws1 = numpy.dot(w1, desc1) #numpy.sum(desc1*numpy.expand_dims(w1, 1), axis=0)
     desc_ws1 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws1, axis=0))
