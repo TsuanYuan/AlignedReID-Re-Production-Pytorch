@@ -167,4 +167,4 @@ class WeightedAverageLoss(nn.Module):
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
         element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
 
-        return element_loss
+        return element_loss[0]+seq_loss[0], element_loss[1]+seq_loss[1], element_loss[2]+seq_loss[2]
