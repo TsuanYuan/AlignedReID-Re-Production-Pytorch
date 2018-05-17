@@ -87,6 +87,9 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
 
     N = pid_expand.size()[0]  # number of weighted features
     diag_one = torch.eye(N).type(torch.ByteTensor)
+    if torch.has_cudnn:
+        diag_one.cuda()
+
     is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t()) - diag_one
     is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
     dist_mat = euclidean_distances(summed_feature_normalize)
