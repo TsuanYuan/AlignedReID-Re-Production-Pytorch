@@ -77,8 +77,9 @@ def pair_loss_func(feature, pids, margin):
     dist_pos = dist_pos.view(-1, 1)
     dist_neg = dist_neg.view(1, -1)
     loss_mat = dist_pos + margin - dist_neg
-    loss = torch.sum(loss_mat[loss_mat.gt(0).detach()])
-    return loss
+    loss_ids = loss_mat.gt(0).detach()
+    loss = torch.sum(loss_mat[loss_ids])
+    return loss, torch.mean(dist_pos), torch.mean(dist_neg)
 
 def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
 
@@ -153,16 +154,17 @@ class WeightedAverageLoss(nn.Module):
         super(WeightedAverageLoss, self).__init__()
         self.seq_size = seq_size
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+        self.margin = margin
 
-
-    def forward(self, x, pids, margin=0.1):
+    def forward(self, x, pids):
         feature = x[:, :, :-1].contiguous()
         weight = x[:, :, -1].contiguous()
         # sequence reID loss
-        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, margin)
+        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, self.margin)
         # element reID loss
         weight_size = list(weight.size())
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, margin)
-        return seq_loss+element_loss
+        element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
+
+        return element_loss
