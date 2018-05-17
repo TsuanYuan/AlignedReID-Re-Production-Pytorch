@@ -42,7 +42,7 @@ class Rescale(object):
 
             new_h, new_w = int(new_h), int(new_w)
 
-            img = transform.resize(image, (new_h, new_w), mode='constant')
+            img = transform.resize(image, (new_h, new_w), mode='constant', preserve_range=True)
             images_scaled.append(img)
 
         return images_scaled #{'images': images_scaled, 'person_id': person_id}
@@ -79,6 +79,23 @@ class RandomCrop(object):
                           left: left + new_w]
             images_cropped.append(image)
         return images_cropped #{'images': images_cropped, 'person_id': person_id}
+
+
+class PixelNormalize(object):
+    """normalize pixel value to [-1, 1] by substract 128 then divid by 255.
+"""
+
+    def __init__(self):
+        pass
+
+    def __call__(self, sample):
+        # images, person_id = sample['images'], sample['person_id']
+        images = sample
+        images_cropped = []
+        for image in images:
+            image = (image-128.0)/255
+            images_cropped.append(image)
+        return images_cropped  # {'images': images_cropped, 'person_id': person_id}
 
 
 class ToTensor(object):

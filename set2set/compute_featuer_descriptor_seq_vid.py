@@ -32,6 +32,7 @@ def get_descriptors(top_folder,model, max_count_per_id=MAX_COUNT_PER_ID, force_c
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
                 im = cv2.resize(im, (128, 256))
                 imt = im.transpose(2, 0, 1)
+                imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
                 descriptor_var = model(Variable(torch.from_numpy(imt).float()))
                 descriptor = descriptor_var.data.numpy()
