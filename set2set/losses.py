@@ -63,7 +63,24 @@ def euclidean_distances(x, y=None):
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
-def weighted_seq_loss_func(feature, weight, pids, seq_size, ranking_loss):
+
+def pair_loss_func(feature, pids, margin):
+    N = pids.size()[0]  # number of weighted features
+
+    is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
+    diag_one = torch.diag(torch.ones_like(torch.sum(is_pos, 1)))
+    is_pos = is_pos - diag_one
+    is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
+    dist_mat = euclidean_distances(feature)
+    dist_pos = dist_mat[is_pos].contiguous()
+    dist_neg = dist_mat[is_neg].contiguous()
+    dist_pos = dist_pos.view(-1, 1)
+    dist_neg = dist_neg.view(1, -1)
+    loss_mat = dist_pos + margin - dist_neg
+    loss = torch.sum(loss_mat[loss_mat.gt(0).detach()])
+    return loss
+
+def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
 
     # weighted feature
     weight_size = list(weight.size())
@@ -85,44 +102,46 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, ranking_loss):
     summed_feature_normalize = functional.normalize(summed_feature, p=2, dim=1)  # normalized after weighted sum
     pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1)  # unfold to [n*m]
 
-    N = pid_expand.size()[0]  # number of weighted features
-    #diag_one = torch.eye(N).type(torch.ByteTensor)
-    #if torch.has_cudnn:
-    #    diag_one.cuda()
-    #torch.diag(torch.ones_like())
-    is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t()) 
-    diag_one = torch.diag(torch.ones_like(torch.sum(is_pos,1)))
-    is_pos = is_pos - diag_one
-    is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
-    dist_mat = euclidean_distances(summed_feature_normalize)
-
-    # `dist_ap` means distance of same pairs
-    dist_ap = torch.max(
-        dist_mat[is_pos].contiguous())
-    # `dist_an` means distance of diff pairs
-    dist_an = torch.min(
-        dist_mat[is_neg].contiguous())
-    #ranking_loss = nn.MarginRankingLoss(margin=margin)
-    loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
+    return pair_loss_func(summed_feature_normalize, pid_expand, margin)
+    # N = pid_expand.size()[0]  # number of weighted features
+    # #diag_one = torch.eye(N).type(torch.ByteTensor)
+    # #if torch.has_cudnn:
+    # #    diag_one.cuda()
+    # #torch.diag(torch.ones_like())
+    # is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t())
+    # diag_one = torch.diag(torch.ones_like(torch.sum(is_pos,1)))
+    # is_pos = is_pos - diag_one
+    # is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
+    # dist_mat = euclidean_distances(summed_feature_normalize)
+    #
+    # # `dist_ap` means distance of same pairs
+    # dist_ap = torch.max(
+    #     dist_mat[is_pos].contiguous())
+    # # `dist_an` means distance of diff pairs
+    # dist_an = torch.min(
+    #     dist_mat[is_neg].contiguous())
+    # #ranking_loss = nn.MarginRankingLoss(margin=margin)
+    # loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
     #loss = dist_ap + margin - dist_an
-    return loss
+    # return loss
 
 
-def element_loss_func(feature, pids, ranking_loss):
-    N = pids.size()[0]  # number of weighted features
-    is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
-    is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
-    dist_mat = euclidean_distances(feature)
-    # `dist_ap` means distance of same pairs
-    dist_ap = torch.max(
-        dist_mat[is_pos].contiguous())
-    # `dist_an` means distance of diff pairs
-    dist_an = torch.min(
-        dist_mat[is_neg].contiguous())
-    #ranking_loss = nn.MarginRankingLoss(margin=margin)
-    loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
+def element_loss_func(feature, pids, margin):
+    # N = pids.size()[0]  # number of weighted features
+    # is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
+    # is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
+    # dist_mat = euclidean_distances(feature)
+    # # `dist_ap` means distance of same pairs
+    # dist_ap = torch.max(
+    #     dist_mat[is_pos].contiguous())
+    # # `dist_an` means distance of diff pairs
+    # dist_an = torch.min(
+    #     dist_mat[is_neg].contiguous())
+    # #ranking_loss = nn.MarginRankingLoss(margin=margin)
+    # loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
     #loss = dist_ap + margin - dist_an
-    return loss
+
+    return pair_loss_func(feature, pids, margin)
 
 
 class WeightedAverageLoss(nn.Module):
@@ -140,10 +159,10 @@ class WeightedAverageLoss(nn.Module):
         feature = x[:, :, :-1].contiguous()
         weight = x[:, :, -1].contiguous()
         # sequence reID loss
-        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, self.ranking_loss)
+        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, margin)
         # element reID loss
         weight_size = list(weight.size())
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.ranking_loss)
+        element_loss = element_loss_func(feature_expand, pids_expand, margin)
         return seq_loss+element_loss
