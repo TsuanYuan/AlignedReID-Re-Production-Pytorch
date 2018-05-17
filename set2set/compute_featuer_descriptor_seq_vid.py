@@ -10,7 +10,7 @@ MAX_COUNT_PER_ID = -1
 MIN_LONG_TRACK_LENGTH = 5  # don't check tracks too short
 
 
-def get_descriptors(top_folder,model, max_count_per_id=MAX_COUNT_PER_ID, force_compute=False, ext='dsc', debug=False):
+def get_descriptors(top_folder,model, device_id, max_count_per_id=MAX_COUNT_PER_ID, force_compute=False, ext='dsc', debug=False):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
     if debug:
@@ -35,7 +35,7 @@ def get_descriptors(top_folder,model, max_count_per_id=MAX_COUNT_PER_ID, force_c
                 imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
                 if torch.has_cudnn:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda()))
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
                 else:
                     descriptor_var = model(Variable(torch.from_numpy(imt).float()))
                 descriptor = descriptor_var.data.numpy()
@@ -76,7 +76,7 @@ def process(model_path, folder, device, force_compute_desc, ext, debug):
         model = torch.load(model_path, map_location='cuda:{0}'.format(device))
     else:
         model = torch.load(model_path, map_location = lambda storage, loc: storage)
-    get_descriptors(folder, model,force_compute=force_compute_desc, ext=ext, debug=debug)
+    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

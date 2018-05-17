@@ -56,9 +56,6 @@ def euclidean_distances(x, y=None):
         y_norm = x_norm.view(1, -1)
 
     dist = x_norm + y_norm - 2.0 * torch.mm(x, y_t)
-    # Ensure diagonal is zero if x=y
-    # if y is None:
-    #     dist = dist - torch.diag(dist.diag)
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
@@ -102,44 +99,10 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
     pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1)  # unfold to [n*m]
 
     return pair_loss_func(summed_feature_normalize, pid_expand, margin)
-    # N = pid_expand.size()[0]  # number of weighted features
-    # #diag_one = torch.eye(N).type(torch.ByteTensor)
-    # #if torch.has_cudnn:
-    # #    diag_one.cuda()
-    # #torch.diag(torch.ones_like())
-    # is_pos = pid_expand.expand(N, N).eq(pid_expand.expand(N, N).t())
-    # diag_one = torch.diag(torch.ones_like(torch.sum(is_pos,1)))
-    # is_pos = is_pos - diag_one
-    # is_neg = pid_expand.expand(N, N).ne(pid_expand.expand(N, N).t())
-    # dist_mat = euclidean_distances(summed_feature_normalize)
-    #
-    # # `dist_ap` means distance of same pairs
-    # dist_ap = torch.max(
-    #     dist_mat[is_pos].contiguous())
-    # # `dist_an` means distance of diff pairs
-    # dist_an = torch.min(
-    #     dist_mat[is_neg].contiguous())
-    # #ranking_loss = nn.MarginRankingLoss(margin=margin)
-    # loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
-    #loss = dist_ap + margin - dist_an
-    # return loss
+
 
 
 def element_loss_func(feature, pids, margin):
-    # N = pids.size()[0]  # number of weighted features
-    # is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
-    # is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
-    # dist_mat = euclidean_distances(feature)
-    # # `dist_ap` means distance of same pairs
-    # dist_ap = torch.max(
-    #     dist_mat[is_pos].contiguous())
-    # # `dist_an` means distance of diff pairs
-    # dist_an = torch.min(
-    #     dist_mat[is_neg].contiguous())
-    # #ranking_loss = nn.MarginRankingLoss(margin=margin)
-    # loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
-    #loss = dist_ap + margin - dist_an
-
     return pair_loss_func(feature, pids, margin)
 
 

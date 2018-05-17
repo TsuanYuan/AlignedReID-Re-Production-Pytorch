@@ -24,26 +24,6 @@ def init_optim(optim, params, lr, weight_decay):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-
-def train(epoch, model, criterion, optimizer, trainloader, use_gpu):
-    model.train()
-    losses = utils.AverageMeter()
-
-    for batch_idx, (imgs, pids, _) in enumerate(trainloader):
-        if use_gpu:
-            imgs, pids = imgs.cuda(), pids.cuda()
-        outputs = model(imgs)
-        loss = criterion(outputs, pids)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        losses.update(loss.item(), pids.size(0))
-
-        if (batch_idx+1) % args.print_freq == 0:
-            print("Epoch {}/{}\t Batch {}/{}\t Loss {:.6f} ({:.6f})".format(
-                epoch+1, args.max_epoch, batch_idx+1, len(trainloader), losses.val, losses.avg
-            ))
-
 def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1, margin=0.1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
