@@ -64,12 +64,12 @@ def distance(a,b):
     return d0
 
 
-def process(model_path, folder, device, force_compute_desc):
+def process(model_path, folder, device, force_compute_desc, ext, debug):
     # if torch.has_cudnn:
     #     model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
     # else:
     model = torch.load(model_path, map_location = lambda storage, loc: storage)
-    get_descriptors(folder, model,force_compute=force_compute_desc, ext=args.ext)
+    get_descriptors(folder, model,force_compute=force_compute_desc, ext=ext, debug=debug)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -89,7 +89,10 @@ if __name__ == '__main__':
     parser.add_argument('--force_descriptor', action='store_true', default=False,
                     help='whether to force computing descriptors')
 
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='whether save debug image crop with weights')
+
     args = parser.parse_args()
     print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     process(args.model_path, args.folder,
-            args.device_id, args.force_descriptor)
+            args.device_id, args.force_descriptor, args.ext, args.debug)
