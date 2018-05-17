@@ -63,7 +63,7 @@ def euclidean_distances(x, y=None):
     dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
     return dist
 
-def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
+def weighted_seq_loss_func(feature, weight, pids, seq_size, ranking_loss):
 
     # weighted feature
     weight_size = list(weight.size())
@@ -102,11 +102,13 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
     # `dist_an` means distance of diff pairs
     dist_an = torch.min(
         dist_mat[is_neg].contiguous())
-    loss = dist_ap + margin - dist_an
+    #ranking_loss = nn.MarginRankingLoss(margin=margin)
+    loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
+    #loss = dist_ap + margin - dist_an
     return loss
 
 
-def element_loss_func(feature, pids, margin):
+def element_loss_func(feature, pids, ranking_loss):
     N = pids.size()[0]  # number of weighted features
     is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
     is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
@@ -117,7 +119,9 @@ def element_loss_func(feature, pids, margin):
     # `dist_an` means distance of diff pairs
     dist_an = torch.min(
         dist_mat[is_neg].contiguous())
-    loss = dist_ap + margin - dist_an
+    #ranking_loss = nn.MarginRankingLoss(margin=margin)
+    loss = ranking_loss(dist_an, dist_ap, torch.ones_like(dist_ap))
+    #loss = dist_ap + margin - dist_an
     return loss
 
 
@@ -126,19 +130,20 @@ class WeightedAverageLoss(nn.Module):
     assume the last element of the feature is a weight vector
     """
 
-    def __init__(self, seq_size=4):
+    def __init__(self, margin, seq_size=4):
         super(WeightedAverageLoss, self).__init__()
         self.seq_size = seq_size
+        self.ranking_loss = nn.MarginRankingLoss(margin=margin)
 
 
     def forward(self, x, pids, margin=0.1):
         feature = x[:, :, :-1].contiguous()
         weight = x[:, :, -1].contiguous()
         # sequence reID loss
-        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, margin)
+        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, self.ranking_loss)
         # element reID loss
         weight_size = list(weight.size())
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, margin)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.ranking_loss)
         return seq_loss+element_loss

@@ -71,7 +71,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    loss_function = losses.WeightedAverageLoss(seq_size=seq_size)
+    loss_function = losses.WeightedAverageLoss(seq_size=seq_size, margin=0.1)
 
     optimizer = init_optim('adam', model.parameters(), lr=0.001, weight_decay=5e-04)
     average_meter = utils.AverageMeter()
