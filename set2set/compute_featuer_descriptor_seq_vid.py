@@ -65,10 +65,10 @@ def distance(a,b):
 
 
 def process(model_path, folder, device, force_compute_desc):
-    if torch.has_cudnn:
-        model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
-    else:
-        model = torch.load(model_path, map_location = lambda storage, loc: storage)
+    # if torch.has_cudnn:
+    #     model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
+    # else:
+    model = torch.load(model_path, map_location = lambda storage, loc: storage)
     get_descriptors(folder, model,force_compute=force_compute_desc, ext=args.ext)
 
 if __name__ == '__main__':
