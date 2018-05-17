@@ -34,7 +34,10 @@ def get_descriptors(top_folder,model, max_count_per_id=MAX_COUNT_PER_ID, force_c
                 imt = im.transpose(2, 0, 1)
                 imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
-                descriptor_var = model(Variable(torch.from_numpy(imt).float()))
+                if torch.has_cudnn:
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda()))
+                else:
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float()))
                 descriptor = descriptor_var.data.numpy()
                 descriptor.tofile(descriptor_file)
                 # only for debug

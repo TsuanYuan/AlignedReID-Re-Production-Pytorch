@@ -74,6 +74,13 @@ def compute_sequence_matching(descriptors_1, descriptors_2, aggregation_type='mi
             return numpy.percentile(dist_matrix, 10)
         else:
             raise Exception('undefined matching option for crops!')
+    elif aggregation_type == 'average':
+        m1 = numpy.mean(desc1,axis=0)
+        m2 = numpy.mean(desc2,axis=0)
+        m1 = m1/numpy.sqrt(numpy.sum(m1**2))
+        m2 = m2/numpy.sqrt(numpy.sum(m2**2))
+        d = 1-numpy.dot(m1.astype(float),m2.astype(float))
+        return d # sklearn.metrics.pairwise_distances(numpy.expand_dims(m1,axis=0), numpy.expand_dims(m2,axis=0), metric="euclidean")
     elif aggregation_type == 'seq':
         # assume the last element is a weight
         return compute_seq_distance(desc1, desc2)

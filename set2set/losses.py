@@ -7,7 +7,6 @@ Quan Yuan
 import torch
 from torch import nn
 from torch.nn import functional
-import numpy
 
 """
 Shorthands for loss:
@@ -66,7 +65,6 @@ def euclidean_distances(x, y=None):
 
 def pair_loss_func(feature, pids, margin):
     N = pids.size()[0]  # number of weighted features
-
     is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
     diag_one = torch.diag(torch.ones_like(torch.sum(is_pos, 1)))
     is_pos = is_pos - diag_one
