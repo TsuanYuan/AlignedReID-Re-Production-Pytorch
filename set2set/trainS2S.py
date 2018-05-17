@@ -76,7 +76,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
     optimizer = init_optim('adam', model.parameters(), lr=0.001, weight_decay=5e-04)
     average_meter = utils.AverageMeter()
     pdist = torch.nn.PairwiseDistance(p=2)
-    num_epochs = 100
+    num_epochs = 200
     for epoch in range(num_epochs):
         for i_batch, sample_batched in enumerate(dataloader):
             images_5d = sample_batched['images']
@@ -94,7 +94,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size, gpu_id=-1
             loss.backward()
             optimizer.step()
             average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
-            if (i_batch+1)%2==0:
+            if (i_batch+1)%20==0:
                 log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4}"\
                     .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()), str(dist_neg.data.cpu().numpy()))
                 print(log_str)
