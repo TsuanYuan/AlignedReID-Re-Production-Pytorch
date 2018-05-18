@@ -15,6 +15,42 @@ import utils
 import losses
 from torch.autograd import Variable
 
+
+def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
+    """Multiplied by a factor at the BEGINNING of specified epochs. All
+    parameters in the optimizer share the same learning rate.
+
+    Args:
+      optimizer: a pytorch `Optimizer` object
+      base_lr: starting learning rate
+      ep: current epoch, ep >= 1
+      decay_at_epochs: a list or tuple; learning rate is multiplied by a factor
+        at the BEGINNING of these epochs
+      factor: a number in range (0, 1)
+
+    Example:
+      base_lr = 1e-3
+      decay_at_epochs = [51, 101]
+      factor = 0.1
+      It means the learning rate starts at 1e-3 and is multiplied by 0.1 at the
+      BEGINNING of the 51'st epoch, and then further multiplied by 0.1 at the
+      BEGINNING of the 101'st epoch, then stays unchanged till the end of
+      training.
+
+    NOTE:
+      It is meant to be called at the BEGINNING of an epoch.
+    """
+    assert ep >= 1, "Current epoch number should be >= 1"
+
+    if ep not in decay_at_epochs:
+        return
+
+    ind = decay_at_epochs[ep]
+    for g in optimizer.param_groups:
+        g['lr'] = base_lr * factor ** (ind + 1)
+    print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
+
+
 def init_optim(optim, params, lr, weight_decay):
     if optim == 'adam':
         return torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
@@ -26,7 +62,8 @@ def init_optim(optim, params, lr, weight_decay):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 def main(data_folder, model_folder, sample_size, batch_size, seq_size,
-         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18'):
+         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18',
+         optimizer_name='adam', base_lr = 0.001, weight_decay=5e-04):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -54,18 +91,23 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
+    decay_at_epochs = {int(num_epochs/3):1, int(num_epochs/3*2):2}
+    staircase_decay_multiply_factor = 0.1
     loss_function = losses.WeightedAverageLoss(seq_size=seq_size, margin=margin)
 
-    optimizer = init_optim('adam', model.parameters(), lr=0.001, weight_decay=5e-04)
+    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     average_meter = utils.AverageMeter()
     pdist = torch.nn.PairwiseDistance(p=2)
 
     for epoch in range(num_epochs):
         for i_batch, sample_batched in enumerate(dataloader):
-            images_5d = sample_batched['images']
+            # stair case adjust learning rate
+            adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
+            # load batch data
+            images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             person_ids = sample_batched['person_id']
-            actual_size = list(images_5d.size()) #
-            images = images_5d.view([actual_size[0]*sample_size,3,256,128])
+            actual_size = list(images_5d.size())
+            images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
             optimizer.zero_grad()
             if gpu_id >= 0:
                 outputs = model(Variable(images.cuda(device=gpu_id)))
@@ -102,6 +144,7 @@ if __name__ == '__main__':
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
+    parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
@@ -109,4 +152,5 @@ if __name__ == '__main__':
           format(str(args.sample_size), str(args.batch_size), str(args.seq_size), str(args.margin)))
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
-         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model)
+         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
+         optimizer_name=args.optimizer)
