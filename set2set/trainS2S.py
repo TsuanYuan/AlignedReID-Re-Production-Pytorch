@@ -102,7 +102,8 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
     for epoch in range(num_epochs):
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
-            adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
+            if i_batch ==0:
+                adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             person_ids = sample_batched['person_id']
