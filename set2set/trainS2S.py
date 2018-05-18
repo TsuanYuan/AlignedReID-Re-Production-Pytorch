@@ -126,7 +126,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
             if (i_batch+1)%20==0:
                 if epoch == 0:
                     start_loss = loss.data.cpu().numpy()
-                if average_meter.avg < start_loss / batch_factor:
+                if average_meter.avg < start_loss / batch_factor/batch_factor/10:
                     dataloader = dataloader_more
                     print('###################################')
                     print('data loader now increased capacity')
