@@ -73,12 +73,12 @@ def compute_seq_distance_options(desc_w1, desc_w2, option='average'):
     # w2 = softmax(w2)
     desc2 = desc_w2[:, :-1]
     if option=='average':
-        return compaute_average_seq_distance(desc1, desc2)
+        d = compaute_average_seq_distance(desc1, desc2)
     else:
         desc_ws1 = numpy.mean(desc1*numpy.expand_dims(w1, 1), axis=0)
         desc_ws1 /= numpy.sqrt(numpy.sum(desc_ws1 ** 2))
         #desc_ws1 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws1, axis=0))
-        desc_ws2 = numpy.mean(desc1*numpy.expand_dims(w1, 1), axis=0)
+        desc_ws2 = numpy.mean(desc2*numpy.expand_dims(w2, 1), axis=0)
         desc_ws2 /= numpy.sqrt(numpy.sum(desc_ws2 ** 2))
         #desc_ws2 = sklearn.preprocessing.normalize(numpy.expand_dims(desc_ws2, axis=0))
         d = 1 - numpy.dot(desc_ws1.astype(float), desc_ws2.astype(float))
