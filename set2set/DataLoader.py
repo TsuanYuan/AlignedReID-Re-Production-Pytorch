@@ -3,11 +3,11 @@ from __future__ import print_function, division
 import os, glob
 import torch
 from skimage import io
+import cv2
 import numpy
 import random
 from torch.utils.data import Dataset
-# Ignore warnings
-import warnings
+
 
 # to load reID set to set matching data set
 class ReIDAppearanceSet2SetDataset(Dataset):
@@ -39,6 +39,25 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         self.transform = transform
         self.sample_size = sample_size
 
+    def crop_pad_fixed_aspect_ratio(self, im, desired_size=(256, 128)):
+        color = [0, 0, 0]  # zero padding
+        aspect_ratio = desired_size[0] / float(desired_size[1])
+        current_ar = im.shape[0] / float(im.shape[1])
+        if current_ar > aspect_ratio:  # current height is too high, pad width
+            delta_w = int(round(im.shape[0] / aspect_ratio - im.shape[1]))
+            left, right = delta_w / 2, delta_w - (delta_w / 2)
+            new_im = cv2.copyMakeBorder(im, 0, 0, int(left), int(right), cv2.BORDER_CONSTANT,
+                                        value=color)
+        else:  # current width is too wide, pad height
+            delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
+            top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+            new_im = cv2.copyMakeBorder(im, int(top), int(bottom), 0, 0, cv2.BORDER_CONSTANT,
+                                        value=color)
+        # debug
+        # import scipy.misc
+        # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+        return new_im
+
     def __len__(self):
         return len(self.person_id_im_paths)
 
@@ -50,7 +69,8 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         im_paths_sample = im_paths[0:min(self.sample_size, len(im_paths))]
         ims = []
         for im_path in im_paths_sample:
-            ims.append(io.imread(im_path))
+            im = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            ims.append(im)
         sample = {'images': ims, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
