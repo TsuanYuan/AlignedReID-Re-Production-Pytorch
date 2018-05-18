@@ -101,6 +101,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
+    #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
     process(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug)

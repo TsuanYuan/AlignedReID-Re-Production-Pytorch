@@ -63,7 +63,7 @@ def init_optim(optim, params, lr, weight_decay):
 
 def main(data_folder, model_folder, sample_size, batch_size, seq_size,
          num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18',
-         optimizer_name='adam', base_lr = 0.001, weight_decay=5e-04):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -145,6 +145,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
+    parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
@@ -153,4 +154,4 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
          gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
-         optimizer_name=args.optimizer)
+         optimizer_name=args.optimizer, base_lr=args.lr)
