@@ -153,7 +153,7 @@ def remove_fc(state_dict):
   return state_dict
 
 
-def resnet18(pretrained=False,device_id=-1):
+def resnet18(pretrained=False,device=-1):
   """Constructs a ResNet-18 model.
 
   Args:
@@ -161,8 +161,8 @@ def resnet18(pretrained=False,device_id=-1):
   """
   model = ResNet(BasicBlock, [2, 2, 2, 2])
   if pretrained:
-    if device_id >= 0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage.cuda(device_id))))
+    if device >= 0:
+      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage.cuda(device))))
     else:
       model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage)))
   return model
