@@ -1,16 +1,18 @@
 
 import cv2
 import os, glob
-import argparse
+import argparse, logging
 import numpy
 import torch
 from torch.autograd import Variable
-TIGHT_TH = 0.02
-MAX_COUNT_PER_ID = -1
-MIN_LONG_TRACK_LENGTH = 5  # don't check tracks too short
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
+mlog = logging.getLogger('myLogger')
+level = logging.getLevelName('INFO')
+mlog.setLevel(level)
 
 
-def get_descriptors(top_folder,model, device_id, max_count_per_id=MAX_COUNT_PER_ID, force_compute=False, ext='dsc', debug=False):
+def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_compute=False, ext='dsc', debug=False):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
     if debug:
@@ -74,7 +76,7 @@ def process(model,folder, device, force_compute_desc, ext, debug):
     # else:
 
     get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
-    print 'descriptors were computed in {0}'.format(folder)
+    mlog.info('descriptors were computed in {0}'.format(folder))
 
 
 def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug):

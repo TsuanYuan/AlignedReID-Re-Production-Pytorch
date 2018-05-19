@@ -219,11 +219,11 @@ def process(data_folder, ext, min_seq_size, aggregation_type):
             file_seq_list += file_seqs
             person_id_list += person_id_seqs
 
-    tail = os.path.split(data_folder)
+    _, tail = os.path.split(data_folder)
     distance_matrix = compute_distance_matrix(feature_seq_list, aggregation_type)
     auc95, dist_th = compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail+'_'+aggregation_type)
     mlog.info('AUC95={0} at dist_th={1} on data set {2} with model extension {3} and compare option {4}'
-            .format('%.3f'%auc95, '%.3f'%dist_th, data_folder, ext, aggregation_type))
+            .format('%.3f'%auc95, '%.6f'%dist_th, data_folder, ext, aggregation_type))
 
 
 def process_all(folder, ext, min_seq_size, aggregation_type):
@@ -246,4 +246,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    process(args.test_folder, args.ext, args.min_seq_size, args.aggregation_type)
+    process_all(args.test_folder, args.ext, args.min_seq_size, args.aggregation_type)
