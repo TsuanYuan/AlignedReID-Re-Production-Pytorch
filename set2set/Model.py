@@ -50,12 +50,13 @@ class WeightedReIDFeatureModel(nn.Module):
         pre_feat = torch.squeeze(F.avg_pool2d(base_conv, base_conv.size()[2:])) # pre_feat for quality weight
         final_conv_feat = self.final_conv(base_conv)
         condensed_feat = torch.squeeze(F.avg_pool2d(final_conv_feat,final_conv_feat.size()[2:])) # descriptor were fist conv into shorter channels and then average
-        if len(condensed_feat.size()) == 1:
+        if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
+            pre_feat = pre_feat.unsqueeze(0)
         # if len(list(desc_feat.size())) == 1:
         #     condensed_feat = desc_feat.unsqueeze(0)
         # condensed_feat = self.fc(global_feat)
-        feat = F.normalize(condensed_feat, p=2, dim=1).squeeze()
+        feat = F.normalize(condensed_feat, p=2, dim=1)
         quality_weight_fc = 1/(1+torch.exp(-4*self.quality_weight_fc(pre_feat)))  # quality measure of the feature
         condensed_feat_with_quality = torch.cat((feat, quality_weight_fc),1)
         return condensed_feat_with_quality
