@@ -76,7 +76,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms, sample_size=sample_size)
     dataloader_less = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
-    dataloader_more = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size*batch_factor,
+    dataloader_more = torch.utils.data.DataLoader(reid_dataset, batch_size=int(batch_size*batch_factor),
                                                   shuffle=True, num_workers=8)
     if not torch.cuda.is_available():
         gpu_id = -1
@@ -126,7 +126,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
             if (i_batch+1)%20==0:
                 if epoch == 0:
                     start_loss = loss.data.cpu().numpy()
-                if average_meter.avg < start_loss / batch_factor/batch_factor/2:
+                if average_meter.avg < start_loss / batch_factor/batch_factor/10:
                     dataloader = dataloader_more
                     print('###################################')
                     print('data loader now increased capacity')
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
-    parser.add_argument('--batch_factor', type=int, default=4, help="increase batch size by this factor")
+    parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
