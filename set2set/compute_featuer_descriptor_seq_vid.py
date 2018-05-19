@@ -19,7 +19,7 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=MAX_COUNT_PER_
         if not id_folder.isdigit():
             continue
         p = os.path.join(top_folder, id_folder)
-        #print 'descriptor computing in {0}'.format(p)
+        # print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
         for i, crop_file in enumerate(crop_files):
             if max_count_per_id>0 and i > max_count_per_id:
@@ -77,7 +77,9 @@ def process(model_path, folder, device, force_compute_desc, ext, debug):
     else:
         model = torch.load(model_path, map_location = lambda storage, loc: storage)
     get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
+    print 'descriptors were computed in {0}'.format(folder)
 
+    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
