@@ -162,7 +162,7 @@ def resnet18(pretrained=False,device=-1):
   model = ResNet(BasicBlock, [2, 2, 2, 2])
   if pretrained:
     if device >= 0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location='cuda:{0}'.format(device))))
+      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], lambda storage, loc: storage.cuda(device))))
     else:
       model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage)))
   return model
@@ -177,7 +177,7 @@ def resnet34(pretrained=False, device=-1):
   model = ResNet(BasicBlock, [3, 4, 6, 3])
   if pretrained:
     if device>=0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], map_location='cuda:{0}'.format(device))))
+      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], lambda storage, loc: storage.cuda(device))))
     else:
       model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], map_location = lambda storage, loc: storage)))
   return model
@@ -192,7 +192,7 @@ def resnet50(pretrained=False, device=-1):
   model = ResNet(Bottleneck, [3, 4, 6, 3])
   if pretrained:
     if device >= 0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'], map_location='cuda:{0}'.format(device))))
+      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'], lambda storage, loc: storage.cuda(device))))
     else:
       model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'], map_location=lambda storage, loc: storage)))
   return model
