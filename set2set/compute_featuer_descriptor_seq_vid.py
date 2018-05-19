@@ -68,16 +68,25 @@ def distance(a,b):
     return d0
 
 
-def process(model_path, folder, device, force_compute_desc, ext, debug):
+def process(model,folder, device, force_compute_desc, ext, debug):
     # if torch.has_cudnn:
     #     model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
     # else:
+
+    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
+    print 'descriptors were computed in {0}'.format(folder)
+
+
+def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug):
     if device >=0:
         model = torch.load(model_path, map_location='cuda:{0}'.format(device))
     else:
         model = torch.load(model_path, map_location = lambda storage, loc: storage)
-    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
-    print 'descriptors were computed in {0}'.format(folder)
+
+    sub_folders = next(os.walk(folder))[1] #[x[0] for x in os.walk(folder)]
+    for sub_folder in sub_folders:
+        sub_folder_full = os.path.join(folder, sub_folder)
+        process(model, sub_folder_full, device, force_compute_desc, ext, debug)
 
 
 if __name__ == '__main__':
@@ -104,5 +113,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
-    process(args.model_path, args.folder,
+    process_all_sub_folders(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug)
