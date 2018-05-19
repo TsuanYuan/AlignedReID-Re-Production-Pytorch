@@ -135,7 +135,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
                 #print('    first_feature={0}'.format(str(outputs[0,0,0:6].data.cpu().numpy())))
                 #print('    last_feature={0}'.format(str(outputs[-1,-1,0:6].data.cpu().numpy())))
                 pd = pdist(outputs[0,0,:-1].squeeze().unsqueeze(0), outputs[-1,-1,:-1].squeeze().unsqueeze(0))
-                print('    distance between first and last crop={0}'.format(str(pd.data.cpu().numpy())))
+                # print('    distance between first and last crop={0}'.format(str(pd.data.cpu().numpy())))
                 if (epoch+1) %(num_epochs/4)==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
                 torch.save(model, model_file)
