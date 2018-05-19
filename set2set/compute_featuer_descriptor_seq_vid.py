@@ -19,7 +19,7 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=MAX_COUNT_PER_
         if not id_folder.isdigit():
             continue
         p = os.path.join(top_folder, id_folder)
-        print 'descriptor computing in {0}'.format(p)
+        #print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
         for i, crop_file in enumerate(crop_files):
             if max_count_per_id>0 and i > max_count_per_id:
