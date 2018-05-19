@@ -55,7 +55,7 @@ class WeightedReIDFeatureModel(nn.Module):
         # if len(list(desc_feat.size())) == 1:
         #     condensed_feat = desc_feat.unsqueeze(0)
         # condensed_feat = self.fc(global_feat)
-        feat = F.normalize(condensed_feat, p=2, dim=1)
+        feat = F.normalize(condensed_feat, p=2, dim=1).squeeze()
         quality_weight_fc = 1/(1+torch.exp(-4*self.quality_weight_fc(pre_feat)))  # quality measure of the feature
         condensed_feat_with_quality = torch.cat((feat, quality_weight_fc),1)
         return condensed_feat_with_quality
