@@ -14,16 +14,16 @@ from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
 
 class WeightedReIDFeatureModel(nn.Module):
-    def __init__(self, local_conv_out_channels=255, base_model='resnet18'):
+    def __init__(self, local_conv_out_channels=255, base_model='resnet18', device_id=-1):
         super(WeightedReIDFeatureModel, self).__init__()
         if base_model == 'resnet50':
-          self.base = resnet50(pretrained=True)
+          self.base = resnet50(pretrained=True, device=device_id)
           planes = 2048
         elif  base_model == 'resnet34':
-          self.base = resnet34(pretrained=True)
+          self.base = resnet34(pretrained=True, device=device_id)
           planes = 512
         elif base_model == 'resnet18':
-          self.base = resnet18(pretrained=True)
+          self.base = resnet18(pretrained=True,device=device_id)
           planes = 512
         elif base_model == 'inception_v3':
           self.base = inception_v3(pretrained=True)
