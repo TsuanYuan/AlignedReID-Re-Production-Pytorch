@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from BackBones import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
-from torchvision.models import vgg16_bn, vgg11_bn, vgg13_bn
+from torchvision.models import vgg16_bn, vgg11_bn
 
 class WeightedReIDFeatureModel(nn.Module):
     def __init__(self, local_conv_out_channels=255, base_model='resnet18'):
