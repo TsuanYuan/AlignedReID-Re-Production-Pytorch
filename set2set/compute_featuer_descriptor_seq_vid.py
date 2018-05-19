@@ -79,7 +79,7 @@ def process(model_path, folder, device, force_compute_desc, ext, debug):
     get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
     print 'descriptors were computed in {0}'.format(folder)
 
-    
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                         help='whether save debug image crop with weights')
 
     args = parser.parse_args()
-    print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
+    # print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
     process(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug)

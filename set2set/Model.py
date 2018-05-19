@@ -42,16 +42,19 @@ class WeightedReIDFeatureModel(nn.Module):
         else:
           raise RuntimeError("unknown base model!")
 
-        self.fc = nn.Linear(planes, local_conv_out_channels)
+        self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
         self.quality_weight_fc = nn.Linear(planes, 1)
 
     def forward(self, x):
-        feat = self.base(x)
-        global_feat = torch.squeeze(F.avg_pool2d(feat, feat.size()[2:]))
-        if len(list(global_feat.size())) == 1:
-            global_feat = global_feat.unsqueeze(0)
-        condensed_feat = self.fc(global_feat)
+        base_conv = self.base(x)
+        pre_feat = torch.squeeze(F.avg_pool2d(base_conv, base_conv.size()[2:])) # pre_feat for quality weight
+        final_conv_feat = self.final_conv(base_conv)
+        condensed_feat = torch.squeeze(F.avg_pool2d(final_conv_feat,final_conv_feat.size()[2:])) # descriptor were fist conv into shorter channels and then average
+
+        # if len(list(desc_feat.size())) == 1:
+        #     condensed_feat = desc_feat.unsqueeze(0)
+        # condensed_feat = self.fc(global_feat)
         feat = F.normalize(condensed_feat, p=2, dim=1)
-        quality_weight_fc = torch.exp(self.quality_weight_fc(global_feat))  # quality measure of the feature
+        quality_weight_fc = 1/(1+torch.exp(-4*self.quality_weight_fc(pre_feat)))  # quality measure of the feature
         condensed_feat_with_quality = torch.cat((feat, quality_weight_fc),1)
         return condensed_feat_with_quality
