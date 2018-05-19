@@ -128,11 +128,9 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
                     start_loss = loss.data.cpu().numpy()
                 if average_meter.avg < start_loss / batch_factor/batch_factor/10:
                     dataloader = dataloader_more
-                    print('###################################')
-                    print('data loader now increased capacity')
-                    print('###################################')
-                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4}"\
-                    .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()), str(dist_neg.data.cpu().numpy()))
+                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} avg_loss={5}"\
+                    .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()),
+                            str(dist_neg.data.cpu().numpy()), str(average_meter.avg))
                 print(log_str)
                 #print('    first_feature={0}'.format(str(outputs[0,0,0:6].data.cpu().numpy())))
                 #print('    last_feature={0}'.format(str(outputs[-1,-1,0:6].data.cpu().numpy())))
