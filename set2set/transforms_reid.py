@@ -27,7 +27,7 @@ class Rescale(object):
         self.output_size = output_size
 
     def __call__(self, sample):
-        #images, person_id = sample['images'], sample['person_id']
+
         images = sample
         images_scaled = []
         for image in images:
@@ -46,6 +46,26 @@ class Rescale(object):
             images_scaled.append(img)
 
         return images_scaled #{'images': images_scaled, 'person_id': person_id}
+
+
+class RandomHorizontalFlip(object):
+    def __init__(self, prng=numpy.random):
+        self.prng = prng
+
+    def __call__(self, sample):
+        #images, person_id = sample['images'], sample['person_id']
+        images = sample
+        images_flipped = []
+        for image in images:
+            if self.prng.rand(1)[0] > 0.5:
+                im_new = numpy.fliplr(image)
+                # import scipy.misc, os
+                # scipy.misc.imsave('/tmp/im.jpg', image)
+                # scipy.misc.imsave('/tmp/im_flip.jpg', im_new)
+            else:
+                im_new = image
+            images_flipped.append(im_new)
+        return images_flipped #{'images': images_cropped, 'person_id': person_id}
 
 
 class RandomCrop(object):

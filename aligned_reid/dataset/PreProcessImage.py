@@ -157,8 +157,8 @@ class PreProcessIm(object):
       occlusion_mask = self.occlusion_masks[np.random.randint(len(self.occlusion_masks))]
       im = self.apply_occlusion_masks(im, occlusion_mask)
     # for debug
-    fname = str(uuid.uuid4())+'.jpg'
-    scipy.misc.imsave(os.path.join('/tmp/occlusions/', fname), im)
+    #fname = str(uuid.uuid4())+'.jpg'
+    #scipy.misc.imsave(os.path.join('/tmp/occlusions/', fname), im)
     #print 'saved a masked patch at /tmp/masked_crop.jpg'
     # Resize.
     if (self.resize_h_w is not None) \
