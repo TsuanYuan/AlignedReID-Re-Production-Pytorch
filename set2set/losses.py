@@ -76,7 +76,26 @@ def pair_loss_func(feature, pids, margin):
     loss = torch.sum(loss_mat[loss_ids])
     return loss, torch.max(dist_pos), torch.min(dist_neg)
 
-def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
+def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
+    # threshold loss
+    N = pids.size()[0]  # number of weighted features
+    is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
+    diag_one = torch.diag(torch.ones_like(torch.sum(is_pos, 1).byte()))
+    is_pos = is_pos - diag_one
+    is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
+    dist_mat = euclidean_distances(feature)
+    dist_pos = dist_mat[is_pos].contiguous()
+    dist_neg = dist_mat[is_neg].contiguous()
+    dist_pos = dist_pos.view(-1, 1)
+    dist_neg = dist_neg.view(1, -1)
+    loss_pos_ids = dist_pos.gt(th-margin_pos).detach()
+    loss_neg_ids = dist_neg.lt(th+margin_neg).detach()
+    loss_pos = torch.sum(dist_pos[loss_pos_ids] - th + margin_pos)
+    loss_neg = torch.sum(th + margin_neg - dist_neg[loss_neg_ids])
+    return loss_pos+loss_neg, torch.max(dist_pos), torch.min(dist_neg)
+
+
+def weighted_seq_loss_func(feature, weight, pids, seq_size, margin, th=-1.0):
 
     # weighted feature
     weight_size = list(weight.size())
@@ -90,20 +109,23 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin):
     # assert unit length
     # t = torch.pow(feature_fold, 2).sum(3)
     # assert torch.abs(t-1.0) < 0.01
-    feature_expand_seq = feature_fold * weight_expand
+    feature_expand_seq = feature_fold * weight_expand  # multiply in 5D
 
     num_feature_per_id = list(feature_expand_seq.size())[1]
     summed_feature_seq = feature_expand_seq.sum(2).squeeze()  # weighted sum
     summed_feature = summed_feature_seq.view((-1, feature_size[2]))  # unfold to [n*m, 255]
     summed_feature_normalize = functional.normalize(summed_feature, p=2, dim=1)  # normalized after weighted sum
     pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1)  # unfold to [n*m]
+    if th < 0:
+        return pair_loss_func(summed_feature_normalize, pid_expand, margin)
+    else:
+        return fixed_th_loss_func(summed_feature_normalize, pid_expand, th, th/2, th)
 
-    return pair_loss_func(summed_feature_normalize, pid_expand, margin)
-
-
-
-def element_loss_func(feature, pids, margin):
-    return pair_loss_func(feature, pids, margin)
+def element_loss_func(feature, pids, margin, th=-1.0):
+    if th<0:
+        return pair_loss_func(feature, pids, margin)
+    else:
+        return fixed_th_loss_func(feature, pids, th, th/2, th)
 
 
 class WeightedAverageLoss(nn.Module):
@@ -127,5 +149,29 @@ class WeightedAverageLoss(nn.Module):
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
         element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
+
+        return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
+
+
+class WeightedAverageThLoss(nn.Module):
+    """Weighted avearge loss with a threshold, all pos < th-pos_margin, all neg > th+pos_margin
+    assume the last element of the feature is a weight vector
+    """
+
+    def __init__(self, seq_size=4, th=0.1):
+        super(WeightedAverageThLoss, self).__init__()
+        self.seq_size = seq_size
+        self.th = th
+
+    def forward(self, x, pids):
+        feature = x[:, :, :-1].contiguous()
+        weight = x[:, :, -1].contiguous()
+        # sequence reID loss
+        seq_loss = weighted_seq_loss_func(feature, weight, pids, self.seq_size, self.th, self.th) # margin with th
+        # element reID loss
+        weight_size = list(weight.size())
+        pids_expand = pids.expand(weight_size).contiguous().view(-1)
+        feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.th, self.th)
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]

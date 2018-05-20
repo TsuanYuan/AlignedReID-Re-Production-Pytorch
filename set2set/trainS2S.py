@@ -62,8 +62,8 @@ def init_optim(optim, params, lr, weight_decay):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 def main(data_folder, model_folder, sample_size, batch_size, seq_size,
-         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, batch_factor=4):
+         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='pair',
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, batch_factor=4, threshold=0.1):
     #scale = transforms_reid.Rescale((272, 136))
     #crop = transforms_reid.RandomCrop((256, 128))
     # transforms.RandomHorizontalFlip(),
@@ -94,7 +94,12 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
 
     decay_at_epochs = {int(num_epochs/3):1, int(num_epochs/3*2):2}
     staircase_decay_multiply_factor = 0.1
-    loss_function = losses.WeightedAverageLoss(seq_size=seq_size, margin=margin)
+    if loss_name == 'pair':
+        loss_function = losses.WeightedAverageLoss(seq_size=seq_size, margin=margin)
+    elif loss_name == 'class_th':
+        loss_function = losses.WeightedAverageThLoss(seq_size=seq_size, th=threshold)
+    else:
+        raise Exception('unknown loss name')
 
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     average_meter = utils.AverageMeter()
@@ -155,7 +160,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
+    parser.add_argument('--loss', type=str, default='pair', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))

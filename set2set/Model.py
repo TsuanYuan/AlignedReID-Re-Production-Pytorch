@@ -41,9 +41,12 @@ class WeightedReIDFeatureModel(nn.Module):
           planes = 512
         else:
           raise RuntimeError("unknown base model!")
-
-        self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
-        self.quality_weight_fc = nn.Linear(planes, 1)
+        if device_id >= 0:
+            self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1).cuda(device_id)
+            self.quality_weight_fc = nn.Linear(planes, 1).cuda(device_id)
+        else:
+            self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+            self.quality_weight_fc = nn.Linear(planes, 1)
 
     def forward(self, x):
         base_conv = self.base(x)
@@ -53,9 +56,7 @@ class WeightedReIDFeatureModel(nn.Module):
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
             pre_feat = pre_feat.unsqueeze(0)
-        # if len(list(desc_feat.size())) == 1:
-        #     condensed_feat = desc_feat.unsqueeze(0)
-        # condensed_feat = self.fc(global_feat)
+
         feat = F.normalize(condensed_feat, p=2, dim=1)
         quality_weight_fc = 1/(1+torch.exp(-4*self.quality_weight_fc(pre_feat)))  # quality measure of the feature
         condensed_feat_with_quality = torch.cat((feat, quality_weight_fc),1)
