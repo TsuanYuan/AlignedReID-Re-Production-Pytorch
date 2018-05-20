@@ -51,9 +51,9 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
-def init_optim(optim, params, lr, weight_decay):
+def init_optim(optim, params, lr, weight_decay, eps=0.1):
     if optim == 'adam':
-        return torch.optim.Adam(params, lr=lr, weight_decay=weight_decay)
+        return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
     elif optim == 'sgd':
         return torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
     elif optim == 'rmsprop':
@@ -162,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='pair', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+    parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -171,4 +172,4 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
          gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
-         optimizer_name=args.optimizer, base_lr=args.lr, batch_factor=args.batch_factor)
+         optimizer_name=args.optimizer, base_lr=args.lr, batch_factor=args.batch_factor, threshold=args.class_th)
