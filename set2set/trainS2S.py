@@ -93,7 +93,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    decay_at_epochs = {int(num_epochs/3):1, int(num_epochs/3*2):2}
+    decay_at_epochs = {150:1, 300:2}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'pair':
         loss_function = losses.WeightedAverageLoss(seq_size=seq_size, margin=margin)
@@ -142,7 +142,7 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
                 #print('    last_feature={0}'.format(str(outputs[-1,-1,0:6].data.cpu().numpy())))
                 pd = pdist(outputs[0,0,:-1].squeeze().unsqueeze(0), outputs[-1,-1,:-1].squeeze().unsqueeze(0))
                 # print('    distance between first and last crop={0}'.format(str(pd.data.cpu().numpy())))
-                if (epoch+1) %(num_epochs/4)==0:
+                if (epoch+1) %(num_epochs/8)==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
                 torch.save(model, model_file)
     print('model saved to {0}'.format(model_file))
