@@ -173,7 +173,7 @@ def resnet34(pretrained=False):
   """
   model = ResNet(BasicBlock, [3, 4, 6, 3])
   if pretrained:
-    model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], ma)))
+    model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'])))
   return model
 
 
