@@ -77,14 +77,14 @@ def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/
     return auc95, dist_th
 
 
-def process(data_folder, ext):
+def process(data_folder, ext, sample_size):
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list = [], [], []
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit():
             person_id = int(sub_folder)
-            descriptors, desc_files = load_person_id_descriptors(os.path.join(data_folder,sub_folder), ext)
+            descriptors, desc_files = load_person_id_descriptors(os.path.join(data_folder,sub_folder), ext, sample_size=sample_size)
             person_id_seqs = [person_id]*len(descriptors)
             feature_list += descriptors
             person_id_list += person_id_seqs
@@ -96,11 +96,11 @@ def process(data_folder, ext):
             .format('%.3f'%auc95, '%.6f'%dist_th, data_folder, ext))
 
 
-def process_all(folder, ext):
+def process_all(folder, ext, sample_size):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(sub_folder_full, ext)
+        process(sub_folder_full, ext, sample_size)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -109,7 +109,9 @@ if __name__ == "__main__":
                         help='folder of ground truth crops with computed features')
     parser.add_argument('ext', type=str,
                         help='the extension of feature files')
+    parser.add_argument('--sample_size', type=int, default=8,
+                        help='the num of samples from each ID')
 
     args = parser.parse_args()
 
-    process_all(args.test_folder, args.ext)
+    process_all(args.test_folder, args.ext, args.sample_size)
