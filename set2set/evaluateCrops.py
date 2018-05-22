@@ -125,7 +125,7 @@ if __name__ == "__main__":
                         help='folder of ground truth crops with computed features')
     parser.add_argument('ext', type=str,
                         help='the extension of feature files')
-    parser.add_argument('--sample_size', type=int, default=8,
+    parser.add_argument('--sample_size', type=int, default=16,
                         help='the num of samples from each ID')
 
     args = parser.parse_args()
