@@ -37,6 +37,21 @@ def compute_distance_matrix(feature_list):
     return distance_matrix
 
 
+def report_MeanAP_over_ids(distance_matrix, id_matrix):
+    aps = []
+    n = distance_matrix.shape[0]
+    scores = 1-distance_matrix
+    same_mask = id_matrix == 0
+    diff_mask = id_matrix != 0
+    for i in range(n):
+        score_row = scores[i,:]
+        label_row = same_mask[i,:]
+        ap = sklearn.metrics.average_precision_score(label_row, score_row)
+        aps.append(ap)
+    mean_ap = numpy.mean(numpy.array(aps))
+    return mean_ap
+
+
 def report_AUC95(same_distances, diff_distances):
     # AUC with true negative rate >= 95
     n_same = same_distances.size
@@ -66,6 +81,7 @@ def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/
     same_distances = distance_matrix[same_mask]
     diff_distances = distance_matrix[diff_mask]
     auc95, dist_th = report_AUC95(same_distances, diff_distances)
+    mAP = report_MeanAP_over_ids(distance_matrix, id_dm)
     # top_error = 20
     # highest_same_indices = numpy.argsort(same_distances)[-top_error:]
     # lowest_diff_indices = numpy.argsort(diff_distances)[0:top_error]
@@ -74,7 +90,7 @@ def compute_metrics(distance_matrix, person_id_list, file_list, output_folder='/
     # top_same_pairs = same_pair_indices[highest_same_indices]
     # top_diff_pairs = diff_pair_indices[lowest_diff_indices]
 
-    return auc95, dist_th
+    return auc95, dist_th, mAP
 
 
 def process(data_folder, ext, sample_size):
@@ -91,9 +107,9 @@ def process(data_folder, ext, sample_size):
 
     _, tail = os.path.split(data_folder)
     distance_matrix = compute_distance_matrix(feature_list)
-    auc95, dist_th = compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
-    mlog.info('AUC95={0} at dist_th={1} on data set {2} with model extension {3}'
-            .format('%.3f'%auc95, '%.6f'%dist_th, data_folder, ext))
+    auc95, dist_th,mAP = compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
+    mlog.info('AUC95={0} at dist_th={1}, mAP={2} on data set {3} with model extension {4}'
+            .format('%.3f'%auc95, '%.6f'%dist_th, '%.3f'%mAP, data_folder, ext))
 
 
 def process_all(folder, ext, sample_size):
