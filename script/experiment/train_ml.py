@@ -390,8 +390,8 @@ def main():
 
   id_criterion = nn.CrossEntropyLoss()
   g_tri_loss = TripletLoss(margin=cfg.global_margin)
-  print('### pair loss added! ####')
-  g_pair_loss = PairLoss(margin=cfg.global_margin)
+  #print('### pair loss added! ####')
+  #g_pair_loss = PairLoss(margin=cfg.global_margin)
   l_tri_loss = TripletLoss(margin=cfg.local_margin)
 
   optimizers = [optim.Adam(m.parameters(),
@@ -496,7 +496,7 @@ def main():
       log_probs = F.log_softmax(logits, dim=1)
 
       g_loss, p_inds, n_inds, g_dist_ap, g_dist_an, g_dist_mat = global_loss(
-        g_tri_loss, g_pair_loss, global_feat, labels_t,
+        g_tri_loss, global_feat, labels_t,
         normalize_feature=cfg.normalize_feature)
 
       if cfg.l_loss_weight == 0:

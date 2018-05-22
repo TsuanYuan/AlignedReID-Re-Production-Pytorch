@@ -202,7 +202,7 @@ def pair_example_mining(dist_mat, labels):
   dist_labels = torch.ones(dist_np.size(0))
   return dist_np, dist_labels
 
-def global_loss(tri_loss, pair_loss, global_feat, labels, normalize_feature=True):
+def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
   """
   Args:
     tri_loss: a `TripletLoss` object
@@ -234,7 +234,7 @@ def global_loss(tri_loss, pair_loss, global_feat, labels, normalize_feature=True
     dist_mat, labels, return_inds=True)
   dist_np, labels_np = pair_example_mining(dist_mat, labels)
 
-  loss = tri_loss(dist_ap, dist_an)+pair_loss(dist_np, labels_np)
+  loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
   return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
 
 
