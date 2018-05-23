@@ -12,7 +12,8 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_compute=False, ext='dsc', debug=False):
+def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_compute=False, ext='dsc',
+                    debug=False, with_roi=False):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
     if debug:
@@ -44,10 +45,17 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_comp
                 else:
                     aspect_ratio = 0.5
                 if torch.has_cudnn:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
+                    if with_roi:
+                        descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
                                            Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
+                    else:
+                        descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
                 else:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
+                    if with_roi:
+                        descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
+                    else:
+                        descriptor_var = model(Variable(torch.from_numpy(imt).float()))
+
                 descriptor = descriptor_var.data.cpu().numpy()
                 descriptor.tofile(descriptor_file)
 
@@ -69,12 +77,12 @@ def distance(a,b):
     return d0
 
 
-def process(model,folder, device, force_compute_desc, ext, debug):
-    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
+def process(model,folder, device, force_compute_desc, ext, debug, with_roi):
+    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug, with_roi=with_roi)
     mlog.info('descriptors were computed in {0}'.format(folder))
 
 
-def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug):
+def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug, with_roi):
     if device >=0:
         model = torch.load(model_path, map_location='cuda:{0}'.format(device))
     else:
@@ -83,7 +91,7 @@ def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext,
     sub_folders = next(os.walk(folder))[1] #[x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(model, sub_folder_full, device, force_compute_desc, ext, debug)
+        process(model, sub_folder_full, device, force_compute_desc, ext, debug, with_roi)
 
 
 if __name__ == '__main__':
@@ -107,8 +115,11 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', default=False,
                         help='whether save debug image crop with weights')
 
+    parser.add_argument('--with_roi', action='store_true', default=False,
+                        help='whether to input aspect ratio')
+
     args = parser.parse_args()
     # print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
     process_all_sub_folders(args.model_path, args.folder,
-            args.device_id, args.force_descriptor, args.ext, args.debug)
+            args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi)
