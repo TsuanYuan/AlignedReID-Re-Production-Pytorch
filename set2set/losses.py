@@ -128,13 +128,13 @@ def element_loss_func(feature, pids, margin, th=-1.0):
         return fixed_th_loss_func(feature, pids, th, th/2, th)
 
 
-class WeightedAverageLoss(nn.Module):
+class WeightedAverageSeqLoss(nn.Module):
     """Weighted avearge loss.
     assume the last element of the feature is a weight vector
     """
 
     def __init__(self, margin, seq_size=4):
-        super(WeightedAverageLoss, self).__init__()
+        super(WeightedAverageSeqLoss, self).__init__()
         self.seq_size = seq_size
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
         self.margin = margin
@@ -153,13 +153,13 @@ class WeightedAverageLoss(nn.Module):
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
 
-class WeightedAverageThLoss(nn.Module):
+class WeightedAverageSeqThLoss(nn.Module):
     """Weighted avearge loss with a threshold, all pos < th-pos_margin, all neg > th+pos_margin
     assume the last element of the feature is a weight vector
     """
 
     def __init__(self, seq_size=4, th=0.1):
-        super(WeightedAverageThLoss, self).__init__()
+        super(WeightedAverageSeqThLoss, self).__init__()
         self.seq_size = seq_size
         self.th = th
 
@@ -175,3 +175,40 @@ class WeightedAverageThLoss(nn.Module):
         element_loss = element_loss_func(feature_expand, pids_expand, self.th, self.th)
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
+
+class WeightedAverageLoss(nn.Module):
+    """Weighted avearge loss.
+    assume the last element of the feature is a weight vector
+    """
+
+    def __init__(self, margin):
+        super(WeightedAverageLoss, self).__init__()
+        self.margin = margin
+
+    def forward(self, x, pids):
+        feature = x
+        feature_size = list(feature.size())
+        pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
+        feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
+
+        return element_loss
+
+
+class WeightedAverageThLoss(nn.Module):
+    """Weighted avearge loss with a threshold, all pos < th-pos_margin, all neg > th+pos_margin
+    assume the last element of the feature is a weight vector
+    """
+
+    def __init__(self, th=0.1):
+        super(WeightedAverageThLoss, self).__init__()
+        self.th = th
+
+    def forward(self, x, pids):
+        feature = x
+        feature_size = list(feature.size())
+        pids_expand = pids.expand(feature_size).contiguous().view(-1)
+        feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.th, self.th)
+
+        return element_loss[0], element_loss[1], element_loss[2]

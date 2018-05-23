@@ -61,31 +61,27 @@ def init_optim(optim, params, lr, weight_decay, eps=0.1):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def main(data_folder, model_folder, sample_size, batch_size, seq_size,
+def main(data_folder, model_folder, sample_size, batch_size,
          num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='pair',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, batch_factor=4, threshold=0.1):
-    #scale = transforms_reid.Rescale((272, 136))
-    #crop = transforms_reid.RandomCrop((256, 128))
-    # transforms.RandomHorizontalFlip(),
-    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256,128)),
+                                              transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
-                                             ])
+                                              ])
+
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms, sample_size=sample_size)
-    dataloader_less = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
+    dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
-    dataloader_more = torch.utils.data.DataLoader(reid_dataset, batch_size=int(batch_size*batch_factor),
-                                                  shuffle=True, num_workers=8)
+
     if not torch.cuda.is_available():
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDSeqFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
     else:
-        model = Model.WeightedReIDSeqFeatureModel()
+        model = Model.WeightedReIDFeatureModel()
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
     else:
@@ -96,17 +92,14 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
     decay_at_epochs = {150:1, 300:2}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'pair':
-        loss_function = losses.WeightedAverageSeqLoss(seq_size=seq_size, margin=margin)
+        loss_function = losses.WeightedAverageLoss(margin=margin)
     elif loss_name == 'class_th':
-        loss_function = losses.WeightedAverageSeqThLoss(seq_size=seq_size, th=threshold)
+        loss_function = losses.WeightedAverageThLoss(th=threshold)
     else:
         raise Exception('unknown loss name')
 
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     average_meter = utils.AverageMeter()
-    pdist = torch.nn.PairwiseDistance(p=2)
-    dataloader = dataloader_less
-    start_loss = 0
 
     for epoch in range(num_epochs):
         for i_batch, sample_batched in enumerate(dataloader):
@@ -130,18 +123,10 @@ def main(data_folder, model_folder, sample_size, batch_size, seq_size,
             optimizer.step()
             average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
             if (i_batch+1)%20==0:
-                if epoch == 0:
-                    start_loss = loss.data.cpu().numpy()
-                if average_meter.avg < start_loss / batch_factor/batch_factor/10:
-                    dataloader = dataloader_more
                 log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} avg_loss={5}"\
                     .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(average_meter.avg))
                 print(log_str)
-                #print('    first_feature={0}'.format(str(outputs[0,0,0:6].data.cpu().numpy())))
-                #print('    last_feature={0}'.format(str(outputs[-1,-1,0:6].data.cpu().numpy())))
-                pd = pdist(outputs[0,0,:-1].squeeze().unsqueeze(0), outputs[-1,-1,:-1].squeeze().unsqueeze(0))
-                # print('    distance between first and last crop={0}'.format(str(pd.data.cpu().numpy())))
                 if (epoch+1) %(num_epochs/8)==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
                 torch.save(model, model_file)
@@ -154,7 +139,6 @@ if __name__ == '__main__':
     parser.add_argument('model_folder', type=str, help="folder to save the model")
     parser.add_argument('--sample_size', type=int, default=32, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=8, help="num samples in a mini-batch, each sample is a sequence of images")
-    parser.add_argument('--seq_size', type=int, default=4, help="num images in a sequence, will folder sample_size by seq_size")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
@@ -168,9 +152,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={0}, batch_size={1}, seq_size={2}, margin={3}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.seq_size), str(args.margin)))
+    print('  sample_size={0}, batch_size={1},  margin={2}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.margin)))
     torch.backends.cudnn.benchmark = False
-    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size, args.seq_size,
+    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size,
          gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
          optimizer_name=args.optimizer, base_lr=args.lr, batch_factor=args.batch_factor, threshold=args.class_th)

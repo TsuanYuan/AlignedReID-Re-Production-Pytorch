@@ -13,6 +13,25 @@ from PIL import Image
 from torchvision.transforms import functional as F
 
 
+class Rescale_Image(object):
+    def __init__(self, output_size):
+        assert isinstance(output_size, (int, tuple))
+        self.output_size = output_size
+
+    def __call__(self, image):
+        h, w = image.shape[:2]
+        if isinstance(self.output_size, int):
+            if h > w:
+                new_h, new_w = self.output_size * h / w, self.output_size
+            else:
+                new_h, new_w = self.output_size, self.output_size * w / h
+        else:
+            new_h, new_w = self.output_size
+
+        new_h, new_w = int(new_h), int(new_w)
+        img = transform.resize(image, (new_h, new_w), mode='constant', preserve_range=True)
+        return img
+
 class Rescale(object):
     """Rescale the image in a sample to a given size.
 
@@ -101,6 +120,19 @@ class RandomCrop(object):
         return images_cropped #{'images': images_cropped, 'person_id': person_id}
 
 
+
+class PixelNormalizeImage(object):
+    """normalize pixel value to [-1, 1] by substract 128 then divid by 255.
+"""
+
+    def __init__(self):
+        pass
+
+    def __call__(self, image):
+        image_out = (image-128.0)/255
+        return image_out
+
+
 class PixelNormalize(object):
     """normalize pixel value to [-1, 1] by substract 128 then divid by 255.
 """
@@ -111,11 +143,11 @@ class PixelNormalize(object):
     def __call__(self, sample):
         # images, person_id = sample['images'], sample['person_id']
         images = sample
-        images_cropped = []
+        images_n = []
         for image in images:
             image = (image-128.0)/255
-            images_cropped.append(image)
-        return images_cropped  # {'images': images_cropped, 'person_id': person_id}
+            images_n.append(image)
+        return images_n  # {'images': images_cropped, 'person_id': person_id}
 
 
 class ToTensor(object):
