@@ -109,25 +109,26 @@ def main(data_folder, model_folder, sample_size, batch_size,
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             person_ids = sample_batched['person_id']
+            w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
             optimizer.zero_grad()
             if gpu_id >= 0:
-                outputs = model(Variable(images.cuda(device=gpu_id)))
+                outputs = model(Variable(images.cuda(device=gpu_id)), Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
             else:
-                outputs = model(Variable(images))
+                outputs = model(Variable(images), Variable(w_h_ratios))
             outputs = outputs.view([actual_size[0], sample_size, -1])
             loss, dist_pos,dist_neg = loss_function(outputs, person_ids)
             loss.backward()
             optimizer.step()
             average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
-            if (i_batch+1)%20==0:
+            if i_batch==0:
                 log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} avg_loss={5}"\
                     .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(average_meter.avg))
                 print(log_str)
-                if (epoch+1) %(num_epochs/8)==0:
+                if (epoch+1) %(max(1,num_epochs/8))==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
                 torch.save(model, model_file)
     print('model saved to {0}'.format(model_file))

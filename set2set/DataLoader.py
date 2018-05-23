@@ -7,7 +7,7 @@ import cv2
 import numpy
 import random
 from torch.utils.data import Dataset
-
+import json
 
 # to load reID set to set matching data set
 class ReIDAppearanceSet2SetDataset(Dataset):
@@ -68,11 +68,21 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         random.shuffle(im_paths)
         im_paths_sample = im_paths[0:min(self.sample_size, len(im_paths))]
         ims = []
+        w_h_ratios = []
         for im_path in im_paths_sample:
             im = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            basename, _ = os.path.splitext(im_path)
+            json_path = basename+'.json'
+            if os.path.isfile(json_path):
+                data = json.load(open(json_path, 'r'))
+                w_h_ratio = data['box'][2]/float(data['box'][3])
+            else:
+                w_h_ratio = 0.5
+            w_h_ratios.append(w_h_ratio)
             ims.append(im)
-        sample = {'images': ims, 'person_id': person_id}
+        sample = {'images': ims, 'w_h_ratios':w_h_ratios, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        sample['w_h_ratios'] = torch.from_numpy(numpy.array(w_h_ratios))
         return sample

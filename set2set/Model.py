@@ -7,7 +7,7 @@ Quan Yuan
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch.autograd import Variable
 from BackBones import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
@@ -63,9 +63,8 @@ class WeightedReIDSeqFeatureModel(nn.Module):
         return condensed_feat_with_quality
 
 
-
 class WeightedReIDFeatureModel(nn.Module):
-    def __init__(self, local_conv_out_channels=255, base_model='resnet18', device_id=-1):
+    def __init__(self, local_conv_out_channels=256, base_model='resnet18', device_id=-1):
         super(WeightedReIDFeatureModel, self).__init__()
         if base_model == 'resnet50':
           self.base = resnet50(pretrained=True, device=device_id)
@@ -94,14 +93,45 @@ class WeightedReIDFeatureModel(nn.Module):
           raise RuntimeError("unknown base model!")
         if device_id >= 0:
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1).cuda(device_id)
-
         else:
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
 
-    def forward(self, x):
+    def compute_roi(self, map_w, map_h, w_h_ratio):
+        map_ratio = float(map_w)/map_h
+
+        if w_h_ratio.data.numpy() < map_ratio:   # thin box
+            delta_w = min(map_w/2-1,int(round((map_w - map_h * w_h_ratio)/2))) # smaller than w/2, otherwise zero width in the roi
+            xs, xe = delta_w, map_w-delta_w
+            ys, ye = 0, map_h
+        else:   # fat box
+            delta_h = min(map_h/2-1, int(round((map_h - map_w / w_h_ratio)/2)))
+            ys, ye = delta_h, map_h-delta_h
+            xs, xe = 0, map_w
+
+        return xs, xe, ys, ye
+
+    def compute_roi_masks(self, w_h_ratios, feat_size):
+        n = feat_size[0]
+        roi_masks = torch.zeros(feat_size)
+        roi_areas = torch.zeros(n)
+        for i in range(n):
+            xs, xe, ys, ye = self.compute_roi(feat_size[3], feat_size[2], w_h_ratios[i])
+            roi_masks[i, :, ys:ye, xs:xe] = 1
+            roi_areas[i] = (ye-ys)*(xe-xs)
+        return roi_masks, roi_areas
+
+    def forward(self, x, w_h_ratios):
         base_conv = self.base(x)
         final_conv_feat = self.final_conv(base_conv)
-        condensed_feat = torch.squeeze(F.avg_pool2d(final_conv_feat,final_conv_feat.size()[2:])) # descriptor were fist conv into shorter channels and then average
+        w_h_ratios = w_h_ratios.view(-1)
+        # roi pooling, crop the feature map
+        conv_feat_size = list(final_conv_feat.size())
+        roi_masks, roi_areas = self.compute_roi_masks(w_h_ratios, conv_feat_size)
+        masked_feat = final_conv_feat*Variable(roi_masks)
+        feature_sum = torch.sum(torch.sum(masked_feat, 3),2)
+        roi_areas = roi_areas.unsqueeze(1)
+        feature_average = feature_sum/Variable(roi_areas.expand((conv_feat_size[0], conv_feat_size[1])))
+        condensed_feat = torch.squeeze(feature_average) # descriptor were fist conv into shorter channels and then average
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
         feat = F.normalize(condensed_feat, p=2, dim=1)
