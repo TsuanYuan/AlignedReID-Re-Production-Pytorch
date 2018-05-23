@@ -99,7 +99,7 @@ class WeightedReIDFeatureModel(nn.Module):
     def compute_roi(self, map_w, map_h, w_h_ratio):
         map_ratio = float(map_w)/map_h
 
-        if w_h_ratio.data.numpy() < map_ratio:   # thin box
+        if w_h_ratio.data.cpu().numpy() < map_ratio:   # thin box
             delta_w = min(map_w/2-1,int(round((map_w - map_h * w_h_ratio)/2))) # smaller than w/2, otherwise zero width in the roi
             xs, xe = delta_w, map_w-delta_w
             ys, ye = 0, map_h
