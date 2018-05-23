@@ -1,6 +1,6 @@
 
 import cv2
-import os, glob
+import os, glob, json
 import argparse, logging
 import numpy
 import torch
@@ -36,24 +36,21 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_comp
                 imt = im.transpose(2, 0, 1)
                 imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
-                basename, _ = os.path.splitext()
-                json_file =
-                if torch.has_cudnn:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
+                basename, _ = os.path.splitext(crop_file)
+                json_file = basename + '.json'
+                if os.path.isfile(json_file):
+                    data = json.load(open(json_file, 'r'))
+                    aspect_ratio = data['box'][2]/float(data['box'][3])
                 else:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float()))
+                    aspect_ratio = 0.5
+                if torch.has_cudnn:
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
+                                           Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
+                else:
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
                 descriptor = descriptor_var.data.cpu().numpy()
                 descriptor.tofile(descriptor_file)
-                # only for debug
-                if debug:
-                    dump_folder = '/tmp/seq_weights/'
-                    if not os.path.isdir(dump_folder):
-                        os.makedirs(dump_folder)
-                    _, file_only = os.path.split(crop_file)
-                    dump_file = os.path.join(dump_folder, file_only)
-                    cv2.putText(im, '%.3f'%float(numpy.squeeze(descriptor)[-1]), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-                    im_rgb = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)
-                    cv2.imwrite(dump_file, im_rgb)
+
             descriptor = numpy.squeeze(descriptor)
             item['descriptor'] = descriptor
             item['file'] = crop_file
@@ -73,10 +70,6 @@ def distance(a,b):
 
 
 def process(model,folder, device, force_compute_desc, ext, debug):
-    # if torch.has_cudnn:
-    #     model = torch.load(model_path, map_location = lambda storage, loc: 'cuda:{0}'.format(str(device)))
-    # else:
-
     get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug)
     mlog.info('descriptors were computed in {0}'.format(folder))
 

@@ -63,7 +63,7 @@ def init_optim(optim, params, lr, weight_decay, eps=0.1):
 
 def main(data_folder, model_folder, sample_size, batch_size,
          num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='pair',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, batch_factor=4, threshold=0.1):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, threshold=0.1):
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop((256, 128)),
@@ -79,9 +79,16 @@ def main(data_folder, model_folder, sample_size, batch_size,
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
+        if with_roi:
+            model = Model.WeightedReIDFeatureROIModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
+        else:
+            model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
     else:
-        model = Model.WeightedReIDFeatureModel()
+        if with_roi:
+            model = Model.WeightedReIDFeatureROIModel(base_model=base_model)
+        else:
+            model = Model.WeightedReIDFeatureModel(base_model=base_model)
+
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
     else:
@@ -114,10 +121,16 @@ def main(data_folder, model_folder, sample_size, batch_size,
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
             optimizer.zero_grad()
             if gpu_id >= 0:
-                outputs = model(Variable(images.cuda(device=gpu_id)), Variable(w_h_ratios.cuda(device=gpu_id)))
+                if with_roi:
+                    outputs = model(Variable(images.cuda(device=gpu_id)), Variable(w_h_ratios.cuda(device=gpu_id)))
+                else:
+                    outputs = model(Variable(images.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
             else:
-                outputs = model(Variable(images), Variable(w_h_ratios))
+                if with_roi:
+                    outputs = model(Variable(images), Variable(w_h_ratios))
+                else:
+                    outputs = model(Variable(images))
             outputs = outputs.view([actual_size[0], sample_size, -1])
             loss, dist_pos,dist_neg = loss_function(outputs, person_ids)
             loss.backward()
@@ -149,6 +162,7 @@ if __name__ == '__main__':
     parser.add_argument('--loss', type=str, default='pair', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
+    parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -158,4 +172,4 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.sample_size, args.batch_size,
          gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
-         optimizer_name=args.optimizer, base_lr=args.lr, batch_factor=args.batch_factor, threshold=args.class_th)
+         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, threshold=args.class_th)
