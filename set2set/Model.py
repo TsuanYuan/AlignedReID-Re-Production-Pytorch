@@ -112,8 +112,8 @@ class WeightedReIDFeatureModel(nn.Module):
 
     def compute_roi_masks(self, w_h_ratios, feat_size):
         n = feat_size[0]
-        roi_masks = torch.zeros(feat_size)
-        roi_areas = torch.zeros(n)
+        roi_masks = torch.zeros(feat_size).to(device=w_h_ratios.get_device())
+        roi_areas = torch.zeros(n).to(device=w_h_ratios.get_device())
         for i in range(n):
             xs, xe, ys, ye = self.compute_roi(feat_size[3], feat_size[2], w_h_ratios[i])
             roi_masks[i, :, ys:ye, xs:xe] = 1
