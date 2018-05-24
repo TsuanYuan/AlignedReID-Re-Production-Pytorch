@@ -93,8 +93,12 @@ class WeightedReIDFeatureROIModel(nn.Module):
           raise RuntimeError("unknown base model!")
         if device_id >= 0:
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1).cuda(device_id)
+            self.final_bn = nn.BatchNorm2d(local_conv_out_channels).cuda(device_id)
+            self.final_relu = nn.ReLU(inplace=True).cuda(device_id)
         else:
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+            self.final_bn = nn.BatchNorm2d(local_conv_out_channels)
+            self.final_relu = nn.ReLU(inplace=True)
 
     def compute_roi(self, map_w, map_h, w_h_ratio):
         map_ratio = float(map_w)/map_h
@@ -130,7 +134,7 @@ class WeightedReIDFeatureROIModel(nn.Module):
 
     def forward(self, x, w_h_ratios):
         base_conv = self.base(x)
-        final_conv_feat = self.final_conv(base_conv)
+        final_conv_feat = self.final_relu(self.final_bn(self.final_conv(base_conv)))
         w_h_ratios = w_h_ratios.view(-1)
         # roi pooling, crop the feature map
         conv_feat_size = list(final_conv_feat.size())
