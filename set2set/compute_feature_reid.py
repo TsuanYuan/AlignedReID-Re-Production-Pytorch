@@ -25,7 +25,7 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
         # print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
         interval = max(len(crop_files) / sample_size, 1)
-        crop_files = [crop_file for i, crop_file in enumerate(crop_file) if i % interval == 0]
+        crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
 
         for i, crop_file in enumerate(crop_files):
 
