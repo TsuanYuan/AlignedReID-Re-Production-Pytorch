@@ -127,7 +127,12 @@ if __name__ == "__main__":
                         help='the extension of feature files')
     parser.add_argument('--sample_size', type=int, default=16,
                         help='the num of samples from each ID')
+    parser.add_argument('--single_folder', action='store_true', default=False,
+                        help='process only current folder')
 
     args = parser.parse_args()
     print 'sample size per ID={0}'.format(args.sample_size)
-    process_all(args.test_folder, args.ext, args.sample_size)
+    if args.single_folder:
+        process(args.test_folder, args.ext, args.sample_size)
+    else:
+        process_all(args.test_folder, args.ext, args.sample_size)
