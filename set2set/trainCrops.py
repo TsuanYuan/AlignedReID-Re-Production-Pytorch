@@ -82,7 +82,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                                 sample_size=sample_size, with_roi=with_roi)
 
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
-                            shuffle=True, num_workers=8)
+                            shuffle=True, num_workers=4)
 
     if not torch.cuda.is_available():
         gpu_id = -1

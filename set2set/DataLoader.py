@@ -59,7 +59,7 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         # debug
         # import scipy.misc
         # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
-        return new_im
+        return new_im, im.shape[1] / float(im.shape[0])
 
 
     def resize_original_aspect_ratio(self, im, desired_size=(256, 128)):
@@ -90,17 +90,16 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         ims = []
         w_h_ratios = []
         for im_path in im_paths_sample:
-            if self.original_ar:
-                im = self.resize_original_aspect_ratio(io.imread(im_path))
-            else:
-                im = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
+
+            im, w_h_ratio = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
             basename, _ = os.path.splitext(im_path)
             json_path = basename+'.json'
-            if os.path.isfile(json_path) and self.with_roi:
+            if not self.with_roi:
+                w_h_ratio = 0.5
+            elif os.path.isfile(json_path) and self.with_roi:
                 data = json.load(open(json_path, 'r'))
                 w_h_ratio = data['box'][2]/float(data['box'][3])
-            else:
-                w_h_ratio = 0.5
+
             w_h_ratios.append(w_h_ratio)
             ims.append(im)
         sample = {'images': ims, 'w_h_ratios':w_h_ratios, 'person_id': person_id}
