@@ -63,8 +63,14 @@ def init_optim(optim, params, lr, weight_decay, eps=0.1):
 
 def main(data_folder, model_folder, sample_size, batch_size,
          num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='pair',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, threshold=0.1, original_ar=False):
-    composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, threshold=0.1, original_ar=False, with_roi=False):
+    if with_roi:
+        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+                                                  transforms_reid.PixelNormalize(),
+                                                  transforms_reid.ToTensor(),
+                                                  ])
+    else:
+        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.PixelNormalize(),
@@ -72,7 +78,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                               ])
 
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
-                                                sample_size=sample_size, original_ar=original_ar)
+                                                sample_size=sample_size, with_roi=with_roi)
 
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
