@@ -66,6 +66,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, threshold=0.1, original_ar=False, with_roi=False):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+                                                  transforms_reid.Rescale((256, 128)),
                                                   transforms_reid.PixelNormalize(),
                                                   transforms_reid.ToTensor(),
                                                   ])
