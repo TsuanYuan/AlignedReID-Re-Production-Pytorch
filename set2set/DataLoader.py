@@ -13,7 +13,8 @@ import json
 class ReIDAppearanceSet2SetDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, root_dir, transform=None, sample_size=64):
+    def __init__(self, root_dir, transform=None, sample_size=64,  with_roi=True,
+                 original_ar=False):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -38,6 +39,8 @@ class ReIDAppearanceSet2SetDataset(Dataset):
 
         self.transform = transform
         self.sample_size = sample_size
+        self.original_ar = original_ar # whether to use fixed aspect ratio
+        self.with_roi = with_roi
 
     def crop_pad_fixed_aspect_ratio(self, im, desired_size=(256, 128)):
         color = [0, 0, 0]  # zero padding
@@ -58,6 +61,23 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
         return new_im
 
+
+    def resize_original_aspect_ratio(self, im, desired_size=(256, 128)):
+
+        aspect_ratio = desired_size[1] / float(desired_size[0])
+        current_ar = im.shape[1] / float(im.shape[0])
+        if current_ar > aspect_ratio:  # current height is too high
+            new_w = int(round(desired_size[0]*current_ar))
+            new_im = cv2.resize(im, (new_w, desired_size[0]))
+        else:  # current width is too wide, pad height
+            new_h = int(round(desired_size[1]/current_ar))
+            new_im = cv2.resize(im, (desired_size[1], new_h))
+        # debug
+        import scipy.misc
+        scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+        return new_im
+
+
     def __len__(self):
         return len(self.person_id_im_paths)
 
@@ -70,10 +90,13 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         ims = []
         w_h_ratios = []
         for im_path in im_paths_sample:
-            im = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            if self.original_ar:
+                im = self.resize_original_aspect_ratio(io.imread(im_path))
+            else:
+                im = self.crop_pad_fixed_aspect_ratio(io.imread(im_path))
             basename, _ = os.path.splitext(im_path)
             json_path = basename+'.json'
-            if os.path.isfile(json_path):
+            if os.path.isfile(json_path) and self.with_roi:
                 data = json.load(open(json_path, 'r'))
                 w_h_ratio = data['box'][2]/float(data['box'][3])
             else:

@@ -19,7 +19,7 @@ mlog.setLevel(level)
 
 def load_person_id_descriptors(person_folder, ext, sample_size=64):
     desc_files = glob.glob(os.path.join(person_folder, '*.'+ext))
-    # load all descriptors
+    # load descriptors at interval
     interval = max(len(desc_files)/sample_size, 1)
     descriptors = [numpy.fromfile(desc_file, dtype=numpy.float32) for i, desc_file in enumerate(desc_files) if i%interval==0]
     return descriptors, desc_files

@@ -12,8 +12,8 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_compute=False, ext='dsc',
-                    debug=False, with_roi=False):
+def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
+                    debug=False, with_roi=False, sample_size=64):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
     if debug:
@@ -24,9 +24,11 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_comp
         p = os.path.join(top_folder, id_folder)
         # print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
+        interval = max(len(crop_files) / sample_size, 1)
+        crop_files = [crop_file for i, crop_file in enumerate(crop_file) if i % interval == 0]
+
         for i, crop_file in enumerate(crop_files):
-            if max_count_per_id>0 and i > max_count_per_id:
-                break
+
             descriptor_file = crop_file[:-4]+'.'+ext
             if os.path.isfile(descriptor_file) and (not force_compute):
                 descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
@@ -39,22 +41,18 @@ def get_descriptors(top_folder,model, device_id, max_count_per_id=-1, force_comp
                 imt = numpy.expand_dims(imt, 0)
                 basename, _ = os.path.splitext(crop_file)
                 json_file = basename + '.json'
-                if os.path.isfile(json_file):
+                if os.path.isfile(json_file) and with_roi:
                     data = json.load(open(json_file, 'r'))
                     aspect_ratio = data['box'][2]/float(data['box'][3])
                 else:
                     aspect_ratio = 0.5
                 if torch.has_cudnn:
-                    if with_roi:
-                        descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
                                            Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
-                    else:
-                        descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
+
                 else:
-                    if with_roi:
-                        descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
-                    else:
-                        descriptor_var = model(Variable(torch.from_numpy(imt).float()))
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
+
 
                 descriptor = descriptor_var.data.cpu().numpy()
                 descriptor.tofile(descriptor_file)
@@ -77,21 +75,22 @@ def distance(a,b):
     return d0
 
 
-def process(model,folder, device, force_compute_desc, ext, debug, with_roi):
-    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug, with_roi=with_roi)
+def process(model,folder, device, force_compute_desc, ext, debug, with_roi, sample_size):
+    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, debug=debug,
+                    with_roi=with_roi, sample_size=sample_size)
     mlog.info('descriptors were computed in {0}'.format(folder))
 
 
-def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug, with_roi):
+def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug, with_roi, sample_size):
     if device >=0:
         model = torch.load(model_path, map_location='cuda:{0}'.format(device))
     else:
         model = torch.load(model_path, map_location = lambda storage, loc: storage)
 
-    sub_folders = next(os.walk(folder))[1] #[x[0] for x in os.walk(folder)]
+    sub_folders = next(os.walk(folder))[1]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(model, sub_folder_full, device, force_compute_desc, ext, debug, with_roi)
+        process(model, sub_folder_full, device, force_compute_desc, ext, debug, with_roi, sample_size)
 
 
 if __name__ == '__main__':
@@ -118,8 +117,9 @@ if __name__ == '__main__':
     parser.add_argument('--with_roi', action='store_true', default=False,
                         help='whether to input aspect ratio')
 
+    parser.add_argument('--sample_size', type=int, default=16,
+                        help='the num of samples from each ID')
+
     args = parser.parse_args()
-    # print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
-    #os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device_id)
     process_all_sub_folders(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi)
