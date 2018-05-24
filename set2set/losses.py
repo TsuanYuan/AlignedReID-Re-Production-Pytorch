@@ -60,7 +60,7 @@ def euclidean_distances(x, y=None):
     return dist
 
 
-def pair_loss_func(feature, pids, margin):
+def pair_loss_func(feature, pids, margin, sub_sample_neg=10):
     N = pids.size()[0]  # number of weighted features
     is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
     diag_one = torch.diag(torch.ones_like(torch.sum(is_pos, 1).byte()))
@@ -68,7 +68,7 @@ def pair_loss_func(feature, pids, margin):
     is_neg = pids.expand(N, N).ne(pids.expand(N, N).t())
     dist_mat = euclidean_distances(feature)
     dist_pos = dist_mat[is_pos].contiguous()
-    dist_neg = dist_mat[is_neg].contiguous()
+    dist_neg = dist_mat[is_neg].contiguous()[0::sub_sample_neg].contiguous()  # subsample neg pairs
     dist_pos = dist_pos.view(-1, 1)
     dist_neg = dist_neg.view(1, -1)
     loss_mat = dist_pos + margin - dist_neg

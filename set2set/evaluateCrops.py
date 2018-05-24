@@ -129,5 +129,5 @@ if __name__ == "__main__":
                         help='the num of samples from each ID')
 
     args = parser.parse_args()
-
+    print 'sample size per ID={0}'.format(args.sample_size)
     process_all(args.test_folder, args.ext, args.sample_size)
