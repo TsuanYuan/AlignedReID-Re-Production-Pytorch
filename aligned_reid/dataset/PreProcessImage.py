@@ -135,13 +135,17 @@ class PreProcessIm(object):
       im[:, :, i] = im[:, :, i] * (1 - occlusion_mask_sc) + occlusion_mask_sc * im_mean_255[i]
     return im
 
-  def pre_process_im(self, im, desired_size=(256, 128)):
+  def pre_process_im(self, im, desired_size=(256, 128), stretch=False):
     """Pre-process image.
     `im` is a numpy array with shape [H, W, 3], e.g. the result of
     matplotlib.pyplot.imread(some_im_path), or
     numpy.asarray(PIL.Image.open(some_im_path))."""
 
-    im = self.crop_pad_fixed_aspect_ratio(im, desired_size)
+    if stretch:
+      im = cv2.resize(im, desired_size[::-1])
+    else:
+      im = self.crop_pad_fixed_aspect_ratio(im, desired_size)
+
     # Randomly crop a sub-image.
     if ((self.crop_ratio < 1)
         and (self.crop_prob > 0)

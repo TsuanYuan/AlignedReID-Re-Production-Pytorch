@@ -275,7 +275,11 @@ def randome_sample_train_test(id_dict, num_test, partition_id, save_dir):
     test_ims = []
     for id in train_ids:
         for im in id_dict[id]:
-            train_ims.append(im)
+            statinfo = os.stat(im)
+            if statinfo.st_size > 0:
+                train_ims.append(im)
+            else:
+                print('file might be corrupted {0}'.format(im))
     for id in test_ids:
         for im in id_dict[id]:
             test_ims.append(im)
