@@ -127,8 +127,13 @@ def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
         cameraIDs[cameraID] = len(cameraIDs)
     dest_name = new_im_name_tmpl.format(id, cameraIDs[cameraID], k)
     dest_path = os.path.join(save_dir, dest_name)
-    shutil.copy(image_path, dest_path)
-    return dest_path
+    statinfo = os.stat(image_path)
+    if statinfo.st_size > 0:
+        shutil.copy(image_path, dest_path)
+        return dest_path
+    else:
+        print('file might be corrupted {0}'.format(image_path))
+        return None
 
 def transfer_one_folder(id_folder, save_dir, id, max_count_per_id):
     jpgList = glob.glob(os.path.join(id_folder, '*.jpg'))
@@ -140,6 +145,8 @@ def transfer_one_folder(id_folder, save_dir, id, max_count_per_id):
         if k > max_count_per_id:  # keep samples per id under limit
             break
         dest_path = transfer_one_image(jpgPath, save_dir, id, k, cameraIDs)
+        if dest_path is None:
+            continue
         dest_paths.append(dest_path)
     destFileList = [os.path.basename(p) for p in dest_paths]
     return destFileList
@@ -275,11 +282,9 @@ def randome_sample_train_test(id_dict, num_test, partition_id, save_dir, input_f
     test_ims = []
     for id in train_ids:
         for im in id_dict[id]:
-            statinfo = os.stat(os.path.join(input_folder,im))
-            if statinfo.st_size > 0:
-                train_ims.append(im)
-            else:
-                print('file might be corrupted {0}'.format(im))
+
+            train_ims.append(im)
+
     for id in test_ids:
         for im in id_dict[id]:
             test_ims.append(im)
