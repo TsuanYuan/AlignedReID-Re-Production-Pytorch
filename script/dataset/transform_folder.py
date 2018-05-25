@@ -275,7 +275,7 @@ def randome_sample_train_test(id_dict, num_test, partition_id, save_dir, input_f
     test_ims = []
     for id in train_ids:
         for im in id_dict[id]:
-            statinfo = os.stat(im)
+            statinfo = os.stat(os.path.join(input_folder,im))
             if statinfo.st_size > 0:
                 train_ims.append(im)
             else:
