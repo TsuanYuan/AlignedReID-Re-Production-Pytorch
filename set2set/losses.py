@@ -7,6 +7,7 @@ Quan Yuan
 import torch
 from torch import nn
 from torch.nn import functional
+from torch.autograd import Variable
 
 """
 Shorthands for loss:
@@ -76,6 +77,17 @@ def pair_loss_func(feature, pids, margin, sub_sample_neg=10):
     loss = torch.sum(loss_mat[loss_ids])
     return loss, torch.max(dist_pos), torch.min(dist_neg)
 
+
+def triplet_loss_func(feature, labels, ranking_loss):
+    #self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+    dist_mat = euclidean_distances(feature)
+    dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
+        dist_mat, labels, return_inds=True)
+    y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
+
+    loss = ranking_loss(dist_an, dist_ap, y)
+    return loss, torch.max(dist_ap), torch.min(dist_an)
+
 def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
     # threshold loss
     N = pids.size()[0]  # number of weighted features
@@ -93,6 +105,61 @@ def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
     loss_pos = torch.sum(dist_pos[loss_pos_ids] - th + margin_pos)
     loss_neg = torch.sum(th + margin_neg - dist_neg[loss_neg_ids])
     return loss_pos+loss_neg, torch.max(dist_pos), torch.min(dist_neg)
+
+
+def hard_example_mining(dist_mat, labels, return_inds=False):
+    """For each anchor, find the hardest positive and negative sample.
+    Args:
+    dist_mat: pytorch Variable, pair wise distance between samples, shape [N, N]
+    labels: pytorch LongTensor, with shape [N]
+    return_inds: whether to return the indices. Save time if `False`(?)
+    Returns:
+    dist_ap: pytorch Variable, distance(anchor, positive); shape [N]
+    dist_an: pytorch Variable, distance(anchor, negative); shape [N]
+    p_inds: pytorch LongTensor, with shape [N];
+      indices of selected hard positive samples; 0 <= p_inds[i] <= N - 1
+    n_inds: pytorch LongTensor, with shape [N];
+      indices of selected hard negative samples; 0 <= n_inds[i] <= N - 1
+    NOTE: Only consider the case in which all labels have same num of samples,
+    thus we can cope with all anchors in parallel.
+    """
+
+    assert len(dist_mat.size()) == 2
+    assert dist_mat.size(0) == dist_mat.size(1)
+    N = dist_mat.size(0)
+
+    # shape [N, N]
+    is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
+    is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
+
+    # `dist_ap` means distance(anchor, positive)
+    # both `dist_ap` and `relative_p_inds` with shape [N, 1]
+    dist_ap, relative_p_inds = torch.max(
+    dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
+    # `dist_an` means distance(anchor, negative)
+    # both `dist_an` and `relative_n_inds` with shape [N, 1]
+    dist_an, relative_n_inds = torch.min(
+    dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
+    # shape [N]
+    dist_ap = dist_ap.squeeze(1)
+    dist_an = dist_an.squeeze(1)
+
+    if return_inds:
+        # shape [N, N]
+        ind = (labels.new().resize_as_(labels)
+               .copy_(torch.arange(0, N).long())
+               .unsqueeze( 0).expand(N, N))
+        # shape [N, 1]
+        p_inds = torch.gather(
+          ind[is_pos].contiguous().view(N, -1), 1, relative_p_inds.data)
+        n_inds = torch.gather(
+          ind[is_neg].contiguous().view(N, -1), 1, relative_n_inds.data)
+        # shape [N]
+        p_inds = p_inds.squeeze(1)
+        n_inds = n_inds.squeeze(1)
+        return dist_ap, dist_an, p_inds, n_inds
+
+    return dist_ap, dist_an
 
 
 def weighted_seq_loss_func(feature, weight, pids, seq_size, margin, th=-1.0):
@@ -121,11 +188,41 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin, th=-1.0):
     else:
         return fixed_th_loss_func(summed_feature_normalize, pid_expand, th, th/2, th)
 
-def element_loss_func(feature, pids, margin, th=-1.0):
+def element_loss_func(feature, pids, margin, ranking_loss, th=-1.0):
     if th<0:
-        return pair_loss_func(feature, pids, margin)
+        return triplet_loss_func(feature, pids, ranking_loss)#pair_loss_func(feature, pids, margin)
     else:
         return fixed_th_loss_func(feature, pids, th, th/2, th)
+
+
+
+class TripletLoss(object):
+  """Modified from Tong Xiao's open-reid (https://github.com/Cysu/open-reid).
+  Related Triplet Loss theory can be found in paper 'In Defense of the Triplet
+  Loss for Person Re-Identification'."""
+  def __init__(self, margin=None):
+    self.margin = margin
+    if margin is not None:
+      self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+    else:
+      self.ranking_loss = nn.SoftMarginLoss()
+
+  def __call__(self, dist_ap, dist_an):
+    """
+    Args:
+      dist_ap: pytorch Variable, distance between anchor and positive sample,
+        shape [N]
+      dist_an: pytorch Variable, distance between anchor and negative sample,
+        shape [N]
+    Returns:
+      loss: pytorch Variable, with shape [1]
+    """
+    y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
+    if self.margin is not None:
+      loss = self.ranking_loss(dist_an, dist_ap, y)
+    else:
+      loss = self.ranking_loss(dist_an - dist_ap, y)
+    return loss
 
 
 class WeightedAverageSeqLoss(nn.Module):
@@ -148,7 +245,7 @@ class WeightedAverageSeqLoss(nn.Module):
         weight_size = list(weight.size())
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
@@ -172,7 +269,7 @@ class WeightedAverageSeqThLoss(nn.Module):
         weight_size = list(weight.size())
         pids_expand = pids.expand(weight_size).contiguous().view(-1)
         feature_expand = feature.view(weight_size[0]*weight_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.th, self.th)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.th, None, th=self.th)
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
@@ -184,13 +281,14 @@ class WeightedAverageLoss(nn.Module):
     def __init__(self, margin):
         super(WeightedAverageLoss, self).__init__()
         self.margin = margin
+        self.ranking_loss = nn.MarginRankingLoss(margin=margin)
 
     def forward(self, x, pids):
         feature = x
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.margin)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
 
         return element_loss
 
@@ -209,6 +307,6 @@ class WeightedAverageThLoss(nn.Module):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.th, self.th)
+        element_loss = element_loss_func(feature_expand, pids_expand, self.th, None, th=self.th)
 
         return element_loss[0], element_loss[1], element_loss[2]

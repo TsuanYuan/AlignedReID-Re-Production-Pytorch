@@ -1,0 +1,2 @@
+on machine 21
+/ssd/qyuan/data/train/wanda*ready /mnt/inspur/qyuan/data/appearance/

@@ -66,15 +66,15 @@ class ReIDAppearanceSet2SetDataset(Dataset):
 
         aspect_ratio = desired_size[1] / float(desired_size[0])
         current_ar = im.shape[1] / float(im.shape[0])
-        if current_ar > aspect_ratio:  # current height is too high
-            new_w = int(round(desired_size[0]*current_ar))
-            new_im = cv2.resize(im, (new_w, desired_size[0]))
-        else:  # current width is too wide, pad height
-            new_h = int(round(desired_size[1]/current_ar))
+        if current_ar > aspect_ratio:  # current height is not high
+            new_h = int(round(desired_size[1] / current_ar))
             new_im = cv2.resize(im, (desired_size[1], new_h))
+        else:  # current width is not wide
+            new_w = int(round(desired_size[0] * current_ar))
+            new_im = cv2.resize(im, (new_w, desired_size[0]))
         # debug
-        import scipy.misc
-        scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+        # import scipy.misc
+        # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
         return new_im
 
 
