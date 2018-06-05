@@ -12,3 +12,11 @@ prefix:
 
 0321 - 50000
 0322 - 51000
+
+
+evaluation:
+
+in HumanTrackingRecognition/python/HumanTracker/utils
+python compute_features_alignedReID.py /ssd/qyuan/data/wanda_multiview_20180325/5min_synced/padded_crops/wanda_20180325_ch07 /mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/exp/round2_fullbody/ckpt.pth r2dsc --force_descriptor --device_id 7 --num_classes 514
+in AlignedReID-Re-Production/set2set
+python evaluateCrops.py /ssd/qyuan/data/wanda_multiview_20180325/5min_synced/noar_crops/wanda_20180325_ch15  r2w1n50fwroi --single_folder
