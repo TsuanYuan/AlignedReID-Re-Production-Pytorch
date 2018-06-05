@@ -69,7 +69,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                                   transforms_reid.Rescale((256, 128)),
                                                   transforms_reid.PixelNormalize(),
                                                   transforms_reid.ToTensor(),
-                                                  ])
+                                                  ])  # no random crop
     else:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
@@ -122,15 +122,15 @@ def main(data_folder, model_folder, sample_size, batch_size,
             w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
-            optimizer.zero_grad()
+
             if gpu_id >= 0:
                 outputs = model(Variable(images.cuda(device=gpu_id)), Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
             else:
                 outputs = model(Variable(images), Variable(w_h_ratios))
-
             outputs = outputs.view([actual_size[0], sample_size, -1])
             loss, dist_pos,dist_neg = loss_function(outputs, person_ids)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))

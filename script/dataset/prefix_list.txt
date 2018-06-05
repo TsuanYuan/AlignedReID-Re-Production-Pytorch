@@ -1,2 +1,14 @@
 on machine 21
 /ssd/qyuan/data/train/wanda*ready /mnt/inspur/qyuan/data/appearance/
+
+/mnt/soulfs/wanda_appearance_model/final_dataset/wanda_0321_2/ /ssd/qyuan/data/train/wanda_0321_2_transfered --id_prefix 50000
+python transfer_folder.py /mnt/soulfs/wanda_appearance_model/final_dataset/wanda_0322_2/ /ssd/qyuan/data/train/wanda_0322_2_transfered --id_prefix 51000
+
+on machine 10:
+/ssd/qyuan/data/appearance
+
+
+prefix:
+
+0321 - 50000
+0322 - 51000
