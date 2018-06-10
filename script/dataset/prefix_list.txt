@@ -10,9 +10,10 @@ on machine 10:
 
 prefix:
 
-0321 - 50000
-0322 - 51000
-
+0321 - 50000   camera 07
+0322 - 51000   camera
+0323 - 53000   camera 03
+0404 - 54000   camera 15
 
 evaluation:
 

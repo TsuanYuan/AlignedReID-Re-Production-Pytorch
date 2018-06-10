@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
+from torch.autograd import Variable
+import numpy as np
 
 from .resnet import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
-from torchvision.models import vgg16_bn, vgg11_bn, vgg13_bn
+from torchvision.models import vgg16_bn, vgg11_bn
 
 class Model(nn.Module):
   def __init__(self, local_conv_out_channels=128, num_classes=None, base_model='resnet50'):
@@ -68,3 +70,40 @@ class Model(nn.Module):
       return global_feat, local_feat, logits
 
     return global_feat, local_feat, None
+
+  def forward_roi(self, x, rois, pooled_height=8, pooled_width=4):
+    feat = self.base(x)
+    batch_size, num_channels, data_height, data_width = feat.size()
+    num_rois = rois.size()[0]
+    assert(num_rois==batch_size)
+    outputs = Variable(torch.zeros(num_rois, num_channels, pooled_height, pooled_width)).cuda()
+
+    for roi_ind, roi in enumerate(rois):
+      batch_ind = roi_ind #int(roi[0].data[0])
+      roi_start_w, roi_start_h, roi_end_w, roi_end_h = np.round(
+        roi[:].data.cpu().numpy()).astype(int)
+      roi_width = max(roi_end_w - roi_start_w + 1, 1)
+      roi_height = max(roi_end_h - roi_start_h + 1, 1)
+      bin_size_w = float(roi_width) / float(pooled_width)
+      bin_size_h = float(roi_height) / float(pooled_height)
+
+      for ph in range(pooled_height):
+        hstart = int(np.floor(ph * bin_size_h))
+        hend = int(np.ceil((ph + 1) * bin_size_h))
+        hstart = min(data_height, max(0, hstart + roi_start_h))
+        hend = min(data_height, max(0, hend + roi_start_h))
+        for pw in range(pooled_width):
+          wstart = int(np.floor(pw * bin_size_w))
+          wend = int(np.ceil((pw + 1) * bin_size_w))
+          wstart = min(data_width, max(0, wstart + roi_start_w))
+          wend = min(data_width, max(0, wend + roi_start_w))
+
+          is_empty = (hend <= hstart) or (wend <= wstart)
+          if is_empty:
+            outputs[roi_ind, :, ph, pw] = 0
+          else:
+            data = feat[batch_ind]
+            outputs[roi_ind, :, ph, pw] = torch.max(
+              torch.max(data[:, hstart:hend, wstart:wend], 1)[0], 2)[0].view(-1)
+
+    return outputs
