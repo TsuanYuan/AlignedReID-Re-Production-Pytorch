@@ -61,7 +61,7 @@ class Rescale(object):
 
             new_h, new_w = int(new_h), int(new_w)
 
-            img = transform.resize(image, (new_h, new_w), mode='constant', preserve_range=True)
+            img = transform.resize(image, (new_h, new_w), mode='constant', preserve_range=True, anti_aliasing=False)
             images_scaled.append(img)
 
         return images_scaled #{'images': images_scaled, 'person_id': person_id}

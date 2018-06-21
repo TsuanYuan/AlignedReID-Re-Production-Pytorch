@@ -134,7 +134,7 @@ class WeightedReIDFeatureROIModel(nn.Module):
 
     def forward(self, x, w_h_ratios):
         base_conv = self.base(x)
-        final_conv_feat = self.final_relu(self.final_bn(self.final_conv(base_conv)))
+        final_conv_feat = base_conv #self.final_relu(self.final_bn(self.final_conv(base_conv)))
         w_h_ratios = w_h_ratios.view(-1)
         # roi pooling, crop the feature map
         conv_feat_size = list(final_conv_feat.size())
@@ -186,7 +186,7 @@ class WeightedReIDFeatureModel(nn.Module):
 
     def forward(self, x):
         base_conv = self.base(x)
-        final_conv_feat = self.final_conv(base_conv)
+        final_conv_feat = base_conv #self.final_conv(base_conv)
         condensed_feat = torch.squeeze(F.avg_pool2d(final_conv_feat, final_conv_feat.size()[2:]))  # descriptor were fist conv into shorter channels and then average
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)

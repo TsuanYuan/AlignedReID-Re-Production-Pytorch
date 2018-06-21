@@ -14,7 +14,7 @@ import transforms_reid, Model
 import utils
 import losses
 from torch.autograd import Variable
-
+import debug_tool
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
     """Multiplied by a factor at the BEGINNING of specified epochs. All
@@ -88,9 +88,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDFeatureROIModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
     else:
-        model = Model.WeightedReIDFeatureROIModel(base_model=base_model)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model)
 
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
@@ -118,16 +118,17 @@ def main(data_folder, model_folder, sample_size, batch_size,
                 adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
+            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
             w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
             if gpu_id >= 0:
-                outputs = model(Variable(images.cuda(device=gpu_id)), Variable(w_h_ratios.cuda(device=gpu_id)))
+                outputs = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
             else:
-                outputs = model(Variable(images), Variable(w_h_ratios))
+                outputs = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
             outputs = outputs.view([actual_size[0], sample_size, -1])
             loss, dist_pos,dist_neg = loss_function(outputs, person_ids)
             optimizer.zero_grad()
@@ -149,8 +150,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
     parser.add_argument('model_folder', type=str, help="folder to save the model")
-    parser.add_argument('--sample_size', type=int, default=32, help="total number of images of each ID in a sample")
-    parser.add_argument('--batch_size', type=int, default=8, help="num samples in a mini-batch, each sample is a sequence of images")
+    parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
+    parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
