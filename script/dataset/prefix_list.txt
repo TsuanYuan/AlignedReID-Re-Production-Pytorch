@@ -15,6 +15,9 @@ prefix:
 0323 - 53000   camera 03
 0404 - 54000   camera 15
 0406 - 55000   camera 15
+wcc_0521 - 56000  camera 02
+dfxtd_0521 - 57000 camera 01
+
 
 evaluation:
 
