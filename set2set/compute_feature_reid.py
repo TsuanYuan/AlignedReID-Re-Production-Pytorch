@@ -80,6 +80,11 @@ def process(model,folder, device, force_compute_desc, ext, debug, with_roi, samp
                     with_roi=with_roi, sample_size=sample_size)
     mlog.info('descriptors were computed in {0}'.format(folder))
 
+def process_root_folder(model,root_folder, device, force_compute_desc, ext, debug, with_roi, sample_size):
+    folders = os.listdir(root_folder)
+    for folder in folders:
+        process_all_sub_folders(model, folder, device, force_compute_desc, ext, debug, with_roi, sample_size)
+
 
 def process_all_sub_folders(model_path, folder, device, force_compute_desc, ext, debug, with_roi, sample_size):
     if device >=0:
@@ -114,6 +119,9 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', default=False,
                         help='whether save debug image crop with weights')
 
+    parser.add_argument('--process_root', action='store_true', default=False,
+                        help='take root folders of all tests')
+
     parser.add_argument('--with_roi', action='store_true', default=False,
                         help='whether to input aspect ratio')
 
@@ -122,5 +130,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print "sample size per ID={0}".format(args.sample_size)
-    process_all_sub_folders(args.model_path, args.folder,
+    if args.process_root:
+        process_root_folder(args.model_path, args.folder,
+            args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi, args.sample_size)
+    else:
+        process_all_sub_folders(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi, args.sample_size)
