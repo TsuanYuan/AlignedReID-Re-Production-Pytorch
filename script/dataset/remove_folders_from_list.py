@@ -16,9 +16,9 @@ def remove_folders(ids, data_folder):
             shutil.rmtree(id_folder)
             count += 1
             print 'removed id folder {0}'.format(id_folder)
-    print '{0} folders were removed from {1}'.format(data_folder, str(count))
+    print '{0} folders were removed from {1}'.format(str(count), data_folder)
 
-    
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="create test folders from list")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
