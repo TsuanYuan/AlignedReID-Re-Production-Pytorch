@@ -325,7 +325,7 @@ if __name__ == '__main__':
   parser.add_argument('--max_count_per_id', type=int, help="max count to sample in one id", required=False,
                       default=1000)
   parser.add_argument('--num_test',  type=int, help="num ids in test set", required=False,
-                      default=100)
+                      default=0)
   parser.add_argument('--num_folds', type=int, help="num folds in cross validation tests", required=False,
                       default=5)
 
