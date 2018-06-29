@@ -47,11 +47,11 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
                 else:
                     aspect_ratio = 0.5
                 if torch.has_cudnn:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)),
-                                           Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
+                                           #Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
 
                 else:
-                    descriptor_var = model(Variable(torch.from_numpy(imt).float()),torch.from_numpy(numpy.array([aspect_ratio])).float())
+                    descriptor_var = model(Variable(torch.from_numpy(imt).float())) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
 
 
                 descriptor = descriptor_var.data.cpu().numpy()
