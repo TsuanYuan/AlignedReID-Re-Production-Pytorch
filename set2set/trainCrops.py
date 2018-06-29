@@ -109,9 +109,10 @@ def main(data_folder, model_folder, sample_size, batch_size,
         raise Exception('unknown loss name')
 
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    average_meter = utils.AverageMeter()
+    #average_meter = utils.AverageMeter()
 
     for epoch in range(num_epochs):
+        sum_loss = 0
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
@@ -134,11 +135,12 @@ def main(data_folder, model_folder, sample_size, batch_size,
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
-            if i_batch==0:
-                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} avg_loss={5}"\
-                    .format(str(epoch), str(i_batch), str(average_meter.val), str(dist_pos.data.cpu().numpy()),
-                            str(dist_neg.data.cpu().numpy()), str(average_meter.avg))
+            #average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
+            sum_loss+=loss.data.cpu().numpy()
+            if i_batch==len(dataloader)-1:
+                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} sum_loss_epoch={5}"\
+                    .format(str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
+                            str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,num_epochs/8))==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
