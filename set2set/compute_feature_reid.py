@@ -131,7 +131,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print "sample size per ID={0}".format(args.sample_size)
     if not args.process_root:
-        process(args.model_path, args.folder,
+        if args.device_id >= 0:
+            model = torch.load(args.model_path, map_location='cuda:{0}'.format(args.device_id))
+        else:
+            model = torch.load(args.model_path, map_location=lambda storage, loc: storage)
+        process(model, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi, args.sample_size)
     else:
         process_all_sub_folders(args.model_path, args.folder,
