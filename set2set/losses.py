@@ -78,8 +78,7 @@ def pair_loss_func(feature, pids, margin, sub_sample_neg=10):
     return loss, torch.max(dist_pos), torch.min(dist_neg)
 
 
-def triplet_loss_func(feature, labels, ranking_loss):
-    margin = 0.2
+def triplet_loss_func(feature, labels, margin=0.2):
     #self.ranking_loss = nn.MarginRankingLoss(margin=margin)
     dist_mat = euclidean_distances(feature)
     dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
@@ -193,7 +192,7 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin, th=-1.0):
 
 def element_loss_func(feature, pids, margin, ranking_loss, th=-1.0):
     if th<0:
-        return triplet_loss_func(feature, pids, ranking_loss)#pair_loss_func(feature, pids, margin)
+        return triplet_loss_func(feature, pids, margin=margin)#pair_loss_func(feature, pids, margin)
     else:
         return fixed_th_loss_func(feature, pids, th, th/2, th)
 

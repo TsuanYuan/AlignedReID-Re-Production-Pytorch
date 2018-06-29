@@ -62,7 +62,7 @@ def init_optim(optim, params, lr, weight_decay, eps=0.1):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 def main(data_folder, model_folder, sample_size, batch_size,
-         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='pair',
+         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='ranking',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, threshold=0.1, original_ar=False, with_roi=False):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -99,9 +99,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    decay_at_epochs = {150:1, 300:2}
+    decay_at_epochs = {80:1, 120:2}
     staircase_decay_multiply_factor = 0.1
-    if loss_name == 'pair':
+    if loss_name == 'ranking':
         loss_function = losses.WeightedAverageLoss(margin=margin)
     elif loss_name == 'class_th':
         loss_function = losses.WeightedAverageThLoss(th=threshold)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
-    parser.add_argument('--loss', type=str, default='pair', help="loss to use")
+    parser.add_argument('--loss', type=str, default='ranking', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")

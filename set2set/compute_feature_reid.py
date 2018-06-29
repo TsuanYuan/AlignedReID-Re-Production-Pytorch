@@ -130,8 +130,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print "sample size per ID={0}".format(args.sample_size)
-    if args.process_root:
-        process_root_folder(args.model_path, args.folder,
+    if not args.process_root:
+        process(args.model_path, args.folder,
             args.device_id, args.force_descriptor, args.ext, args.debug, args.with_roi, args.sample_size)
     else:
         process_all_sub_folders(args.model_path, args.folder,
