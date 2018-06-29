@@ -8,6 +8,7 @@ import torch
 from torch import nn
 from torch.nn import functional
 from torch.autograd import Variable
+import torch.nn.functional as F
 
 """
 Shorthands for loss:
@@ -276,25 +277,39 @@ class WeightedAverageSeqThLoss(nn.Module):
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
+
+
 class WeightedAverageLoss(nn.Module):
     """Weighted avearge loss.
     assume the last element of the feature is a weight vector
     """
 
-    def __init__(self, margin):
+    def __init__(self, margin, num_classes):
         super(WeightedAverageLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
+        self.id_loss = MultiClassLoss(num_classes=num_classes)
 
-    def forward(self, x, pids):
-        feature = x
+    def forward(self, feature, pids, logits):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
-        element_loss = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
+        element_loss, max_same_d, min_diff_d = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
+        mc_loss = self.id_loss(pids_expand, logits)
+        return element_loss+mc_loss, max_same_d, min_diff_d
 
-        return element_loss
 
+class MultiClassLoss(nn.Module):
+    def __init__(self, num_classes):
+        super(MultiClassLoss, self).__init__()
+        self.num_classes = num_classes
+        self.id_criterion = nn.CrossEntropyLoss()
+    def forward(self, pids, logits):
+        #probs = F.softmax(logits, dim=1)
+        #log_probs = F.log_softmax(logits, dim=1)
+        id_loss = self.id_criterion(logits, pids)
+
+        return id_loss
 
 class WeightedAverageThLoss(nn.Module):
     """Weighted avearge loss with a threshold, all pos < th-pos_margin, all neg > th+pos_margin

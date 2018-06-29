@@ -7,6 +7,8 @@ Quan Yuan
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.init as init
+
 from torch.autograd import Variable
 from BackBones import resnet50, resnet18, resnet34
 from torchvision.models import inception_v3
@@ -151,7 +153,7 @@ class WeightedReIDFeatureROIModel(nn.Module):
 
 
 class WeightedReIDFeatureModel(nn.Module):
-    def __init__(self, local_conv_out_channels=256, base_model='resnet18', device_id=-1):
+    def __init__(self, local_conv_out_channels=256, base_model='resnet18', device_id=-1, num_classes=None):
         super(WeightedReIDFeatureModel, self).__init__()
         if base_model == 'resnet50':
           self.base = resnet50(pretrained=True, device=device_id)
@@ -182,7 +184,10 @@ class WeightedReIDFeatureModel(nn.Module):
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1).cuda(device_id)
         else:
             self.final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
-
+        if num_classes is not None:
+            self.fc = nn.Linear(planes, num_classes)
+            init.normal_(self.fc.weight, std=0.001)
+            init.constant_(self.fc.bias, 0)
 
     def forward(self, x):
         base_conv = self.base(x)
@@ -191,4 +196,7 @@ class WeightedReIDFeatureModel(nn.Module):
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
         feat = F.normalize(condensed_feat, p=2, dim=1)
-        return feat
+        if hasattr(self, 'fc'):
+            logits = self.fc(feat)
+            return feat, logits
+        return feat, None

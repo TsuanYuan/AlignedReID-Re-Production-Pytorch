@@ -80,7 +80,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
 
     reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
                                                 sample_size=sample_size, with_roi=with_roi)
-
+    num_classes = len(reid_dataset.person_id_im_paths)
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=4)
 
@@ -88,9 +88,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id).cuda(device=gpu_id)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id, num_classes=num_classes).cuda(device=gpu_id)
     else:
-        model = Model.WeightedReIDFeatureModel(base_model=base_model)
+        model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
 
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
@@ -102,7 +102,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
     decay_at_epochs = {80:1, 120:2}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'ranking':
-        loss_function = losses.WeightedAverageLoss(margin=margin)
+        loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
     elif loss_name == 'class_th':
         loss_function = losses.WeightedAverageThLoss(th=threshold)
     else:
@@ -125,12 +125,12 @@ def main(data_folder, model_folder, sample_size, batch_size,
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
             if gpu_id >= 0:
-                outputs = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
+                features, logits = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
             else:
-                outputs = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
-            outputs = outputs.view([actual_size[0], sample_size, -1])
-            loss, dist_pos,dist_neg = loss_function(outputs, person_ids)
+                features, logits = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
+            outputs = features.view([actual_size[0], sample_size, -1])
+            loss, dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

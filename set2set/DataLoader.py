@@ -127,7 +127,9 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         self.root_dir = root_dir
         subfolders = os.listdir(root_dir)
         self.person_id_im_paths = {}
+        self.person_id_mapping = {}  # map raw ids to [0,...,n]
         skip_count = 0
+        id_count = 0
         for item in subfolders:
             path = os.path.join(root_dir, item)
             if os.path.isdir(path) and item.isdigit():
@@ -135,6 +137,8 @@ class ReIDAppearanceSet2SetDataset(Dataset):
                 jpgs = glob.glob(os.path.join(path, '*.jpg'))
                 if len(jpgs) >= sample_size:
                     self.person_id_im_paths[person_id] = jpgs
+                    self.person_id_mapping[person_id] = id_count
+                    id_count+=1
                 else:
                     skip_count+=1
         print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(sample_size)))
@@ -207,6 +211,6 @@ class ReIDAppearanceSet2SetDataset(Dataset):
         sample = {'images': ims, 'w_h_ratios':w_h_ratios, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
-        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        sample['person_id'] = torch.from_numpy(numpy.array([self.person_id_mapping[person_id]]))
         sample['w_h_ratios'] = torch.from_numpy(numpy.array(w_h_ratios))
         return sample
