@@ -113,6 +113,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
 
     for epoch in range(num_epochs):
         sum_loss = 0
+        sum_tri_loss = 0
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
@@ -131,16 +132,17 @@ def main(data_folder, model_folder, sample_size, batch_size,
             else:
                 features, logits = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss, dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
+            loss,tri_loss, dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             #average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
             sum_loss+=loss.data.cpu().numpy()
+            sum_tri_loss += tri_loss.data.cpu().numpy()
             if i_batch==len(dataloader)-1:
-                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} sum_loss_epoch={5}"\
+                log_str = "epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} sum_loss_epoch={5}, sum_tri_loss={6}"\
                     .format(str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
-                            str(dist_neg.data.cpu().numpy()), str(sum_loss))
+                            str(dist_neg.data.cpu().numpy()), str(sum_loss), str(sum_tri_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,num_epochs/8))==0:
                     torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
