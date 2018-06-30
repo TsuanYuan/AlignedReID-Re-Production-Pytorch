@@ -72,7 +72,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                                   ])  # no random crop
     else:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              #transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
+                                              transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
