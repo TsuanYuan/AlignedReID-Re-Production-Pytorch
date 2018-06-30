@@ -51,7 +51,7 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
-def init_optim(optim, params, lr, weight_decay, eps=0.1):
+def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     if optim == 'adam':
         return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
     elif optim == 'sgd':
@@ -72,8 +72,8 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                                   ])  # no random crop
     else:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256, 128)),
+                                              #transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
+                                              #transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
