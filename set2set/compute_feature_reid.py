@@ -54,7 +54,7 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
                 im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
                 im = crop_pad_fixed_aspect_ratio(im)
-                #im = cv2.resize(im, (128, 256))
+                im = cv2.resize(im, (128, 256))
                 imt = im.transpose(2, 0, 1)
                 imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
