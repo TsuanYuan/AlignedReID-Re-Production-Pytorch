@@ -88,7 +88,7 @@ def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     #loss_ids = loss_row.gt(0).detach()
     #loss = torch.sum(loss_row[loss_ids])
     #loss = torch.sum(loss_row[loss_row > 0])
-    # y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
+    y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
     loss = ranking_loss(dist_an, dist_ap, y)
     return loss, torch.max(dist_ap), torch.min(dist_an)
 
