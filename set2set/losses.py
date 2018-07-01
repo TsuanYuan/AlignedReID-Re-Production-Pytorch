@@ -84,12 +84,12 @@ def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     dist_mat = euclidean_distances(feature)
     dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
         dist_mat, labels, return_inds=True)
-    #loss_row = dist_ap + margin - dist_an
+    loss_row = dist_ap + margin - dist_an
     #loss_ids = loss_row.gt(0).detach()
     #loss = torch.sum(loss_row[loss_ids])
-    #loss = torch.sum(loss_row[loss_row > 0])
-    y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
-    loss = ranking_loss(dist_an, dist_ap, y)
+    loss = torch.sum(loss_row[loss_row > 0])
+    #y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
+    #loss = ranking_loss(dist_an, dist_ap, y)
     return loss, torch.max(dist_ap), torch.min(dist_an)
 
 def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
