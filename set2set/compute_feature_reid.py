@@ -11,6 +11,24 @@ mlog = logging.getLogger('myLogger')
 level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
+def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
+    color = [0, 0, 0]  # zero padding
+    aspect_ratio = desired_size[0] / float(desired_size[1])
+    current_ar = im.shape[0] / float(im.shape[1])
+    if current_ar > aspect_ratio:  # current height is too high, pad width
+        delta_w = int(round(im.shape[0] / aspect_ratio - im.shape[1]))
+        left, right = delta_w / 2, delta_w - (delta_w / 2)
+        new_im = cv2.copyMakeBorder(im, 0, 0, left, right, cv2.BORDER_CONSTANT,
+                                    value=color)
+    else:  # current width is too wide, pad height
+        delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
+        top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+        new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
+                                    value=color)
+    # debug
+    # import scipy.misc
+    # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+    return new_im
 
 def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
                     debug=False, with_roi=False, sample_size=64):
@@ -35,7 +53,8 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
             else:
                 im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-                im = cv2.resize(im, (128, 256))
+                im = crop_pad_fixed_aspect_ratio(im)
+                #im = cv2.resize(im, (128, 256))
                 imt = im.transpose(2, 0, 1)
                 imt = (imt -128.0)/255
                 imt = numpy.expand_dims(imt, 0)
