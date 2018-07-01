@@ -1,6 +1,6 @@
 
 import cv2
-import os, glob, json
+import os, glob, json, types
 import argparse, logging
 import numpy
 import torch
@@ -53,7 +53,8 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
                 else:
                     descriptor_var = model(Variable(torch.from_numpy(imt).float())) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
 
-
+                if isinstance(descriptor_var, types.TupleType):
+                    descriptor_var = descriptor_var[0]
                 descriptor = descriptor_var.data.cpu().numpy()
                 descriptor.tofile(descriptor_file)
 
