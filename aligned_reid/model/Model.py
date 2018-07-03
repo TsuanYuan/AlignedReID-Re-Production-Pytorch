@@ -11,7 +11,7 @@ from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
 
 class Model(nn.Module):
-  def __init__(self, local_conv_out_channels=128, num_classes=None, base_model='resnet50'):
+  def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512, num_classes=None, base_model='resnet50'):
     super(Model, self).__init__()
     if base_model == 'resnet50':
       self.base = resnet50(pretrained=True)
@@ -39,6 +39,10 @@ class Model(nn.Module):
     else:
       raise RuntimeError("unknown base model!")
 
+    self.final_conv = nn.Conv2d(planes, final_conv_out_channels, 1)
+    self.final_bn = nn.BatchNorm2d(final_conv_out_channels)
+    self.final_relu = nn.ReLU(inplace=True)
+
     self.local_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
     self.local_bn = nn.BatchNorm2d(local_conv_out_channels)
     self.local_relu = nn.ReLU(inplace=True)
@@ -55,7 +59,7 @@ class Model(nn.Module):
       local_feat: shape [N, H, c]
     """
     # shape [N, C, H, W]
-    feat = self.base(x)
+    feat = self.final_relu(self.final_bn(self.final_conv((self.base(x)))))
     global_feat = F.avg_pool2d(feat, feat.size()[2:])
     # shape [N, C]
     global_feat = global_feat.view(global_feat.size(0), -1)
