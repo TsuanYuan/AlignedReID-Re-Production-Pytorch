@@ -43,12 +43,12 @@ class Model(nn.Module):
     self.final_bn = nn.BatchNorm2d(final_conv_out_channels)
     self.final_relu = nn.ReLU(inplace=True)
 
-    self.local_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+    self.local_conv = nn.Conv2d(final_conv_out_channels, local_conv_out_channels, 1)
     self.local_bn = nn.BatchNorm2d(local_conv_out_channels)
     self.local_relu = nn.ReLU(inplace=True)
 
     if num_classes is not None:
-      self.fc = nn.Linear(planes, num_classes)
+      self.fc = nn.Linear(final_conv_out_channels, num_classes)
       init.normal_(self.fc.weight, std=0.001)
       init.constant_(self.fc.bias, 0)
 
