@@ -129,7 +129,7 @@ class PixelNormalizeImage(object):
         pass
 
     def __call__(self, image):
-        image_out = (image-128.0)/255
+        image_out = image/255.0
         return image_out
 
 
@@ -145,7 +145,7 @@ class PixelNormalize(object):
         images = sample
         images_n = []
         for image in images:
-            image = (image-128.0)/255
+            image = image/255.0
             images_n.append(image)
         return images_n  # {'images': images_cropped, 'person_id': person_id}
 
