@@ -95,9 +95,12 @@ class Model(nn.Module):
                 logits_list.append(self.fc_list[i](local_feat))
 
         if hasattr(self, 'fc_list'):
-            logits = torch.zeros((feat.size(0), self.num_classes))
-            for logit_rows in logits_list:
-                logits += logit_rows
+            #logits = torch.zeros((feat.size(0), self.num_classes))
+            for i, logit_rows in enumerate(logits_list):
+                if i==0:
+                    logits = logit_rows
+                else:
+                    logits += logit_rows
             return torch.cat(local_feat_list,dim=1), None, logits
         else:
             return torch.cat(local_feat_list, dim=1), None, None
