@@ -596,7 +596,7 @@ def main():
         g_dist_an_meter.update(g_d_an)
         g_loss_meter.update(to_scalar(g_loss))
 
-        if cfg.l_loss_weight > 0:
+        if cfg.l_loss_weight > 0 and (not cfg.parts_model):
           # precision
           l_prec = (l_dist_an > l_dist_ap).data.float().mean()
           # the proportion of triplets that satisfy margin
