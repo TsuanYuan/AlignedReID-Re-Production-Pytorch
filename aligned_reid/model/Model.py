@@ -13,7 +13,7 @@ from torchvision.models import vgg16_bn, vgg11_bn
 
 class Model(nn.Module):
     def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512,
-                 num_classes=None, base_model='resnet50', with_final_conv=False, part_model=False):
+                 num_classes=None, base_model='resnet50', with_final_conv=False, parts_model=False):
         super(Model, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50(pretrained=True)
@@ -42,12 +42,12 @@ class Model(nn.Module):
             raise RuntimeError("unknown base model!")
 
         self.with_final_conv = with_final_conv
-        self.part_model = part_model
+        self.parts_model = parts_model
         if with_final_conv:
             self.final_conv = nn.Conv2d(planes, final_conv_out_channels, 1)
             self.final_bn = nn.BatchNorm2d(final_conv_out_channels)
             self.final_relu = nn.ReLU(inplace=True)
-        if part_model:
+        if parts_model:
             pass
 
         self.local_conv = nn.Conv2d(final_conv_out_channels, local_conv_out_channels, 1)
@@ -89,7 +89,7 @@ class Model(nn.Module):
       local_feat: shape [N, H, c]
     """
         # shape [N, C, H, W]
-        if self.part_model:
+        if self.parts_model:
             return self.forward_parts(x)
 
         if self.with_final_conv:
