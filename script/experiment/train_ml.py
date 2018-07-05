@@ -78,6 +78,7 @@ class Config(object):
     parser.add_argument('-gdmlw', '--gdm_loss_weight', type=float, default=1.)
     parser.add_argument('-ldmlw', '--ldm_loss_weight', type=float, default=0.)
 
+    parser.add_argument('--parts_model', type=str2bool, default=False)
     parser.add_argument('--only_test', type=str2bool, default=False)
     parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
@@ -191,7 +192,7 @@ class Config(object):
     ###############
 
     self.local_dist_own_hard_sample = args.local_dist_own_hard_sample
-
+    self.parts_model = args.parts_model
     self.normalize_feature = args.normalize_feature
 
     self.local_conv_out_channels = 128
