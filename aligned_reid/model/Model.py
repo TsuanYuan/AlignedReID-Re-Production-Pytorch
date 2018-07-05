@@ -13,7 +13,7 @@ from torchvision.models import vgg16_bn, vgg11_bn
 
 class Model(nn.Module):
     def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512,
-                 num_classes=None, base_model='resnet50', with_final_conv=False, parts_model=False):
+                 num_classes=None, base_model='resnet50', with_final_conv=False, parts_model=False, num_stripes=4):
         super(Model, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50(pretrained=True)
@@ -43,19 +43,36 @@ class Model(nn.Module):
 
         self.with_final_conv = with_final_conv
         self.parts_model = parts_model
+        self.num_stripes = num_stripes
+        self.num_classes = num_classes
         if with_final_conv:
             self.final_conv = nn.Conv2d(planes, final_conv_out_channels, 1)
             self.final_bn = nn.BatchNorm2d(final_conv_out_channels)
             self.final_relu = nn.ReLU(inplace=True)
+            planes = final_conv_out_channels
+
         if parts_model:
-            pass
+            self.local_conv_list = nn.ModuleList()
+            for _ in range(num_stripes):
+                self.local_conv_list.append(nn.Sequential(
+                    nn.Conv2d(planes, local_conv_out_channels, 1),
+                    nn.BatchNorm2d(local_conv_out_channels),
+                    nn.ReLU(inplace=True)
+                ))
+        else:
+            self.local_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+            self.local_bn = nn.BatchNorm2d(local_conv_out_channels)
+            self.local_relu = nn.ReLU(inplace=True)
 
-        self.local_conv = nn.Conv2d(final_conv_out_channels, local_conv_out_channels, 1)
-        self.local_bn = nn.BatchNorm2d(local_conv_out_channels)
-        self.local_relu = nn.ReLU(inplace=True)
-
-        if num_classes is not None:
-            self.fc = nn.Linear(final_conv_out_channels, num_classes)
+        if parts_model:
+            self.fc_list = nn.ModuleList()
+            for _ in range(num_stripes):
+                fc = nn.Linear(local_conv_out_channels, num_classes)
+                init.normal_(fc.weight, std=0.001)
+                init.constant_(fc.bias, 0)
+                self.fc_list.append(fc)
+        elif num_classes is not None:
+            self.fc = nn.Linear(planes, num_classes)
             init.normal_(self.fc.weight, std=0.001)
             init.constant_(self.fc.bias, 0)
 
@@ -78,9 +95,12 @@ class Model(nn.Module):
                 logits_list.append(self.fc_list[i](local_feat))
 
         if hasattr(self, 'fc_list'):
-            return local_feat_list, logits_list
+            logits = torch.zeros((feat.size(0), self.num_classes))
+            for logit_rows in logits_list:
+                logits += logit_rows
+            return torch.cat(local_feat_list,dim=1), None, logits
         else:
-            return local_feat_list, None
+            return torch.cat(local_feat_list, dim=1), None, None
 
     def forward(self, x):
         """

@@ -379,7 +379,7 @@ def main():
   if cfg.only_test:
     nc = cfg.test_num_classids
   models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=nc, base_model=cfg.base_model)
+                  num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])
@@ -493,8 +493,9 @@ def main():
       labels_var = Variable(labels_t)
 
       global_feat, local_feat, logits = model_w(ims_var)
-      probs = F.softmax(logits, dim=1)
-      log_probs = F.log_softmax(logits, dim=1)
+      if logits is not None:
+        probs = F.softmax(logits, dim=1)
+        log_probs = F.log_softmax(logits, dim=1)
 
       g_loss, p_inds, n_inds, g_dist_ap, g_dist_an, g_dist_mat = global_loss(
         g_tri_loss, global_feat, labels_t,
