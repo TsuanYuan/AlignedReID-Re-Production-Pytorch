@@ -501,7 +501,7 @@ def main():
         g_tri_loss, global_feat, labels_t,
         normalize_feature=cfg.normalize_feature)
 
-      if cfg.l_loss_weight == 0:
+      if cfg.l_loss_weight == 0 or local_feat is None:
         l_loss, l_dist_mat = 0, 0
       elif cfg.local_dist_own_hard_sample:
         # Let local distance find its own hard samples.
