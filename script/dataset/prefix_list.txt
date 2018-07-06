@@ -17,7 +17,8 @@ prefix:
 0406 - 55000   camera 15
 wcc_0521 - 56000  camera 02
 dfxtd_0521 - 57000 camera 01
-
+dfxtd_0520 - 58000 >1000
+wcc_0520 - 60000 >1000
 
 evaluation:
 
