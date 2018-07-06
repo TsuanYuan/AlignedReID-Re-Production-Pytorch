@@ -11,6 +11,8 @@ import argparse
 import cv2
 import sklearn.metrics.pairwise
 import evaluateCrops
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
 import aligned_reid.model.Model
 from torch.nn.parallel import DataParallel
@@ -194,12 +196,17 @@ def load_experts(experts_file, sys_device_ids, num_classes=1442):
 
     with open(experts_file, 'r') as fp:
         for line in fp:
-            fields = line.rstrip('\n').rstrip(' ').split(' ')
+            parts = False
+    	    base_name = 'resnet50'
+            num_planes = 2048
+	    fields = line.rstrip('\n').rstrip(' ').split(' ')
             model_path, ext = fields[0], fields[1]
-            file_only = os.path.basename(model_path)
-            if file_only.find('parts') >= 0:
+	    folder_only, _ = os.path.split(model_path)
+            folder_name = os.path.basename(os.path.normpath(folder_only))
+		#file_only = os.path.basename(model_path)
+            if folder_name.find('parts') >= 0:
                 parts = True
-            if file_only.find('resnet34') >= 0:
+            if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
@@ -301,8 +308,7 @@ if __name__ == "__main__":
 
     parser.add_argument('test_folder', type=str,
                         help='folder of ground truth crops with computed features')
-    parser.add_argument('ext', type=str,
-                        help='the extension of feature files')
+    
     parser.add_argument('experts_file', type=str,
                         help='the file of list of expert model paths')
 
@@ -321,7 +327,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print 'sample size per ID={0}'.format(args.sample_size)
-    sys_device_ids = ((args.device_id),)
+    sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids)
     if args.single_folder:
         process(args.test_folder, args.sample_size, experts, exts, args.force_compute, sys_device_ids)
