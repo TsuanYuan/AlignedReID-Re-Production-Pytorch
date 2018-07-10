@@ -86,6 +86,20 @@ class PreProcessIm(object):
     return im
 
   @staticmethod
+  def rand_mask_im(im, mask_size_max, prng=np.random):
+    """Crop `im` to `new_size`: [new_w, new_h]."""
+    mask_size_w = prng.randint(mask_size_max/2, mask_size_max)
+    mask_size_h = prng.randint(mask_size_max/2, mask_size_max)
+    h_start = prng.randint(0, im.shape[0] - mask_size_h)
+    w_start = prng.randint(0, im.shape[1] - mask_size_w)
+    random_rgb = [prng.randint(0,256), prng.randint(0,256), prng.randint(0,256)]
+    im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 0] = random_rgb[0]
+    im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 1] = random_rgb[1]
+    im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 2] = random_rgb[2]
+
+    return im
+
+  @staticmethod
   def rand_flip_lr_im(im, prng=np.random):
     """flip left-right randomly `im` to `new_size`: [new_w, new_h]."""
     if prng.rand(1) [0] > 0.5:
@@ -155,6 +169,14 @@ class PreProcessIm(object):
       crop_h = int(im.shape[0] * h_ratio)
       crop_w = int(im.shape[1] * w_ratio)
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
+
+    # apply k blocks for occlusion
+    for k in range(12):
+      im = self.rand_mask_im(im, im.shape[1]/4)
+    # debug
+    # import scipy.misc
+    # scipy.misc.imsave('/tmp/new_im.jpg', im)
+
 
     im = self.rand_flip_lr_im(im, prng=self.prng)
     if len(self.occlusion_masks) > 0:
