@@ -157,7 +157,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
 
     optimizers = [None for m in models]
     model_opt = models + optimizers
-    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file)
+    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False)
 
     feature_extraction_func = ExtractFeature(model_ws[0])
 
@@ -230,29 +230,13 @@ def encode_folder(person_folder, encoder, sample_size, ext, force_compute, devic
             if os.path.isfile(descriptor_file) and (not force_compute):
                 descriptor = np.fromfile(descriptor_file, dtype=np.float32)
             else:
-                im_bgr = cv2.imread(crop_file)
+		im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-                im = crop_pad_fixed_aspect_ratio(im)
-                im = cv2.resize(im, (128, 256))
-                imt = im.transpose(2, 0, 1)
-                imt = imt / 255.0
-                imt = np.expand_dims(imt, 0)
-                basename, _ = os.path.splitext(crop_file)
-                # json_file = basename + '.json'
-                # if os.path.isfile(json_file) and with_roi:
-                #     data = json.load(open(json_file, 'r'))
-                #     aspect_ratio = data['box'][2] / float(data['box'][3])
-                # else:
-                #     aspect_ratio = 0.5
-                if torch.has_cudnn:
-                    descriptor_var = encoder(Variable(torch.from_numpy(imt).float().cuda(device=device_id)))
-                    # Variable(torch.from_numpy(numpy.array([aspect_ratio])).float().cuda(device=device_id)))
-                else:
-                    descriptor_var = encoder(Variable(torch.from_numpy(imt).float()))  # ,torch.from_numpy(numpy.array([aspect_ratio])).float())
-
-                if isinstance(descriptor_var, types.TupleType):
-                    descriptor_var = descriptor_var[0]
-                descriptor = descriptor_var.data.cpu().numpy()
+                box = np.array([0, 0, im.shape[1], im.shape[0]])
+                descriptor = encoder(im, [box])
+                if isinstance(descriptor, types.TupleType):
+                    descriptor = descriptor[0]
+                descriptor.tofile(descriptor_file)
             descriptor = np.squeeze(descriptor)
             descriptor.tofile(descriptor_file)
             descriptors.append(descriptor)
@@ -260,13 +244,14 @@ def encode_folder(person_folder, encoder, sample_size, ext, force_compute, devic
         return descriptors
 
 def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compute, device_id):
-    descriptors_for_encoders = None
+    descriptors_for_encoders = [None]*len(exts)
+    k = 0
     for encoder, ext in zip(encoders,exts):
-        descriptors = encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=device_id)
-        if descriptors_for_encoders is None:
-            descriptors_for_encoders = [[]]*len(descriptors)
-        for i, descriptor in enumerate(descriptors):
-            descriptors_for_encoders[i].append(np.copy(descriptor))
+        descriptors_for_encoders[k] = encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=device_id[0][0])
+        k += 1
+    descriptors_for_encoders = zip(*descriptors_for_encoders)    
+    #for i, descriptor in enumerate(descriptors):
+    #        descriptors_for_encoders[i].append(np.copy(descriptor))
     # each item is a list of descriptors on the same image
     return descriptors_for_encoders
 
@@ -274,18 +259,18 @@ def compute_experts_distance_matrix(feature_list):
     concat_list = []
     for feature_item in feature_list:
         concat_list.append(np.concatenate(tuple(feature_item)))
-    feature_arr = np.array(feature_list)
+    feature_arr = np.array(concat_list)/np.sqrt(float(len(feature_list[0])))
     distance_matrix = sklearn.metrics.pairwise.cosine_distances(feature_arr)
     return distance_matrix
 
-def process(data_folder, encoder_list, exts, sample_size, force_compute, device_id):
+def process(data_folder,sample_size, encoder_list, exts, force_compute, device_id):
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list = [], [], []
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit():
             person_id = int(sub_folder)
-            descriptors, desc_files = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, sample_size, force_compute, device_id)
+            descriptors = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, sample_size, force_compute, device_id)
             person_id_seqs = [person_id]*len(descriptors)
             feature_list += descriptors
             person_id_list += person_id_seqs
@@ -301,7 +286,7 @@ def process_all(folder, sample_size, experts, exts, force_compute, sys_device_id
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(sub_folder_full, experts, exts, sample_size, force_compute, sys_device_ids)
+        process(sub_folder_full,sample_size, experts, exts, force_compute, sys_device_ids)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
