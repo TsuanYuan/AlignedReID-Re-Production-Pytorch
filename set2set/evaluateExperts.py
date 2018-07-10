@@ -257,7 +257,7 @@ def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compu
     k = 0
 
     for encoder, ext in zip(encoders,exts):
-        descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=device_id[0][0])
+        descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, sample_size, ext, force_compute)
         k += 1
     descriptors_for_encoders = zip(*descriptors_for_encoders)    
     save_joint_descriptors(descriptors_for_encoders, crop_files)
