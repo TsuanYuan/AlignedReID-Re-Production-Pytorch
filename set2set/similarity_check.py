@@ -107,7 +107,7 @@ def is_from_same_folder(file_path_a, file_path_b):
     head_b, dirname_b = os.path.split(path_b)
     return (dirname_a == dirname_b)
 
-def plot_imgs(similary_matrix, output_file_prefix, img_size=(256,512)):
+def plot_imgs(similary_matrix, output_file_prefix, img_size=(256,512), rect_color=(0,255,0)):
     num_rows = len(similary_matrix)
     num_imgs_per_row = len(similary_matrix[0]['result']) + 1 # +1 for query img
     img_width, img_height = img_size
@@ -128,7 +128,7 @@ def plot_imgs(similary_matrix, output_file_prefix, img_size=(256,512)):
             cv2.putText(reuslt_img, str(get_filename_for_display(result[1])), (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,0,255), 2)
             cv2.putText(reuslt_img, str('%.4f'%result[0]), (10 , img_height - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,0), 2)
             if is_from_same_folder(row['query'], result[1]):
-                cv2.rectangle(reuslt_img, (1,1), (img_width - 1, img_height - 1), (0,255,0), 8)
+                cv2.rectangle(reuslt_img, (1,1), (img_width - 1, img_height - 1), rect_color, 8)
             canvas[idx_row * img_height : (idx_row + 1) * img_height,
                 idx_col * img_width : (idx_col + 1) * img_width, :] = reuslt_img
             idx_col += 1
@@ -145,10 +145,10 @@ def plot_imgs(similary_matrix, output_file_prefix, img_size=(256,512)):
         cv2.imwrite(output_file, canvas)
 
 
-def process(input_folder, output_path, ext, max_count_per_id):
+def process(input_folder, output_path, ext, max_count_per_id, rect_color):
     descriptors = get_descriptors(input_folder, ext, max_count_per_id)
     similary_matrix = get_similarity_matrix(descriptors, 2, 2)
-    plot_imgs(similary_matrix, output_path)
+    plot_imgs(similary_matrix, output_path, rect_color=rect_color)
 
 
 if __name__ == '__main__':
@@ -166,8 +166,11 @@ if __name__ == '__main__':
     parser.add_argument('--max_per_id', type=int, default=100000,
                     help='number of crops per id')
 
+    parser.add_argument('--rect_color', type=str, default='(0,255,0)',
+                        help='colors for rectangle')
+
     args = parser.parse_args()
     print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     # Remove this if you'd like to have different results for every run.
-    random.seed(0)
-    process(args.input_folder, args.output_path, args.ext)
+    color = tuple(args.rect_color)
+    process(args.input_folder, args.output_path, args.ext, args.max_per_id, color)
