@@ -217,7 +217,7 @@ def load_experts(experts_file, sys_device_ids, num_classes=1442):
     return expert_models_feature_funcs, exts
 
 
-def encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=0):
+def encode_folder(person_folder, encoder, sample_size, ext, force_compute):
         p = person_folder
         # print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
@@ -230,29 +230,37 @@ def encode_folder(person_folder, encoder, sample_size, ext, force_compute, devic
             if os.path.isfile(descriptor_file) and (not force_compute):
                 descriptor = np.fromfile(descriptor_file, dtype=np.float32)
             else:
-		im_bgr = cv2.imread(crop_file)
+                im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
                 box = np.array([0, 0, im.shape[1], im.shape[0]])
                 descriptor = encoder(im, [box])
                 if isinstance(descriptor, types.TupleType):
                     descriptor = descriptor[0]
-                descriptor.tofile(descriptor_file)
+                #descriptor.tofile(descriptor_file)
             descriptor = np.squeeze(descriptor)
-            descriptor.tofile(descriptor_file)
+            #descriptor.tofile(descriptor_file)
             descriptors.append(descriptor)
 
-        return descriptors
+        return descriptors, crop_files
+
+def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
+    for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
+        no_ext, _ = os.path.splitext(crop_file)
+        descriptor_file = no_ext + '.' + ext
+        feature_arr = np.concatenate(tuple(descriptors))
+        feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
+        feature_arr.tofile(descriptor_file)
 
 def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compute, device_id):
     descriptors_for_encoders = [None]*len(exts)
+    crop_files = None
     k = 0
+
     for encoder, ext in zip(encoders,exts):
-        descriptors_for_encoders[k] = encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=device_id[0][0])
+        descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, sample_size, ext, force_compute, device_id=device_id[0][0])
         k += 1
     descriptors_for_encoders = zip(*descriptors_for_encoders)    
-    #for i, descriptor in enumerate(descriptors):
-    #        descriptors_for_encoders[i].append(np.copy(descriptor))
-    # each item is a list of descriptors on the same image
+    save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders
 
 def compute_experts_distance_matrix(feature_list):
