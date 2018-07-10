@@ -160,7 +160,7 @@ if __name__ == '__main__':
     parser.add_argument('ext', type=str,
                         help='the ext of descriptor file')
 
-    parser.add_argument('output_path', type=str, required=False,
+    parser.add_argument('output_path', type=str,
                         help='the path to the output file')
 
     parser.add_argument('--max_per_id', type=int, default=100000,
