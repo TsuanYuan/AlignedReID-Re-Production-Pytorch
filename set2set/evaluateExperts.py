@@ -197,13 +197,13 @@ def load_experts(experts_file, sys_device_ids, num_classes=1442):
     with open(experts_file, 'r') as fp:
         for line in fp:
             parts = False
-    	    base_name = 'resnet50'
+            base_name = 'resnet50'
             num_planes = 2048
-	    fields = line.rstrip('\n').rstrip(' ').split(' ')
+            fields = line.rstrip('\n').rstrip(' ').split(' ')
             model_path, ext = fields[0], fields[1]
-	    folder_only, _ = os.path.split(model_path)
+            folder_only, _ = os.path.split(model_path)
             folder_name = os.path.basename(os.path.normpath(folder_only))
-		#file_only = os.path.basename(model_path)
+            #file_only = os.path.basename(model_path)
             if folder_name.find('parts') >= 0:
                 parts = True
             if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
