@@ -166,11 +166,13 @@ if __name__ == '__main__':
     parser.add_argument('--max_per_id', type=int, default=100000,
                     help='number of crops per id')
 
-    parser.add_argument('--rect_color', type=str, default='(0,255,0)',
+    parser.add_argument('--rect_color', type=str, default='g',
                         help='colors for rectangle')
 
+
+    color_dict = {'r': (0, 0, 255), 'g': (0,255,0), 'b': (255,0,0), 'w':(255,255,255), 'p':(255,0,255)}
     args = parser.parse_args()
     print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     # Remove this if you'd like to have different results for every run.
-    color = tuple(args.rect_color)
+    color = color_dict[args.rect_color]
     process(args.input_folder, args.output_path, args.ext, args.max_per_id, color)
