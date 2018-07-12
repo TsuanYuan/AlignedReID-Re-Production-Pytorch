@@ -174,5 +174,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print 'max count per folder is {0}'.format(str(MAX_COUNT_PER_ID))
     # Remove this if you'd like to have different results for every run.
+    random.seed(0)
     color = color_dict[args.rect_color]
     process(args.input_folder, args.output_path, args.ext, args.max_per_id, color)
