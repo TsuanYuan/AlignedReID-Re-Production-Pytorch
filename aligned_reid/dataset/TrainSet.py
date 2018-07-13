@@ -40,6 +40,10 @@ class TrainSet(Dataset):
       batch_size=ids_per_batch,
       **kwargs)
 
+
+  def decode_im_file_name(self, im_filename):
+    pass
+
   def get_sample(self, ptr):
     """Here one sample means several images (and labels etc) of one id.
     Returns:
