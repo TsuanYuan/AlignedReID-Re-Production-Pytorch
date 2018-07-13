@@ -265,7 +265,7 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
             folder_predix = p.search(folder_only).group(1)
             print('{0} are merged into {1}'.format(folder_predix, folder_only))
 
-        if folder_predix.isdigit() is False or int(folder_predix) == 0:  # ignore junk/distractor folder
+        if (folder_predix.isdigit() is False and folder_predix[0:8].isdigit() is False) or int(folder_predix) == 0:  # ignore junk/distractor folder
             continue
         id = id_prefix+int(folder_predix)
         dest_image_paths = transfer_one_folder(subfolder, dest_image_dir, id, max_count_per_id)
