@@ -83,6 +83,7 @@ class Config(object):
     parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
+    parser.add_argument('--frame_interval', type=int, default=0)
 
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
@@ -147,7 +148,7 @@ class Config(object):
     self.customized_folder_path = args.customized_folder_path
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
-
+    self.frame_interval = args.frame_interval
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -166,6 +167,8 @@ class Config(object):
       part=self.trainset_part,
       ids_per_batch=self.ids_per_batch,
       ims_per_id=self.ims_per_id,
+      frame_interval=args.frame_interval,
+
       final_batch=self.train_final_batch,
       shuffle=self.train_shuffle,
       crop_prob=self.crop_prob,
