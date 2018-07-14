@@ -20,6 +20,7 @@ class TrainSet(Dataset):
       ids2labels=None,
       ids_per_batch=None,
       ims_per_id=None,
+      frame_interval=None,
       **kwargs):
 
     # The im dir of all images
@@ -28,6 +29,7 @@ class TrainSet(Dataset):
     self.ids2labels = ids2labels
     self.ids_per_batch = ids_per_batch
     self.ims_per_id = ims_per_id
+    self.frame_interval=frame_interval
 
     im_ids = [parse_im_name(name, 'id') for name in im_names]
     self.ids_to_im_inds = defaultdict(list)
@@ -42,7 +44,34 @@ class TrainSet(Dataset):
 
 
   def decode_im_file_name(self, im_filename):
-    pass
+    # assume file format "00000175_0000_00000006.jpg" as "personID_cameraID_frameIndex"
+    no_ext, _ = osp.splitext(im_filename)
+    parts = no_ext.split('_')
+    person_id = int(parts[0])
+    camera_id = int(parts[1])
+    frame_index = int(parts[2])
+    return person_id, camera_id, frame_index
+
+  def get_sample_within_interval(self, im_inds):
+    im_names_valid = []
+    start_ind = np.random.choice(im_inds, 1)
+    max_ind = min(len(im_inds), start_ind+self.frame_interval)
+    _ ,start_cid, start_fid = self.decode_im_file_name(self.im_names[start_ind])
+    # get all valid im names within a time interval
+    for i in range(start_ind, max_ind):
+      im_name = osp.basename(self.im_names[i])
+      _, camera_id, frame_index = self.decode_im_file_name(im_name)
+      if camera_id != start_cid or abs(frame_index-start_fid)>self.frame_interval:
+        break
+      im_names_valid.append(im_name)
+
+    if len(im_names_valid) < self.ims_per_id:
+      im_names = np.random.choice(im_names_valid, self.ims_per_id, replace=True)
+    else:
+      im_names = np.random.choice(im_names_valid, self.ims_per_id, replace=False)
+
+    return im_names
+
 
   def get_sample(self, ptr):
     """Here one sample means several images (and labels etc) of one id.
@@ -50,16 +79,21 @@ class TrainSet(Dataset):
       ims: a list of images
     """
     inds = self.ids_to_im_inds[self.ids[ptr]]
-    if len(inds) < self.ims_per_id:
-      inds = np.random.choice(inds, self.ims_per_id, replace=True)
+    if self.frame_interval is None:
+      if len(inds) < self.ims_per_id:
+        inds = np.random.choice(inds, self.ims_per_id, replace=True)
+      else:
+        inds = np.random.choice(inds, self.ims_per_id, replace=False)
+      im_names = [self.im_names[ind] for ind in inds]
     else:
-      inds = np.random.choice(inds, self.ims_per_id, replace=False)
-    im_names = [self.im_names[ind] for ind in inds]
+      im_names = self.get_sample_within_interval(inds)
     ims = [np.asarray(Image.open(osp.join(self.im_dir, name)))
-           for name in im_names]
+             for name in im_names]
+
     ims, mirrored = zip(*[self.pre_process_im(im) for im in ims])
     labels = [self.ids2labels[self.ids[ptr]] for _ in range(self.ims_per_id)]
     return ims, im_names, labels, mirrored
+
 
   def next_batch(self):
     """Next batch of images and labels.

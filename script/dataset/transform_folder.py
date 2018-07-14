@@ -124,14 +124,15 @@ def listAllVideoFilesWithCameraKey(rootDir, ext):
 def decode_raw_image_name(im_path):
     # get camera id, person id, frame index
     folder_path, im_file = os.path.split(im_path)
-    _, id_folder = os.path.basename(folder_path)
+    id_folder = os.path.basename(folder_path)
     person_id = int(id_folder)
     us = im_file.split('_')
     frame_id = int(us[-2])
-    camera_id = im_file[0:len(im_file)-len(us[-2])-len(us[-1])-1]
+    camera_id = im_file[0:len(us[0])+len(us[1])+len(us[2])+2]
     return camera_id, person_id, frame_id
 
 def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
+    # only work for macong 's format "dfxtd_ch04_20180519_00000083_00000001.jpg" and "dfxtd_ch04_20180519_00002675_00000015_1.jpg'"
     cameraID, person_id, frame_index = decode_raw_image_name(image_path)
     if cameraID not in cameraIDs:
         cameraIDs[cameraID] = len(cameraIDs)
