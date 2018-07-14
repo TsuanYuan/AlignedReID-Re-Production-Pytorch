@@ -83,7 +83,7 @@ class Config(object):
     parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
-    parser.add_argument('--frame_interval', type=int, default=0)
+    parser.add_argument('--frame_interval', type=int, default=10)
 
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',

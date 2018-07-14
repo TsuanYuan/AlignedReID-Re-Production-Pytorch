@@ -54,7 +54,7 @@ class TrainSet(Dataset):
 
   def get_sample_within_interval(self, im_inds):
     im_names_valid = []
-    start_ind = np.random.choice(im_inds, 1)
+    start_ind = np.random.choice(im_inds, 1)[0]
     max_ind = min(len(im_inds), start_ind+self.frame_interval)
     _ ,start_cid, start_fid = self.decode_im_file_name(self.im_names[start_ind])
     # get all valid im names within a time interval
