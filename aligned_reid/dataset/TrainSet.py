@@ -53,13 +53,14 @@ class TrainSet(Dataset):
     return person_id, camera_id, frame_index
 
   def get_sample_within_interval(self, im_inds):
+    im_names_class = sorted(self.im_names[im_inds])
     im_names_valid = []
     start_ind_local = np.random.choice(len(im_inds), 1)[0]
     max_ind_local = min(len(im_inds), start_ind_local+self.frame_interval)
-    _ ,start_cid, start_fid = self.decode_im_file_name(self.im_names[im_inds[start_ind_local]])
+    _ ,start_cid, start_fid = self.decode_im_file_name(im_names_class[start_ind_local])
     # get all valid im names within a time interval
     for i in range(start_ind_local, max_ind_local):
-      im_name = osp.basename(self.im_names[im_inds[i]])
+      im_name = osp.basename(im_names_class[i])
       _, camera_id, frame_index = self.decode_im_file_name(im_name)
       if camera_id != start_cid or abs(frame_index-start_fid)>self.frame_interval:
         break
