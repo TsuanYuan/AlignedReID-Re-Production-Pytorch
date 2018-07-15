@@ -53,7 +53,7 @@ class TrainSet(Dataset):
     return person_id, camera_id, frame_index
 
   def get_sample_within_interval(self, im_inds):
-    im_names_class = sorted(self.im_names[im_inds])
+    im_names_class = sorted(np.array(self.im_names)[im_inds].tolist())
     im_names_valid = []
     start_ind_local = np.random.choice(len(im_inds), 1)[0]
     max_ind_local = min(len(im_inds), start_ind_local+self.frame_interval)
