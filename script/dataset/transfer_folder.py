@@ -39,6 +39,9 @@ def transfer_folder(source_folder, dest_folder, id_prefix, folder_range, ishead)
             if len(s) == 2 and s[0].isdigit() and s[1].isdigit(): # 00000001_2 format
                 if int(s[0]) > max_id:
                     max_id = int(s[0])
+        else:
+            if int(folder_only) > max_id:
+                max_id = int(folder_only)
 
     extra_count = 1
     for i in range(folder_range[0], folder_range[1]):
