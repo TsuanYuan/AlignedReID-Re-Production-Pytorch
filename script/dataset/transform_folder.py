@@ -136,7 +136,7 @@ def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
     cameraID, person_id, frame_index = decode_raw_image_name(image_path)
     if cameraID not in cameraIDs:
         cameraIDs[cameraID] = len(cameraIDs)
-    dest_name = new_im_name_tmpl.format(person_id, cameraIDs[cameraID], frame_index)
+    dest_name = new_im_name_tmpl.format(id, cameraIDs[cameraID], frame_index)
     dest_path = os.path.join(save_dir, dest_name)
     statinfo = os.stat(image_path)
     if statinfo.st_size > 0:
