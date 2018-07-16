@@ -74,6 +74,8 @@ def transfer_folder(source_folder, dest_folder, id_prefix, folder_range, ishead)
 
             shutil.copytree(source_im_folder, target_folder, ignore=shutil.ignore_patterns('*.db'))
 
+        print 'all done. max folder id is {0}'.format(str(max_id+extra_count))
+        
 if __name__ == '__main__':
     import argparse
 
