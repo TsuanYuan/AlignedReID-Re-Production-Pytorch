@@ -30,14 +30,32 @@ def transfer_folder(source_folder, dest_folder, id_prefix, folder_range, ishead)
     if folder_range[1] < 0:
         folder_range[1] = len(subfolders)
     print "total number of subfolders is {0}".format(str(len(subfolders)))
+    max_id = 0
     for i in range(folder_range[0], folder_range[1]):
         subfolder = subfolders[i]
         folder_only = os.path.basename(subfolder)
-        if folder_only.isdigit() is False or int(folder_only) == 0:  # ignore junk/distractor folder
-            continue
-        if int(folder_only) > id_prefix:
+        if folder_only.isdigit() == False:
+            s = folder_only.split('_')
+            if len(s) == 2 and s[0].isdigit() and s[1].isdigit(): # 00000001_2 format
+                if int(s[0]) > max_id:
+                    max_id = int(s[0])
+
+    extra_count = 1
+    for i in range(folder_range[0], folder_range[1]):
+        subfolder = subfolders[i]
+        folder_only = os.path.basename(subfolder)
+        if folder_only.isdigit() is False:
+            s = folder_only.split('_')
+            if len(s) == 2 and s[0].isdigit() and s[1].isdigit():
+                folder_id = max_id + extra_count
+                extra_count += 1
+            else:
+                continue
+        else:
+            folder_id = int(folder_only)
+        if folder_id > id_prefix:
             print "warning: folder digit {0} > id_prefix {1}".format(folder_only, str(id_prefix))
-        target_folder_only = id_prefix + int(folder_only)
+        target_folder_only = id_prefix + folder_id
         target_folder = os.path.join(dest_folder, str(target_folder_only))
         if os.path.isdir(target_folder):
             print "warning: target folder {0} already exist, will delete the original one".format(target_folder)
