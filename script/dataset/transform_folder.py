@@ -141,6 +141,12 @@ def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
     statinfo = os.stat(image_path)
     if statinfo.st_size > 0:
         shutil.copy(image_path, dest_path)
+        source_name, _ = os.path.splitext(image_path)
+        source_json = source_name + '.json'
+        if os.path.isfile(source_json):
+            dest_name, _ = os.path.splitext(dest_path)
+            dest_json = dest_name + '.json'
+            shutil.copy(source_json, dest_json)
         return dest_path
     else:
         print('file might be corrupted {0}'.format(image_path))
