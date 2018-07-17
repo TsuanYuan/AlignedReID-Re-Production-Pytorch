@@ -10,7 +10,6 @@ import logging
 import argparse
 import cv2
 import sklearn.metrics.pairwise
-import evaluateCrops
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
