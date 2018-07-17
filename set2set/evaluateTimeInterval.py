@@ -341,14 +341,14 @@ def report_TP_at_FP(same_distances, diff_distances, fp_th=0.001):
     n_diff = diff_distances.size
     scores = 1-numpy.concatenate((same_distances, diff_distances))
     labels = numpy.concatenate((numpy.ones(n_same), -numpy.ones(n_diff)))
-    fpr, tpr, thresholds =sklearn.metrics.roc_curve(labels, scores)
+    fpr, tpr, thresholds = sklearn.metrics.roc_curve(labels, scores)
     #fp_th = 0.05
     idx = numpy.argmax(fpr > fp_th)  # fp lower than 0.05 for auc 95
     if idx == 0:  # no points with fpr<=0.05
         return 0
     fpr = fpr[idx]
     tpr = tpr[idx]
-    th = thresholds[idx]
+    th = 1-thresholds[idx]
     #auc95 = sklearn.metrics.auc(fpr005, tpr005)/fp_th
 
     return tpr, fpr, th
@@ -375,6 +375,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, devic
     tpr3, fpr3, th3 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.001)
     tpr4, fpr4, th4 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.0001)
 
+    mlog.info('same_pairs are {0}, diff_pairs are {1}'.format(str(same_pair_dist.size), str(diff_pair_dist.size)))
     mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
             .format('%.3f'%tpr3, '%.6f'%th3, '%.3f'%fpr3, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
