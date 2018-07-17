@@ -226,7 +226,7 @@ def decode_raw_image_name(im_path):
     person_id = int(id_folder)
     us = im_name.split('_')
     frame_id = int(us[-1])
-    camera_id = im_file[0:-len(us[-1])-len(us[-2])-1] # assume everything before person_id is camera id
+    camera_id = im_name[0:-len(us[-1])-len(us[-2])-2] # assume everything before person_id is camera id
     return camera_id, person_id, frame_id
 
 def get_crop_files_at_interval(crop_files, frame_interval):
@@ -248,6 +248,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             frame_diff = frame_id - current_fid
             if frame_diff >= frame_interval and frame_diff < frame_interval*1.2: # allow slight variation if not exact
                 crop_files_with_interval.append(crop_file)
+                current_cid, current_pid, current_fid = camera_id, person_id, frame_id
 
     return crop_files_with_interval
 
@@ -257,7 +258,7 @@ def encode_folder(person_folder, encoder, frame_interval, ext, force_compute):
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     interval = frame_interval # max(len(crop_files) / sample_size, 1)
 
-    crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
+    #crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
     crop_files_with_interval = get_crop_files_at_interval(crop_files, frame_interval)
     descriptors = []
     for i, crop_file in enumerate(crop_files_with_interval):
@@ -288,13 +289,15 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 def load_descriptor_list(person_folder, encoders, exts, frame_interval, force_compute, device_id):
-    descriptors_for_encoders = [None]*len(exts)
+    descriptors_for_encoders = []#[None]*len(exts)
     crop_files = None
     k = 0
 
     for encoder, ext in zip(encoders,exts):
-        descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, frame_interval, ext, force_compute)
-        k += 1
+        descriptors_for_encoders_t, crop_files = encode_folder(person_folder, encoder, frame_interval, ext, force_compute)
+        if len(crop_files)>0:
+            descriptors_for_encoders.append(descriptors_for_encoders_t)    
+	   
     descriptors_for_encoders = zip(*descriptors_for_encoders)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders
@@ -311,6 +314,7 @@ def compute_same_pair_distance_interval(features):
     if len(features) <= 1:
         return []
     else:
+        features = numpy.squeeze(numpy.array(features))
         a = numpy.array(features[:-1])*numpy.array(features[1:])
         cos_dist = 1-numpy.sum(a, axis=1)
         return cos_dist.tolist()
@@ -324,7 +328,7 @@ def compute_diff_pair_distance_interval(feature_list):
     d = []
     for i in range(n):
         for j in range(i+1, n):
-            d += compute_diff_pair_distance(feature_list[i], feature_list[j])
+            d += compute_diff_pair_distance(numpy.squeeze(feature_list[i]), numpy.squeeze(feature_list[j]))
     return d
 
 
@@ -363,7 +367,8 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, devic
             person_id = int(sub_folder)
             descriptors = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, frame_interval, force_compute, device_id)
             #person_id_seqs = [person_id]*len(descriptors)
-            feature_list.append(descriptors)
+            if len(descriptors) > 1:
+                feature_list.append(descriptors)
             #person_id_list += person_id_seqs
 
     _, tail = os.path.split(data_folder)
@@ -374,7 +379,8 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, devic
     diff_pair_dist = numpy.array(diff_pair_dist)
     tpr3, fpr3, th3 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.001)
     tpr4, fpr4, th4 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.0001)
-
+    
+    mlog.info('same_pairs are {0}, diff_pairs are {1}'.format(str(same_pair_dist.size), str(diff_pair_dist.size)))
     mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
             .format('%.3f'%tpr3, '%.6f'%th3, '%.3f'%fpr3, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
@@ -410,7 +416,7 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    print 'sample size per ID={0}'.format(args.sample_size)
+    print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids)
     if args.single_folder:
