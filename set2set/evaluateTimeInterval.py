@@ -219,13 +219,14 @@ def load_experts(experts_file, sys_device_ids, num_classes=1442):
 
 def decode_raw_image_name(im_path):
     # get camera id, person id, frame index
-    # assume 00000001_0002_00000121.jpg format
+    # assume xxxx_0002_00000121.jpg format
     folder_path, im_file = os.path.split(im_path)
+    im_name, _ = os.path.splitext(im_file)
     id_folder = os.path.basename(folder_path)
     person_id = int(id_folder)
-    us = im_file.split('_')
+    us = im_name.split('_')
     frame_id = int(us[-1])
-    camera_id = im_file[0:len(us[0])+len(us[1])+1]
+    camera_id = im_file[0:-len(us[-1])-len(us[-2])-1] # assume everything before person_id is camera id
     return camera_id, person_id, frame_id
 
 def get_crop_files_at_interval(crop_files, frame_interval):
