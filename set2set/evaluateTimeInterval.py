@@ -380,10 +380,10 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, devic
     tpr4, fpr4, th4 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.0001)
     
     mlog.info('same_pairs are {0}, diff_pairs are {1}'.format(str(same_pair_dist.size), str(diff_pair_dist.size)))
-    mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
-            .format('%.3f'%tpr3, '%.6f'%th3, '%.3f'%fpr3, data_folder, str(exts)))
-    mlog.info('tpr={0}, dist_th={1}, th={2} on data {3} with model extension {4}'
-              .format('%.3f' % tpr4, '%.6f' % th4, '%.3f' % fpr4, data_folder, str(exts)))
+    mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
+            .format('%.3f'%tpr3, '%.6f'%th3, '%.5f'%fpr3, data_folder, str(exts)))
+    mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
+              .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
 
 
 def process_all(folder, sample_size, experts, exts, force_compute, sys_device_ids):
