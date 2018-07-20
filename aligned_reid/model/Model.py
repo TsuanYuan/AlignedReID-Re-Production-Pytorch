@@ -228,7 +228,7 @@ class SwitchClassHeadModel(nn.Module):
 
         # list of heads for different input data sets
         if parts_model:
-            self.parts_fc_list = []
+            self.parts_fc_list = nn.ModuleList()
             for i, num_class in enumerate(num_classes):
                 fc_list = nn.ModuleList()
                 for _ in range(num_stripes):
@@ -238,7 +238,7 @@ class SwitchClassHeadModel(nn.Module):
                     fc_list.append(fc)
                 self.parts_fc_list.append(fc_list)
         elif num_classes is not None:
-            self.fc_list = []
+            self.fc_list = nn.ModuleList()
             for i, num_class in enumerate(num_classes):
                 fc = nn.Linear(planes, num_class)
                 init.normal_(fc.weight, std=0.001)
