@@ -55,7 +55,7 @@ def run(args):
     start_time = time.time()
     # pool to queue trackers at gpus
     p = multiprocessing.Pool(processes=GROUP_SIZE)
-    p.map(run_detection, zip(input_set_folders, output_set_folders, [args.log_folder]*num_commands, [args.log_folder]*num_commands))
+    p.map(run_detection, zip(input_set_folders, output_set_folders, [args.log_folder]*num_commands, [args.sub_folder_bug]*num_commands))
     output_index_file = os.path.join(args.output_folder, 'transformed_folders.txt')
     with open(output_index_file, 'w') as fp:
         for ready_folder in output_set_folders:
