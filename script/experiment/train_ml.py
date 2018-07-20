@@ -21,7 +21,7 @@ import numpy as np
 import argparse
 
 from aligned_reid.dataset import create_dataset
-from aligned_reid.model.Model import Model
+from aligned_reid.model.Model import SwitchClassHeadModel
 from aligned_reid.model.TripletLoss import TripletLoss
 from aligned_reid.model.loss import global_loss
 from aligned_reid.model.loss import local_loss
@@ -62,7 +62,7 @@ class Config(object):
     parser.add_argument('--crop_ratio', type=float, default=1)
     parser.add_argument('--ids_per_batch', type=int, default=32)
     parser.add_argument('--ims_per_id', type=int, default=4)
-    parser.add_argument('--customized_folder_path', type=str, default='customized')
+    parser.add_argument('--customized_folder_path_file', type=str, default='customized')
     parser.add_argument('--partition_number', type=int, default=0)
     parser.add_argument('--masks_path', type=str, default='')
     parser.add_argument('--log_to_file', type=str2bool, default=True)
@@ -145,7 +145,7 @@ class Config(object):
     self.test_final_batch = True
     self.test_mirror_type = ['random', 'always', None][2]
     self.test_shuffle = False
-    self.customized_folder_path = args.customized_folder_path
+    self.customized_folder_path_file = args.customized_folder_path_file
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
@@ -157,7 +157,7 @@ class Config(object):
       im_std=self.im_std,
       batch_dims='NCHW',
       num_prefetch_threads=self.prefetch_threads,
-      customized_folder_path=self.customized_folder_path,
+      customized_folder_path_file=self.customized_folder_path_file,
       partition_number=args.partition_number)
 
     prng = np.random
@@ -351,8 +351,16 @@ def main():
   ###########
   # Dataset #
   ###########
-
-  train_set = create_dataset(**cfg.train_set_kwargs)
+  training_set_paths = []
+  with open(cfg.customized_folder_path_file, 'r') as fp:
+    for line in fp:
+      fields = line.rstrip('\n').rstrip(' ').split(' ')
+      if len(fields) > 0 and len(fields[0]) > 0:
+        training_set_paths.append(fields[0])
+  train_sets = []
+  for train_set_path in training_set_paths:
+    cfg.train_set_kwargs['customized_folder_path'] = train_set_path
+    train_sets.append(create_dataset(**cfg.train_set_kwargs))
 
   test_sets = []
   test_set_names = []
@@ -367,6 +375,7 @@ def main():
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
   else:
+    cfg.test_set_kwargs['customized_folder_path'] = cfg.train_set_kwargs['customized_folder_path']
     test_sets.append(create_dataset(**cfg.test_set_kwargs))
     test_set_names.append(cfg.dataset)
 
@@ -378,10 +387,14 @@ def main():
   #                 num_classes=None, base_model=cfg.base_model)
   #           for _ in range(cfg.num_models)]
   # print("##### classification loss is turned off ! #####")
-  nc = len(train_set.ids2labels)
-  if cfg.only_test:
-    nc = cfg.test_num_classids
-  models = [Model(local_conv_out_channels=cfg.local_conv_out_channels,
+  #nc = len(train_set.ids2labels)
+  #if cfg.only_test:
+  #  nc = cfg.test_num_classids
+  nc = []
+  for train_set in train_sets:
+    nc.append(len(train_set.ids2labels))
+
+  models = [SwitchClassHeadModel(local_conv_out_channels=cfg.local_conv_out_channels,
                   num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
   # Model wrappers
@@ -450,8 +463,8 @@ def main():
   # Storing things that can be accessed cross threads.
 
   ims_list = [None for _ in range(cfg.num_models)]
-  labels_list = [None for _ in range(cfg.num_models)]
-
+  labels_list = [ None for _ in range(cfg.num_models)]
+  head_id_list = [ None for _ in range(cfg.num_models)]
   done_list1 = [False for _ in range(cfg.num_models)]
   done_list2 = [False for _ in range(cfg.num_models)]
 
@@ -490,12 +503,13 @@ def main():
       ims = ims_list[i]
       labels = labels_list[i]
       optimizer = optimizers[i]
+      head_id = head_id_list[i]
 
       ims_var = Variable(TVT(torch.from_numpy(ims).float()))
       labels_t = TVT(torch.from_numpy(labels).long())
       labels_var = Variable(labels_t)
 
-      global_feat, local_feat, logits = model_w(ims_var)
+      global_feat, local_feat, logits = model_w(ims_var, head_id)
       if logits is not None:
         probs = F.softmax(logits, dim=1)
         log_probs = F.log_softmax(logits, dim=1)
@@ -640,11 +654,12 @@ def main():
 
   threads = []
   for i in range(cfg.num_models):
-    thread = threading.Thread(target=thread_target, args=(i,))
-    # Set the thread in daemon mode, so that the main program ends normally.
-    thread.daemon = True
-    thread.start()
-    threads.append(thread)
+    for sid in range(len(nc)):
+      thread = threading.Thread(target=thread_target, args=(i,))
+      # Set the thread in daemon mode, so that the main program ends normally.
+      thread.daemon = True
+      thread.start()
+      threads.append(thread)
 
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
@@ -667,8 +682,6 @@ def main():
           cfg.staircase_decay_multiply_factor)
 
     may_set_mode(modules_optims, 'train')
-
-    epoch_done = False
 
     g_prec_meter = AverageMeter()
     g_m_meter = AverageMeter()
@@ -695,18 +708,29 @@ def main():
 
     ep_st = time.time()
     step = 0
-    while not epoch_done:
+    epoch_done = [False] * len(train_sets)
+    epoch_all_done = False
+    epoch_done_sets = []
+    while not epoch_all_done:
 
       step += 1
       step_st = time.time()
+      set_id = (step-1) % len(train_sets)
+      if set_id in epoch_done_sets:
+        epoch_all_done = all(epoch_done)
+        continue
+      else:
+        ims, im_names, labels, mirrored, epoch_done[set_id] = train_sets[set_id].next_batch()
+        if epoch_done[set_id]:
+          epoch_done_sets.append(set_id)
 
-      ims, im_names, labels, mirrored, epoch_done = train_set.next_batch()
-
+      epoch_all_done = all(epoch_done)
       for i in range(cfg.num_models):
-        ims_list[i] = ims
-        labels_list[i] = labels
-        done_list1[i] = False
-        done_list2[i] = False
+          ims_list[i] = ims
+          labels_list[i] = labels
+          head_id_list[i] = set_id
+          done_list1[i] = False
+          done_list2[i] = False
 
       run_event1.set()
       # Waiting for phase 1 done
