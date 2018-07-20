@@ -57,12 +57,12 @@ def partition_train_val_set(im_names, parse_im_name,
     gallery_inds_ = list(set(inds) - set(query_inds_))
     # For each query image, if there is no same-id different-cam images in
     # gallery, put it in gallery.
-    for query_ind in query_inds_:
-      if len(gallery_inds_) == 0 \
-          or len(numpy.argwhere(cams[gallery_inds_] != cams[query_ind])
-                     .flatten()) == 0:
-        query_inds_.remove(query_ind)
-        gallery_inds_.append(query_ind)
+    # for query_ind in query_inds_:
+    #   if len(gallery_inds_) == 0 \
+    #       or len(numpy.argwhere(cams[gallery_inds_] != cams[query_ind])
+    #                  .flatten()) == 0:
+    #     query_inds_.remove(query_ind)
+    #     gallery_inds_.append(query_ind)
     # If no query image is left, leave this id in train set.
     if len(query_inds_) == 0:
       continue
@@ -135,6 +135,7 @@ def decode_raw_image_name(im_path):
 def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
     #  work for format "dfxtd_ch04_20180519_00000083.jpg" and "dfxtd_ch04_20180519_00002675_00000015.jpg'"
     cameraID, person_id, frame_index = decode_raw_image_name(image_path)
+    #cameraID = numpy.random.choice(15)
     if cameraID not in cameraIDs:
         cameraIDs[cameraID] = len(cameraIDs)
     dest_name = new_im_name_tmpl.format(id, cameraIDs[cameraID], frame_index)
