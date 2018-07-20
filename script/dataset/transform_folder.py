@@ -126,13 +126,14 @@ def decode_raw_image_name(im_path):
     folder_path, im_file = os.path.split(im_path)
     id_folder = os.path.basename(folder_path)
     person_id = int(id_folder)
-    us = im_file.split('_')
-    frame_id = int(us[-2])
-    camera_id = im_file[0:len(us[0])+len(us[1])+len(us[2])+2]
+    im_name, _ = os.path.splitext(im_file)
+    us = im_name.split('_')
+    frame_id = int(us[-1])
+    camera_id = im_name[0:len(im_name)-len(us[-1])-1]
     return camera_id, person_id, frame_id
 
 def transfer_one_image(image_path, save_dir, id, k, cameraIDs):
-    # only work for macong 's format "dfxtd_ch04_20180519_00000083_00000001.jpg" and "dfxtd_ch04_20180519_00002675_00000015_1.jpg'"
+    #  work for format "dfxtd_ch04_20180519_00000083.jpg" and "dfxtd_ch04_20180519_00002675_00000015.jpg'"
     cameraID, person_id, frame_index = decode_raw_image_name(image_path)
     if cameraID not in cameraIDs:
         cameraIDs[cameraID] = len(cameraIDs)
@@ -241,7 +242,7 @@ def split_test_query(full_list):
     return test_list, query_list
 
 
-def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_id):
+def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_id, sub_folder_bug):
     id_folder_list = os.listdir(folder)
     n = len(id_folder_list)
     start_idx, end_idx = file_range.split(',')
@@ -258,6 +259,7 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
     dest_image_list = []
     for k in range(start_idx, end_idx):
         subfolder = os.path.join(folder, id_folder_list[k])
+
         folder_only = os.path.basename(subfolder)
         folder_predix = folder_only
         if folder_only.find("head") >= 0:
@@ -274,8 +276,17 @@ def transform_train_test(folder, save_dir, file_range, id_prefix, max_count_per_
 
         if (folder_predix.isdigit() is False and folder_predix[0:8].isdigit() is False) or int(folder_predix) == 0:  # ignore junk/distractor folder
             continue
+        subfolder_sub = subfolder
+        # handle the bug of one extra sub folder
+        if sub_folder_bug:
+            s = os.listdir(subfolder)
+            for ss in s:
+                sf = os.path.join(subfolder, ss)
+                if os.path.isdir(sf):
+                    subfolder_sub = sf
+                    break
         id = id_prefix+int(folder_predix)
-        dest_image_paths = transfer_one_folder(subfolder, dest_image_dir, id, max_count_per_id)
+        dest_image_paths = transfer_one_folder(subfolder_sub, dest_image_dir, id, max_count_per_id)
         dest_image_list = dest_image_list + dest_image_paths
     return dest_image_list
 
@@ -323,10 +334,10 @@ def split_train_test(all_images_list, num_test, num_folds, save_dir, input_folde
         randome_sample_train_test(id_dict, num_test, k, save_dir, input_folder)
 
 
-def transform_original(input_folder, save_dir, num_test, num_folds, id_prefix, max_count_per_id):
+def transform_original(input_folder, save_dir, num_test, num_folds, id_prefix, max_count_per_id, sub_folder_bug):
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
-    all_images_list = transform_train_test(input_folder, save_dir, "0,-1", id_prefix, max_count_per_id)
+    all_images_list = transform_train_test(input_folder, save_dir, "0,-1", id_prefix, max_count_per_id, sub_folder_bug)
     split_train_test(all_images_list, num_test, num_folds, save_dir, input_folder)
 
 if __name__ == '__main__':
@@ -345,11 +356,13 @@ if __name__ == '__main__':
                       default=0)
   parser.add_argument('--num_folds', type=int, help="num folds in cross validation tests", required=False,
                       default=5)
+  parser.add_argument('--sub_folder_bug', action='store_true', help="handle the bug case where there is an extra folder", required=False,
+                      default=False)
 
   args = parser.parse_args()
   image_folder = os.path.abspath(os.path.expanduser(args.raw_folder))
   save_dir = os.path.abspath(os.path.expanduser(args.save_dir))
-  transform_original(image_folder, save_dir, args.num_test, args.num_folds, args.id_prefix, args.max_count_per_id)
+  transform_original(image_folder, save_dir, args.num_test, args.num_folds, args.id_prefix, args.max_count_per_id, args.sub_folder_bug)
 
   #transform(image_folder, save_dir, args.folder_range, args.id_prefix, args.max_count_per_id)
 
