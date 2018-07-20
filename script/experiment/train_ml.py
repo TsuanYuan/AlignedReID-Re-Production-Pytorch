@@ -668,7 +668,6 @@ def main():
 
   threads = []
   for i in range(cfg.num_models):
-    for sid in range(len(nc)):
       thread = threading.Thread(target=thread_target, args=(i,))
       # Set the thread in daemon mode, so that the main program ends normally.
       thread.daemon = True
