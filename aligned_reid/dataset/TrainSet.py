@@ -80,7 +80,7 @@ class TrainSet(Dataset):
       ims: a list of images
     """
     inds = self.ids_to_im_inds[self.ids[ptr]]
-    if self.frame_interval is None:
+    if self.frame_interval is None or self.frame_interval<0:
       if len(inds) < self.ims_per_id:
         inds = np.random.choice(inds, self.ims_per_id, replace=True)
       else:
