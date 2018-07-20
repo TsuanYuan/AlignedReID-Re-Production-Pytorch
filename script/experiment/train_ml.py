@@ -100,6 +100,9 @@ class Config(object):
     # gpu ids
     self.sys_device_ids = args.sys_device_ids
 
+    if args.frame_interval >=0 :
+        print('training with frame_interval = {0}'.format(str(args.frame_interval)))
+
     if args.set_seed:
       self.seed = 1
     else:
