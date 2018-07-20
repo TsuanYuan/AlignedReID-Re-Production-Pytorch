@@ -393,6 +393,17 @@ def main():
   #nc = len(train_set.ids2labels)
   #if cfg.only_test:
   #  nc = cfg.test_num_classids
+  to_remove = []
+  min_count_id = cfg.ids_per_batch
+  for train_set in train_sets:
+     nid = len(train_set.ids2labels)
+     if nid < min_count_id:
+         to_remove.append(train_set)
+
+  for train_set in to_remove:
+      print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
+      train_sets.remove(train_set)
+
   nc = []
   for train_set in train_sets:
     nc.append(len(train_set.ids2labels))
