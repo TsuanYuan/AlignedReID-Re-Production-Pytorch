@@ -1,5 +1,5 @@
 """
-batch run detection given a list of video file and start,end frames
+batch run transform folders given a parent folder of all subfolder as datasets with person id subsubfolders
 Quan Yuan
 2018-04-26
 """
