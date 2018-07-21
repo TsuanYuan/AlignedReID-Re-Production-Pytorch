@@ -224,7 +224,7 @@ def set_devices_for_ml(sys_device_ids):
   return TVTs, TMOs, relative_device_ids
 
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True):
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
     modules_optims: A list, which members are either torch.nn.optimizer 
@@ -235,9 +235,18 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True):
   """
   map_location = (lambda storage, loc: storage) if load_to_cpu else None
   ckpt = torch.load(ckpt_file, map_location=map_location)
+  if skip_fc:
+    print('skip fc layers when loading the model!')
   for m, sd in zip(modules_optims, ckpt['state_dicts']):
     if m is not None:
-      m.load_state_dict(sd)
+      if skip_fc:
+        for k in sd.keys():
+          if k.find('fc') >= 0:
+            sd.pop(k, None)
+      if hasattr(m, 'param_groups'):
+        m.load_state_dict(sd)
+      else:
+        m.load_state_dict(sd, strict=False)
   if verbose:
     print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
       ckpt_file, ckpt['ep'], ckpt['scores']))

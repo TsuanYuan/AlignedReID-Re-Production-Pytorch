@@ -67,6 +67,7 @@ class Config(object):
     parser.add_argument('--masks_path', type=str, default='')
     parser.add_argument('--log_to_file', type=str2bool, default=True)
     parser.add_argument('--normalize_feature', type=str2bool, default=True)
+    parser.add_argument('--skip_fc', type=str2bool, default=False)
     parser.add_argument('--local_dist_own_hard_sample',
                         type=str2bool, default=False)
     parser.add_argument('-gm', '--global_margin', type=float, default=0.3)
@@ -152,6 +153,7 @@ class Config(object):
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
+    self.skip_fc = args.skip_fc
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -431,6 +433,7 @@ def main():
                 for m in models]
 
   # Bind them together just to save some codes in the following usage.
+
   modules_optims = models + optimizers
 
   ################################
@@ -438,7 +441,7 @@ def main():
   ################################
 
   if cfg.resume:
-    resume_ep, scores = load_ckpt(modules_optims, cfg.ckpt_file)
+        resume_ep, scores = load_ckpt(models, cfg.ckpt_file, skip_fc=cfg.skip_fc)
 
   # May Transfer Models and Optims to Specified Device. Transferring optimizers
   # is to cope with the case when you load the checkpoint to a new device.
