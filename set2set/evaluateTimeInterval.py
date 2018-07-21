@@ -14,6 +14,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
 import aligned_reid.model.Model
+import aligned_reid.model.SwitchClassHeadModel
 from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
@@ -144,7 +145,7 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
 def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image_shape = (256, 128, 3),
                                 local_conv_out_channels=128, num_classes=301, num_models=1,
                                 num_planes=2048, base_name='resnet50', with_final_conv=False,
-                                parts_model=False):
+                                parts_model=False, skip_fc=False):
 
     im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
@@ -157,7 +158,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
 
     optimizers = [None for m in models]
     model_opt = models + optimizers
-    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False)
+    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False, skip_fc=skip_fc)
 
     feature_extraction_func = ExtractFeature(model_ws[0])
 
@@ -188,11 +189,8 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     return encoder
 
 
-def load_experts(experts_file, sys_device_ids, num_classes=1442):
+def load_experts(experts_file, sys_device_ids, skip_fc, num_classes=1442):
     expert_models_feature_funcs, exts = [], []
-    parts = False
-    base_name = 'resnet50'
-    num_planes = 2048
 
     with open(experts_file, 'r') as fp:
         for line in fp:
@@ -413,11 +411,13 @@ if __name__ == "__main__":
     parser.add_argument('--single_folder', action='store_true', default=False,
                         help='process only current folder')
 
+    parser.add_argument('--skip_fc', action='store_true', default=False,
+                        help='skip the fc layers')
 
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
-    experts, exts = load_experts(args.experts_file, sys_device_ids)
+    experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc)
     if args.single_folder:
         process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, sys_device_ids)
     else:
