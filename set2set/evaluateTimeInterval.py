@@ -14,7 +14,6 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
 import aligned_reid.model.Model
-import aligned_reid.model.SwitchClassHeadModel
 from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
