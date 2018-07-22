@@ -21,6 +21,7 @@ class TrainSet(Dataset):
       ids_per_batch=None,
       ims_per_id=None,
       frame_interval=None,
+      ignore_camera=False,
       **kwargs):
 
     # The im dir of all images
@@ -30,6 +31,7 @@ class TrainSet(Dataset):
     self.ids_per_batch = ids_per_batch
     self.ims_per_id = ims_per_id
     self.frame_interval=frame_interval
+    self.ignore_camera = ignore_camera
 
     im_ids = [parse_im_name(name, 'id') for name in im_names]
     self.ids_to_im_inds = defaultdict(list)
@@ -62,7 +64,9 @@ class TrainSet(Dataset):
     for i in range(start_ind_local, max_ind_local):
       im_name = osp.basename(im_names_class[i])
       _, camera_id, frame_index = self.decode_im_file_name(im_name)
-      if camera_id != start_cid or abs(frame_index-start_fid)>self.frame_interval:
+      if camera_id != start_cid and (not self.ignore_camera):
+        break
+      if abs(frame_index-start_fid)>self.frame_interval:
         break
       im_names_valid.append(im_name)
 

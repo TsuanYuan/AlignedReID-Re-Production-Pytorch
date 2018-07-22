@@ -85,7 +85,7 @@ class Config(object):
     parser.add_argument('--resume', type=str2bool, default=False)
     parser.add_argument('--exp_dir', type=str, default='')
     parser.add_argument('--frame_interval', type=int, default=-1)
-
+    parser.add_argument('--ignore_camera', type=str2bool, default=False)
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
@@ -103,7 +103,8 @@ class Config(object):
 
     if args.frame_interval >=0 :
         print('training with frame_interval = {0}'.format(str(args.frame_interval)))
-
+    if args.ignore_camera:
+        print('camera id ignored in frame interval')
     if args.set_seed:
       self.seed = 1
     else:
@@ -153,6 +154,7 @@ class Config(object):
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
+    self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
     dataset_kwargs = dict(
       name=self.dataset,
@@ -173,7 +175,7 @@ class Config(object):
       ids_per_batch=self.ids_per_batch,
       ims_per_id=self.ims_per_id,
       frame_interval=args.frame_interval,
-
+      ignore_camera=args.ignore_camera,
       final_batch=self.train_final_batch,
       shuffle=self.train_shuffle,
       crop_prob=self.crop_prob,
