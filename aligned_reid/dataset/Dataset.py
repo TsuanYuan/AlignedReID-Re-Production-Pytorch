@@ -23,6 +23,7 @@ class Dataset(object):
     pre_process_im_kwargs.pop('customized_folder_path_file', None)
     pre_process_im_kwargs.pop('customized_folder_path', None)
     pre_process_im_kwargs.pop('partition_number', None)
+    pre_process_im_kwargs.pop('group_file', None)
     #pre_process_im_kwargs.pop('masks_path', None)
     self.pre_process_im = PreProcessIm(
       prng=prng,

@@ -206,7 +206,8 @@ class SwitchClassHeadModel(nn.Module):
         self.parts_model = parts_model
         self.num_stripes = num_stripes
         self.num_classes = num_classes
-        self.num_classification_head = len(num_classes)
+        if num_classes is not None:
+            self.num_classification_head = len(num_classes)
         if with_final_conv:
             self.final_conv = nn.Conv2d(planes, final_conv_out_channels, 1)
             self.final_bn = nn.BatchNorm2d(final_conv_out_channels)

@@ -5,15 +5,29 @@ import glob
 from collections import defaultdict
 import shutil
 
-new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
+# new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
+#
+# def parse_im_name(im_name, parse_type='id'):
+#   """Get the person id or cam from an image name."""
+#   assert parse_type in ('id', 'cam')
+#   if parse_type == 'id':
+#     parsed = int(im_name[:8])
+#   else:
+#     parsed = int(im_name[9:13])
+#   return parsed
 
-def parse_im_name(im_name, parse_type='id'):
+
+def parse_raw_name(im_path, parse_type='id'):
   """Get the person id or cam from an image name."""
+  # image name in format camera_folder/id_folder/xxx_frameid.jpg
   assert parse_type in ('id', 'cam')
+  im_name, _ = osp.splitext(im_path)
+  camera_folder_path, id_folder = osp.split(osp.normpath(osp.split(im_path)[0]))
+  camera_folder = osp.split(camera_folder_path)[1]
   if parse_type == 'id':
-    parsed = int(im_name[:8])
+    parsed = int(id_folder)
   else:
-    parsed = int(im_name[9:13])
+    parsed = camera_folder
   return parsed
 
 

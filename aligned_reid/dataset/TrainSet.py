@@ -1,10 +1,12 @@
 from .Dataset import Dataset
-from ..utils.dataset_utils import parse_im_name
+# from ..utils.dataset_utils import parse_im_name
 
 import os.path as osp
 from PIL import Image
 import numpy as np
 from collections import defaultdict
+import random
+import glob
 
 
 class TrainSet(Dataset):
@@ -18,8 +20,9 @@ class TrainSet(Dataset):
       im_dir=None,
       im_names=None,
       ids2labels=None,
-      ids_per_batch=None,
+      ids_per_batch=1,
       ims_per_id=None,
+      data_groups = None, # group of ids that are at the same time check point
       frame_interval=None,
       ignore_camera=False,
       **kwargs):
@@ -27,48 +30,59 @@ class TrainSet(Dataset):
     # The im dir of all images
     self.im_dir = im_dir
     self.im_names = im_names
-    self.ids2labels = ids2labels
+
+    min_num_ids = max(2, ids_per_batch / 2)
+    print 'original num of groups={0}'.format(str(len(data_groups)))
+    self.data_groups = self.remove_small_groups(data_groups, min_num_ids)
+    print 'after removing of < {0} there are {1}'.format(str(min_num_ids), str(len(data_groups)))
+    self.group_ids = self.data_groups.keys()
+    # self.ids2labels = ids2labels
     self.ids_per_batch = ids_per_batch
     self.ims_per_id = ims_per_id
     self.frame_interval=frame_interval
     self.ignore_camera = ignore_camera
 
-    im_ids = [parse_im_name(name, 'id') for name in im_names]
-    self.ids_to_im_inds = defaultdict(list)
-    for ind, id in enumerate(im_ids):
-      self.ids_to_im_inds[id].append(ind)
-    self.ids = self.ids_to_im_inds.keys()
+    # im_ids = [parse_im_name(name, 'id') for name in im_names]
+    # self.ids_to_im_inds = defaultdict(list)
+    # for ind, id in enumerate(im_ids):
+    #   self.ids_to_im_inds[id].append(ind)
+    self.ids = range(len(self.data_groups))
 
     super(TrainSet, self).__init__(
-      dataset_size=len(self.ids),
+      dataset_size=len(self.data_groups),
       batch_size=ids_per_batch,
       **kwargs)
 
+  def remove_small_groups(self, data_groups, min_size):
+    rm_keys = [k for k in data_groups if len(data_groups[k]['person_ids']) < min_size]
+    for k in rm_keys:
+      data_groups.pop(k, None)
+    return data_groups
 
   def decode_im_file_name(self, im_filename):
     # assume file format "00000175_0000_00000006.jpg" as "personID_cameraID_frameIndex"
     no_ext, _ = osp.splitext(im_filename)
     parts = no_ext.split('_')
-    person_id = int(parts[0])
-    camera_id = int(parts[1])
-    frame_index = int(parts[2])
-    return person_id, camera_id, frame_index
+    camera_id = int(parts[0])
+    frame_index = int(parts[-1])
+    return camera_id, frame_index
 
-  def get_sample_within_interval(self, im_inds):
-    im_names_class = sorted(np.array(self.im_names)[im_inds].tolist())
+  def get_sample_within_interval(self, im_paths):
+    im_paths_sorted = sorted(im_paths)
+    n = len(im_paths_sorted)
     im_names_valid = []
-    start_ind_local = np.random.choice(len(im_inds), 1)[0]
-    max_ind_local = min(len(im_inds), start_ind_local+self.frame_interval)
-    _ ,start_cid, start_fid = self.decode_im_file_name(im_names_class[start_ind_local])
+    start_ind_local = np.random.choice(n-self.ims_per_id, 1)[0]
+    max_ind_local = min(n, start_ind_local+self.frame_interval)
+    start_cid, start_fid = self.decode_im_file_name(im_paths_sorted[start_ind_local])
     # get all valid im names within a time interval
     for i in range(start_ind_local, max_ind_local):
-      im_name = osp.basename(im_names_class[i])
-      _, camera_id, frame_index = self.decode_im_file_name(im_name)
+      im_name = osp.basename(im_paths_sorted[i])
+      camera_id, frame_index = self.decode_im_file_name(im_name)
       if camera_id != start_cid and (not self.ignore_camera):
         break
       if abs(frame_index-start_fid)>self.frame_interval:
         break
-      im_names_valid.append(im_name)
+      im_names_valid.append(im_paths_sorted[i]) # im_path actually
 
     if len(im_names_valid) < self.ims_per_id:
       im_names = np.random.choice(im_names_valid, self.ims_per_id, replace=True)
@@ -83,21 +97,29 @@ class TrainSet(Dataset):
     Returns:
       ims: a list of images
     """
-    inds = self.ids_to_im_inds[self.ids[ptr]]
-    if self.frame_interval is None or self.frame_interval<0:
-      if len(inds) < self.ims_per_id:
-        inds = np.random.choice(inds, self.ims_per_id, replace=True)
+    one_group = self.data_groups[self.group_ids[ptr]]
+    im_folders = [osp.join(self.im_dir, folder_path) for folder_path in one_group['folder_paths']]
+    random_pids = range(len(im_folders))
+    if self.ids_per_batch < len(im_folders):
+      random_pids = list(random.sample(set(range(len(im_folders))), self.ids_per_batch))
+      im_folders = [im_folders[i] for i in random_pids]
+    ims, labels = [], []
+    for i, im_folder in enumerate(im_folders):
+      all_ims = np.array(glob.glob(osp.join(im_folder, '*.jpg')))
+      print(str(all_ims))
+      if self.frame_interval is None or self.frame_interval < 0:
+        if len(all_ims) < self.ims_per_id:
+          ims_one = np.random.choice(all_ims, self.ims_per_id, replace=True)
+        else:
+          ims_one = np.random.choice(all_ims, self.ims_per_id, replace=False)
       else:
-        inds = np.random.choice(inds, self.ims_per_id, replace=False)
-      im_names = [self.im_names[ind] for ind in inds]
-    else:
-      im_names = self.get_sample_within_interval(inds)
-    ims = [np.asarray(Image.open(osp.join(self.im_dir, name)))
-             for name in im_names]
+        ims_one = self.get_sample_within_interval(all_ims)
+      ims += ims_one.tolist()
+      labels += [random_pids[i]]*len(ims_one)
 
-    ims, mirrored = zip(*[self.pre_process_im(im) for im in ims])
-    labels = [self.ids2labels[self.ids[ptr]] for _ in range(self.ims_per_id)]
-    return ims, im_names, labels, mirrored
+    imgs, mirrored = zip(*[self.pre_process_im(im) for im in ims])
+
+    return imgs, ims, labels, mirrored
 
 
   def next_batch(self):

@@ -10,7 +10,7 @@ from .Dataset import Dataset
 from ..utils.utils import measure_time
 from ..utils.re_ranking import re_ranking
 from ..utils.metric import cmc, mean_ap
-from ..utils.dataset_utils import parse_im_name
+#from ..utils.dataset_utils import parse_im_name
 from ..utils.distance import normalize
 from ..utils.distance import compute_dist
 from ..utils.distance import local_dist

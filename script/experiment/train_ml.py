@@ -62,7 +62,9 @@ class Config(object):
     parser.add_argument('--crop_ratio', type=float, default=1)
     parser.add_argument('--ids_per_batch', type=int, default=32)
     parser.add_argument('--ims_per_id', type=int, default=4)
-    parser.add_argument('--customized_folder_path_file', type=str, default='customized')
+    #parser.add_argument('--customized_folder_path_file', type=str, default='customized')
+    parser.add_argument('--customized_folder_path', type=str, default='customized')
+    parser.add_argument('--group_file', type=str, default='')
     parser.add_argument('--partition_number', type=int, default=0)
     parser.add_argument('--masks_path', type=str, default='')
     parser.add_argument('--log_to_file', type=str2bool, default=True)
@@ -150,7 +152,8 @@ class Config(object):
     self.test_final_batch = True
     self.test_mirror_type = ['random', 'always', None][2]
     self.test_shuffle = False
-    self.customized_folder_path_file = args.customized_folder_path_file
+    self.customized_folder_path = args.customized_folder_path
+    self.group_file = args.group_file
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
@@ -164,7 +167,7 @@ class Config(object):
       im_std=self.im_std,
       batch_dims='NCHW',
       num_prefetch_threads=self.prefetch_threads,
-      customized_folder_path_file=self.customized_folder_path_file,
+      customized_folder_path=self.customized_folder_path,
       partition_number=args.partition_number)
 
     prng = np.random
@@ -181,6 +184,7 @@ class Config(object):
       crop_prob=self.crop_prob,
       crop_ratio=self.crop_ratio,
       mirror_type=self.train_mirror_type,
+      group_file=self.group_file,
       prng=prng,
       masks_path=self.masks_path)
     self.train_set_kwargs.update(dataset_kwargs)
@@ -359,15 +363,15 @@ def main():
   # Dataset #
   ###########
   training_set_paths = []
-  with open(cfg.customized_folder_path_file, 'r') as fp:
-    for line in fp:
-      fields = line.rstrip('\n').rstrip(' ').split(' ')
-      if len(fields) > 0 and len(fields[0]) > 0:
-        training_set_paths.append(fields[0])
-  train_sets = []
-  for train_set_path in training_set_paths:
-    cfg.train_set_kwargs['customized_folder_path'] = train_set_path
-    train_sets.append(create_dataset(**cfg.train_set_kwargs))
+  # with open(cfg.customized_folder_path_file, 'r') as fp:
+  #   for line in fp:
+  #     fields = line.rstrip('\n').rstrip(' ').split(' ')
+  #     if len(fields) > 0 and len(fields[0]) > 0:
+  #       training_set_paths.append(fields[0])
+  # train_sets = []
+  # for train_set_path in training_set_paths:
+  #   cfg.train_set_kwargs['customized_folder_path'] = train_set_path
+  train_set = create_dataset(**cfg.train_set_kwargs)
 
   test_sets = []
   test_set_names = []
@@ -383,8 +387,8 @@ def main():
       test_set_names.append(name)
   else:
     cfg.test_set_kwargs['customized_folder_path'] = cfg.train_set_kwargs['customized_folder_path']
-    test_sets.append(create_dataset(**cfg.test_set_kwargs))
-    test_set_names.append(cfg.dataset)
+    #test_sets.append(create_dataset(**cfg.test_set_kwargs))
+    #test_set_names.append(cfg.dataset)
 
   ###########
   # Models  #
@@ -399,21 +403,21 @@ def main():
   #  nc = cfg.test_num_classids
   to_remove = []
   min_count_id = cfg.ids_per_batch
-  for train_set in train_sets:
-     nid = len(train_set.ids2labels)
-     if nid < min_count_id:
-         to_remove.append(train_set)
-
-  for train_set in to_remove:
-      print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
-      train_sets.remove(train_set)
-
-  nc = []
-  for train_set in train_sets:
-    nc.append(len(train_set.ids2labels))
+  # for train_set in train_sets:
+  #    nid = len(train_set.ids2labels)
+  #    if nid < min_count_id:
+  #        to_remove.append(train_set)
+  #
+  # for train_set in to_remove:
+  #     print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
+  #     train_sets.remove(train_set)
+  #
+  # nc = []
+  # for train_set in train_sets:
+  #   nc.append(len(train_set.ids2labels))
 
   models = [SwitchClassHeadModel(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
+                  num_classes=None, base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])
@@ -726,27 +730,27 @@ def main():
 
     ep_st = time.time()
     step = 0
-    epoch_done = [False] * len(train_sets)
+    #epoch_done = [False] * len(train_sets)
     epoch_all_done = False
     epoch_done_sets = []
     while not epoch_all_done:
 
       step += 1
       step_st = time.time()
-      set_id = (step-1) % len(train_sets)
-      if set_id in epoch_done_sets:
-        epoch_all_done = all(epoch_done)
-        continue
-      else:
-        ims, im_names, labels, mirrored, epoch_done[set_id] = train_sets[set_id].next_batch()
-        if epoch_done[set_id]:
-          epoch_done_sets.append(set_id)
+      #set_id = (step-1) % len(train_sets)
+      # if set_id in epoch_done_sets:
+      #   epoch_all_done = all(epoch_done)
+      #   continue
+      # else:
+      ims, im_names, labels, mirrored, epoch_all_done = train_set.next_batch()
+        # if epoch_done[set_id]:
+        #   epoch_done_sets.append(set_id)
 
-      epoch_all_done = all(epoch_done)
+      #epoch_all_done = all(epoch_done)
       for i in range(cfg.num_models):
           ims_list[i] = ims
           labels_list[i] = labels
-          head_id_list[i] = set_id
+          #head_id_list[i] = set_id
           done_list1[i] = False
           done_list2[i] = False
 
