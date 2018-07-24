@@ -248,12 +248,10 @@ def encode_folder(person_folder, encoder, sample_size, ext, force_compute):
     return descriptors, crop_files
 
 
-def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
-    for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
+def save_joint_descriptors(descriptors_list, crop_files, ext='experts'):
+    for feature_arr, crop_file in zip(descriptors_list, crop_files):
         no_ext, _ = os.path.splitext(crop_file)
         descriptor_file = no_ext + '.' + ext
-        feature_arr = np.concatenate(tuple(descriptors))
-        feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
         feature_arr.tofile(descriptor_file)
 
 
@@ -266,9 +264,14 @@ def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compu
         descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, sample_size, ext, force_compute)
         k += 1
     descriptors_for_encoders = zip(*descriptors_for_encoders)
+    desc_list = []
+    for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
+        feature_arr = np.concatenate(tuple(descriptors))
+        feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
+        desc_list.append(feature_arr)
     if save_descriptors:
-        save_joint_descriptors(descriptors_for_encoders, crop_files)
-    return descriptors_for_encoders, crop_files
+        save_joint_descriptors(desc_list, crop_files)
+    return desc_list, crop_files
 
 
 def compute_experts_distance_matrix(feature_list):
@@ -302,13 +305,12 @@ def get_pairs_of_difference(descriptorsA, descriptorsB, same_th=0.025, diff_th =
 
 def mining_same_diff_pairs(one_folder, previous_folders, sample_size, encoder_list, exts, device_id, first_feature_len = 2048):
     same_crop_list, diff_crop_list = [], []
-
     if len(previous_folders) == 0:
         return [], []
 
     for pre_folder in previous_folders:
-        pre_descriptors,pre_crops_files = load_descriptor_list(pre_folder, encoder_list, exts, sample_size, force_compute=False, save_descriptors=False)
-        desciptors, crops_files = load_descriptor_list(one_folder, encoder_list, exts, sample_size, force_compute=False, save_descriptors=False)
+        pre_descriptors,pre_crops_files = load_descriptor_list(pre_folder, encoder_list, exts, sample_size, force_compute=False)
+        desciptors, crops_files = load_descriptor_list(one_folder, encoder_list, exts, sample_size, force_compute=False)
         same_list_a, diff_list_a = get_pairs_of_difference(desciptors, pre_descriptors)
         same_crop_list, diff_crop_list = [], []
         for p in same_list_a:
