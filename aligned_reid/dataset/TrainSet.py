@@ -41,7 +41,7 @@ class TrainSet(Dataset):
     self.ims_per_id = ims_per_id
     self.frame_interval=frame_interval
     self.ignore_camera = ignore_camera
-
+    self.batch_size = 1
     # im_ids = [parse_im_name(name, 'id') for name in im_names]
     # self.ids_to_im_inds = defaultdict(list)
     # for ind, id in enumerate(im_ids):
@@ -50,7 +50,7 @@ class TrainSet(Dataset):
 
     super(TrainSet, self).__init__(
       dataset_size=len(self.data_groups),
-      batch_size=ids_per_batch,
+      batch_size=self.batch_size,
       **kwargs)
 
   def remove_small_groups(self, data_groups, min_size):
