@@ -25,7 +25,6 @@ from aligned_reid.model.Model import SwitchClassHeadModel
 from aligned_reid.model.TripletLoss import TripletLoss
 from aligned_reid.model.loss import global_loss
 from aligned_reid.model.loss import local_loss
-from aligned_reid.model.PairLoss import PairLoss
 
 from aligned_reid.utils.utils import time_str
 from aligned_reid.utils.utils import str2bool
@@ -562,7 +561,7 @@ def main():
         l_dist_mat = 0
 
       id_loss = 0
-      if cfg.id_loss_weight > 0:
+      if cfg.id_loss_weight > 0 and head_id is not None:
         id_loss = id_criterion(logits, labels_var)
         probs_list[i] = probs
       g_dist_mat_list[i] = g_dist_mat
@@ -736,7 +735,7 @@ def main():
 
     ep_st = time.time()
     step = 0
-    #epoch_done = [False] * len(train_sets)
+    epoch_done = [False] * 2
     epoch_all_done = False
     epoch_done_sets = []
     while not epoch_all_done:
@@ -748,15 +747,21 @@ def main():
       #   epoch_all_done = all(epoch_done)
       #   continue
       # else:
-      ims, im_names, labels, mirrored, epoch_all_done = train_set.next_batch()
+      if step %2 ==0:
+        ims, im_names, labels, mirrored, epoch_done[0] = train_set_with_id.next_batch()
+      else:
+        ims, im_names, labels, mirrored, epoch_done[1] = train_set_no_id.next_batch()
         # if epoch_done[set_id]:
         #   epoch_done_sets.append(set_id)
 
-      #epoch_all_done = all(epoch_done)
+      epoch_all_done = all(epoch_done)
       for i in range(cfg.num_models):
           ims_list[i] = ims
           labels_list[i] = labels
-          #head_id_list[i] = set_id
+          if step % 2 == 0:
+            head_id_list[i] = len(train_set_with_id.ids2labels)
+          else:
+            head_id_list[i] = None
           done_list1[i] = False
           done_list2[i] = False
 
