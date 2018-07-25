@@ -76,7 +76,7 @@ class TrainSet(Dataset):
     start_cid, start_fid = self.decode_im_file_name(im_paths_sorted[start_ind_local])
     # get all valid im names within a time interval
     for i in range(start_ind_local, max_ind_local):
-      im_name = osp.basename(im_paths_sorted[i])
+      im_name = im_paths_sorted[i]
       camera_id, frame_index = self.decode_im_file_name(im_name)
       if camera_id != start_cid and (not self.ignore_camera):
         break
@@ -103,10 +103,10 @@ class TrainSet(Dataset):
     if self.ids_per_batch < len(im_folders):
       random_pids = list(random.sample(set(range(len(im_folders))), self.ids_per_batch))
       im_folders = [im_folders[i] for i in random_pids]
-    ims, labels = [], []
+    im_paths, labels = [], []
     for i, im_folder in enumerate(im_folders):
       all_ims = np.array(glob.glob(osp.join(im_folder, '*.jpg')))
-      print(str(all_ims))
+      #print(str(all_ims))
       if self.frame_interval is None or self.frame_interval < 0:
         if len(all_ims) < self.ims_per_id:
           ims_one = np.random.choice(all_ims, self.ims_per_id, replace=True)
@@ -114,9 +114,10 @@ class TrainSet(Dataset):
           ims_one = np.random.choice(all_ims, self.ims_per_id, replace=False)
       else:
         ims_one = self.get_sample_within_interval(all_ims)
-      ims += ims_one.tolist()
+      im_paths += ims_one.tolist()
       labels += [random_pids[i]]*len(ims_one)
 
+    ims = [Image.open(open(im_path, 'r')) for im_path in im_paths]
     imgs, mirrored = zip(*[self.pre_process_im(im) for im in ims])
 
     return imgs, ims, labels, mirrored
