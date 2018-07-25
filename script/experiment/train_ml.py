@@ -557,8 +557,7 @@ def main():
       id_loss = 0
       if cfg.id_loss_weight > 0:
         id_loss = id_criterion(logits, labels_var)
-
-      probs_list[i] = probs
+        probs_list[i] = probs
       g_dist_mat_list[i] = g_dist_mat
       l_dist_mat_list[i] = l_dist_mat
 
