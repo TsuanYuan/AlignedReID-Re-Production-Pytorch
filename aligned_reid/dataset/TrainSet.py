@@ -71,7 +71,10 @@ class TrainSet(Dataset):
     im_paths_sorted = sorted(im_paths)
     n = len(im_paths_sorted)
     im_names_valid = []
-    start_ind_local = np.random.choice(n-self.ims_per_id, 1)[0]
+    if n <= self.ims_per_id:
+      start_ind_local = 0
+    else:
+      start_ind_local = np.random.choice(n-self.ims_per_id, 1)[0]
     max_ind_local = min(n, start_ind_local+self.frame_interval)
     start_cid, start_fid = self.decode_im_file_name(im_paths_sorted[start_ind_local])
     # get all valid im names within a time interval
