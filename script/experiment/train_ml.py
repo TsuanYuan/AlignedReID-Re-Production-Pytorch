@@ -63,8 +63,10 @@ class Config(object):
     parser.add_argument('--ids_per_batch', type=int, default=32)
     parser.add_argument('--ims_per_id', type=int, default=4)
     #parser.add_argument('--customized_folder_path_file', type=str, default='customized')
-    parser.add_argument('--customized_folder_path', type=str, default='customized')
+    parser.add_argument('--customized_id_folder_path', type=str, default='customized')
+    parser.add_argument('--customized_noid_folder_path', type=str, default='customized')
     parser.add_argument('--group_file', type=str, default='')
+
     parser.add_argument('--partition_number', type=int, default=0)
     parser.add_argument('--masks_path', type=str, default='')
     parser.add_argument('--log_to_file', type=str2bool, default=True)
@@ -152,7 +154,8 @@ class Config(object):
     self.test_final_batch = True
     self.test_mirror_type = ['random', 'always', None][2]
     self.test_shuffle = False
-    self.customized_folder_path = args.customized_folder_path
+    self.customized_id_folder_path = args.customized_id_folder_path
+    self.customized_noid_folder_path = args.customized_noid_folder_path
     self.group_file = args.group_file
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
@@ -167,7 +170,8 @@ class Config(object):
       im_std=self.im_std,
       batch_dims='NCHW',
       num_prefetch_threads=self.prefetch_threads,
-      customized_folder_path=self.customized_folder_path,
+      customized_id_folder_path=self.customized_id_folder_path,
+      customized_noid_folder_path=self.customized_noid_folder_path,
       partition_number=args.partition_number)
 
     prng = np.random
@@ -371,7 +375,10 @@ def main():
   # train_sets = []
   # for train_set_path in training_set_paths:
   #   cfg.train_set_kwargs['customized_folder_path'] = train_set_path
-  train_set = create_dataset(**cfg.train_set_kwargs)
+  train_set_with_id = create_dataset(**cfg.train_set_kwargs)
+  cfg.train_set_kwargs['customized_id_folder_path'] = ''
+  train_set_no_id = create_dataset(**cfg.train_set_kwargs)
+
 
   test_sets = []
   test_set_names = []
@@ -401,8 +408,8 @@ def main():
   #nc = len(train_set.ids2labels)
   #if cfg.only_test:
   #  nc = cfg.test_num_classids
-  to_remove = []
-  min_count_id = cfg.ids_per_batch
+  # to_remove = []
+  # min_count_id = cfg.ids_per_batch
   # for train_set in train_sets:
   #    nid = len(train_set.ids2labels)
   #    if nid < min_count_id:

@@ -5,6 +5,7 @@ ospeu = osp.expanduser
 import re
 from ..utils.utils import load_pickle
 #from ..utils.dataset_utils import parse_im_name
+from .TrainSetTimeSample import TrainSetTimeSample
 from .TrainSet import TrainSet
 from .TestSet import TestSet
 
@@ -62,11 +63,10 @@ def create_dataset(
     im_dir = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/images')
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions_{0}.pkl'.format(folder_num))
   elif name == 'customized':
-    im_dir = osp.join(kwargs['customized_folder_path'],'images')
+    im_dir = osp.join(kwargs['customized_id_folder_path'],'images')
     partition_file = osp.join(kwargs['customized_folder_path'],'partitions_{0}.pkl'.format(kwargs['partition_number']))
 
-  data_dir = osp.join(kwargs['customized_folder_path'])
-  group_file = kwargs['group_file']
+
 
   ##################
   # Create Dataset #
@@ -80,12 +80,40 @@ def create_dataset(
   # print partition_file
   # partitions = load_pickle(partition_file)
   # im_names = partitions['{}_im_names'.format(part)]
-  tracklet_groups = load_pickle(group_file)
-  ret_set = TrainSet(
-    im_dir=data_dir,
-    im_names=None,
-    data_groups=tracklet_groups,
-    **kwargs)
+
+  if len(kwargs['customized_id_folder_path']) > 0:
+    print partition_file
+    partitions = load_pickle(partition_file)
+    im_names = partitions['{}_im_names'.format(part)]
+
+    if part == 'trainval':
+      ids2labels = partitions['trainval_ids2labels']
+
+      ret_set = TrainSet(
+        im_dir=im_dir,
+        im_names=im_names,
+        ids2labels=ids2labels,
+        **kwargs)
+
+    elif part == 'train':
+      ids2labels = partitions['train_ids2labels']
+
+      ret_set = TrainSet(
+        im_dir=im_dir,
+        im_names=im_names,
+        ids2labels=ids2labels,
+        **kwargs)
+    else:
+      raise Exception('unknown create data set option')
+  else:
+    data_dir = osp.join(kwargs['customized_noid_folder_path'])
+    group_file = kwargs['group_file']
+    tracklet_groups = load_pickle(group_file)
+    ret_set = TrainSetTimeSample(
+      im_dir=data_dir,
+      im_names=None,
+      data_groups=tracklet_groups,
+      **kwargs)
 
   return ret_set
 

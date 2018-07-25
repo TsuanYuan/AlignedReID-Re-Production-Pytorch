@@ -5,16 +5,16 @@ import glob
 from collections import defaultdict
 import shutil
 
-# new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
-#
-# def parse_im_name(im_name, parse_type='id'):
-#   """Get the person id or cam from an image name."""
-#   assert parse_type in ('id', 'cam')
-#   if parse_type == 'id':
-#     parsed = int(im_name[:8])
-#   else:
-#     parsed = int(im_name[9:13])
-#   return parsed
+new_im_name_tmpl = '{:08d}_{:04d}_{:08d}.jpg'
+
+def parse_im_name(im_name, parse_type='id'):
+  """Get the person id or cam from an image name."""
+  assert parse_type in ('id', 'cam')
+  if parse_type == 'id':
+    parsed = int(im_name[:8])
+  else:
+    parsed = int(im_name[9:13])
+  return parsed
 
 
 def parse_raw_name(im_path, parse_type='id'):
