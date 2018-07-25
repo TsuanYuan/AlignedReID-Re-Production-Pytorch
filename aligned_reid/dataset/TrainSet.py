@@ -117,7 +117,7 @@ class TrainSet(Dataset):
       im_paths += ims_one.tolist()
       labels += [random_pids[i]]*len(ims_one)
 
-    ims = [Image.open(open(im_path, 'r')) for im_path in im_paths]
+    ims = [np.asarray(Image.open(im_path)) for im_path in im_paths]
     imgs, mirrored = zip(*[self.pre_process_im(im) for im in ims])
 
     return imgs, ims, labels, mirrored
