@@ -63,7 +63,7 @@ class TrainSet(Dataset):
     # assume file format "00000175_0000_00000006.jpg" as "personID_cameraID_frameIndex"
     no_ext, _ = osp.splitext(im_filename)
     parts = no_ext.split('_')
-    camera_id = int(parts[0])
+    camera_id = parts[0]
     frame_index = int(parts[-1])
     return camera_id, frame_index
 
