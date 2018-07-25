@@ -298,7 +298,7 @@ class SwitchClassHeadModel(nn.Module):
         # shape [N, H, c]
         local_feat = local_feat.squeeze(-1).permute(0, 2, 1)
         # switch head of fc layer for id loss
-        if hasattr(self, 'fc_list'):
+        if hasattr(self, 'fc_list') and head_id is not None:
             logits = self.fc_list[head_id](global_feat)
             return global_feat, local_feat, logits
 
