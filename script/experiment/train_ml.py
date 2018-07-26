@@ -392,7 +392,8 @@ def main():
       test_sets.append(create_dataset(**cfg.test_set_kwargs))
       test_set_names.append(name)
   else:
-    cfg.test_set_kwargs['customized_folder_path'] = cfg.train_set_kwargs['customized_folder_path']
+    pass
+    #cfg.test_set_kwargs['customized_folder_path'] = cfg.train_set_kwargs['customized_folder_path']
     #test_sets.append(create_dataset(**cfg.test_set_kwargs))
     #test_set_names.append(cfg.dataset)
 
@@ -423,7 +424,7 @@ def main():
   #   nc.append(len(train_set.ids2labels))
 
   models = [SwitchClassHeadModel(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=None, base_model=cfg.base_model, parts_model=cfg.parts_model)
+                  num_classes=[len(train_set_with_id.ids2labels)], base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])
@@ -562,6 +563,7 @@ def main():
 
       id_loss = 0
       if cfg.id_loss_weight > 0 and head_id is not None:
+        #print("head_id={}".format(str(head_id)))
         id_loss = id_criterion(logits, labels_var)
         probs_list[i] = probs
       g_dist_mat_list[i] = g_dist_mat
@@ -655,7 +657,7 @@ def main():
           l_dist_an_meter.update(l_d_an)
           l_loss_meter.update(to_scalar(l_loss))
 
-        if cfg.id_loss_weight > 0:
+        if cfg.id_loss_weight > 0 and head_id is not None:
           id_loss_meter.update(to_scalar(id_loss))
 
         if (cfg.num_models > 1) and (cfg.pm_loss_weight > 0):
@@ -743,15 +745,13 @@ def main():
       step += 1
       step_st = time.time()
       #set_id = (step-1) % len(train_sets)
-      # if set_id in epoch_done_sets:
-      #   epoch_all_done = all(epoch_done)
-      #   continue
-      # else:
-      if step %2 ==0:
+      if step %2 ==0 and not epoch_done[0]:
         ims, im_names, labels, mirrored, epoch_done[0] = train_set_with_id.next_batch()
-      else:
+      elif step%2==1 and not epoch_done[1]:
         ims, im_names, labels, mirrored, epoch_done[1] = train_set_no_id.next_batch()
-        # if epoch_done[set_id]:
+      else:
+        continue  
+      # if epoch_done[set_id]:
         #   epoch_done_sets.append(set_id)
 
       epoch_all_done = all(epoch_done)
@@ -759,7 +759,7 @@ def main():
           ims_list[i] = ims
           labels_list[i] = labels
           if step % 2 == 0:
-            head_id_list[i] = len(train_set_with_id.ids2labels)
+            head_id_list[i] = 0 #len(train_set_with_id.ids2labels)
           else:
             head_id_list[i] = None
           done_list1[i] = False

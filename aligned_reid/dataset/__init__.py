@@ -64,7 +64,7 @@ def create_dataset(
     partition_file = ospeu('/mnt/soulfs/qyuan/code/AlignedReID-Re-Production-Pytorch/Dataset/folder_ready/partitions_{0}.pkl'.format(folder_num))
   elif name == 'customized':
     im_dir = osp.join(kwargs['customized_id_folder_path'],'images')
-    partition_file = osp.join(kwargs['customized_folder_path'],'partitions_{0}.pkl'.format(kwargs['partition_number']))
+    partition_file = osp.join(kwargs['customized_id_folder_path'],'partitions_{0}.pkl'.format(kwargs['partition_number']))
 
 
 
