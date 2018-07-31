@@ -23,6 +23,7 @@ class TrainSetTimeSample(Dataset):
       ids_per_batch=1,
       ims_per_id=None,
       data_groups = None, # group of ids that are at the same time check point
+      data_size_factor = 1.0,
       frame_interval=None,
       ignore_camera=False,
       **kwargs):
@@ -42,6 +43,8 @@ class TrainSetTimeSample(Dataset):
     self.frame_interval=frame_interval
     self.ignore_camera = ignore_camera
     self.batch_size = 1
+    self.data_size_factor = data_size_factor # factor to reduce the
+    self.sorted_folders = {} # avoid sorted large folders at every iteration
     # im_ids = [parse_im_name(name, 'id') for name in im_names]
     # self.ids_to_im_inds = defaultdict(list)
     # for ind, id in enumerate(im_ids):
@@ -108,15 +111,16 @@ class TrainSetTimeSample(Dataset):
       im_folders = [im_folders[i] for i in random_pids]
     im_paths, labels = [], []
     for i, im_folder in enumerate(im_folders):
-      all_ims = np.array(glob.glob(osp.join(im_folder, '*.jpg')))
-      #print(str(all_ims))
+      if im_folder not in self.sorted_folders:
+        all_ims = np.array(glob.glob(osp.join(im_folder, '*.jpg')))
+        self.sorted_folders[im_folder] = sorted(all_ims)
       if self.frame_interval is None or self.frame_interval < 0:
         if len(all_ims) < self.ims_per_id:
           ims_one = np.random.choice(all_ims, self.ims_per_id, replace=True)
         else:
           ims_one = np.random.choice(all_ims, self.ims_per_id, replace=False)
       else:
-        ims_one = self.get_sample_within_interval(all_ims)
+        ims_one = self.get_sample_within_interval(self.sorted_folders[im_folder])
       im_paths += ims_one.tolist()
       labels += [random_pids[i]]*len(ims_one)
 
