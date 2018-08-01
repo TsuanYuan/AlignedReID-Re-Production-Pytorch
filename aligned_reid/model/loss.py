@@ -128,7 +128,7 @@ def batch_local_dist(x, y):
   return dist
 
 
-def hard_example_mining(dist_mat, labels, return_inds=False):
+def hard_example_mining(dist_mat, labels, return_inds=False, neg_bound=0.0):
   """For each anchor, find the hardest positive and negative sample.
   Args:
     dist_mat: pytorch Variable, pair wise distance between samples, shape [N, N]
@@ -152,7 +152,8 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
   # shape [N, N]
   is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
   is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
-
+  neg_bounded = dist_mat.gt(neg_bound)
+  is_neg = is_neg & neg_bounded
   # `dist_ap` means distance(anchor, positive)
   # both `dist_ap` and `relative_p_inds` with shape [N, 1]
   dist_ap, relative_p_inds = torch.max(
@@ -202,7 +203,7 @@ def pair_example_mining(dist_mat, labels):
   dist_labels = torch.ones(dist_np.size(0))
   return dist_np, dist_labels
 
-def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
+def global_loss(tri_loss, global_feat, labels, normalize_feature=True, neg_bound=0.0):
   """
   Args:
     tri_loss: a `TripletLoss` object
@@ -231,7 +232,7 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
   # shape [N, N]
   dist_mat = euclidean_dist(global_feat, global_feat)
   dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
-    dist_mat, labels, return_inds=True)
+    dist_mat, labels, return_inds=True, neg_bound=neg_bound)
   #dist_np, labels_np = pair_example_mining(dist_mat, labels)
 
   loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
@@ -244,7 +245,7 @@ def local_loss(
     p_inds=None,
     n_inds=None,
     labels=None,
-    normalize_feature=True):
+    normalize_feature=True, neg_bound=0.0):
   """
   Args:
     tri_loss: a `TripletLoss` object
@@ -277,7 +278,7 @@ def local_loss(
     local_feat = normalize(local_feat, axis=-1)
   if p_inds is None or n_inds is None:
     dist_mat = local_dist(local_feat, local_feat)
-    dist_ap, dist_an = hard_example_mining(dist_mat, labels, return_inds=False)
+    dist_ap, dist_an = hard_example_mining(dist_mat, labels, return_inds=False, neg_bound=neg_bound)
     loss = tri_loss(dist_ap, dist_an)
     return loss, dist_ap, dist_an, dist_mat
   else:

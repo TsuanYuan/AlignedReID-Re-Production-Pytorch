@@ -305,6 +305,9 @@ if __name__ == "__main__":
     parser.add_argument('experts_file', type=str,
                         help='the file of list of expert model paths')
 
+    parser.add_argument('ext', type=str,
+                        help='the extention of feature file')
+
     parser.add_argument('--sample_size', type=int, default=16,
                         help='the num of samples from each ID')
 
@@ -321,8 +324,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print 'sample size per ID={0}'.format(args.sample_size)
     sys_device_ids = ((args.device_id,),)
-    experts, exts = load_experts(args.experts_file, sys_device_ids)
+    experts, _ = load_experts(args.experts_file, sys_device_ids)
     if args.single_folder:
-        process(args.test_folder, args.sample_size, experts, exts, args.force_compute, sys_device_ids)
+        process(args.test_folder, args.sample_size, experts, args.ext, args.force_compute, sys_device_ids)
     else:
-        process_all(args.test_folder, args.sample_size, experts, exts, args.force_compute, sys_device_ids)
+        process_all(args.test_folder, args.sample_size, experts, args.ext, args.force_compute, sys_device_ids)

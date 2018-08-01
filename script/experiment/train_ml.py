@@ -86,6 +86,7 @@ class Config(object):
     parser.add_argument('--exp_dir', type=str, default='')
     parser.add_argument('--frame_interval', type=int, default=-1)
     parser.add_argument('--ignore_camera', type=str2bool, default=False)
+    parser.add_argument('--bound_neg_at_epoch', type=int, default=100000)
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
@@ -154,6 +155,7 @@ class Config(object):
     self.partition_number = args.partition_number
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
+    self.bound_neg_at_epoch = args.bound_neg_at_epoch
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
     dataset_kwargs = dict(
@@ -506,7 +508,7 @@ def main():
   # and exit too.
   # Real reason should be further explored.
   exit_event = threading.Event()
-
+  bound_neg = 0.0
   # The function to be called by threads.
   def thread_target(i):
     while not exit_event.isSet():
@@ -535,7 +537,7 @@ def main():
 
       g_loss, p_inds, n_inds, g_dist_ap, g_dist_an, g_dist_mat = global_loss(
         g_tri_loss, global_feat, labels_t,
-        normalize_feature=cfg.normalize_feature)
+        normalize_feature=cfg.normalize_feature, neg_bound=bound_neg)
 
       if cfg.l_loss_weight == 0 or local_feat is None:
         l_loss, l_dist_mat = 0, 0
@@ -543,7 +545,7 @@ def main():
         # Let local distance find its own hard samples.
         l_loss, l_dist_ap, l_dist_an, l_dist_mat = local_loss(
           l_tri_loss, local_feat, None, None, labels_t,
-          normalize_feature=cfg.normalize_feature)
+          normalize_feature=cfg.normalize_feature, neg_bound=bound_neg)
       else:
         l_loss, l_dist_ap, l_dist_an = local_loss(
           l_tri_loss, local_feat, p_inds, n_inds, labels_t,
@@ -681,7 +683,8 @@ def main():
 
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
-
+    if ep > cfg.bound_neg_at_epoch:
+      bound_neg = max(cfg.global_margin/2, cfg.local_margin/2)
     # Adjust Learning Rate
     for optimizer in optimizers:
       if cfg.lr_decay_type == 'exp':
