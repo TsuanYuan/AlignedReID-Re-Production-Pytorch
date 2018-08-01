@@ -74,7 +74,7 @@ def partition_train_val_set(im_names, parse_im_name,
 
   if len(im_names) > 0:
       query_inds = numpy.hstack(query_inds)
-      gallery_inds = numpy.hstack(gallery_inds)
+      gallery_inds = numpy.hstack(gallery_inds).astype(int)
       val_inds = numpy.hstack([query_inds, gallery_inds])
       trainval_inds = numpy.arange(len(im_names))
       train_inds = numpy.setdiff1d(trainval_inds, val_inds)
