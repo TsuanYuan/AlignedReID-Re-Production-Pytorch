@@ -153,7 +153,7 @@ def hard_example_mining(dist_mat, labels, return_inds=False, neg_bound=0.0):
   is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
   is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
   nd = dist_mat[is_neg]
-  nd[nd<neg_bound] = 1.0
+  nd[nd<neg_bound] = nd[nd<neg_bound]+ neg_bound
   dist_mat[is_neg] = nd
   # `dist_ap` means distance(anchor, positive)
   # both `dist_ap` and `relative_p_inds` with shape [N, 1]
