@@ -685,6 +685,7 @@ def main():
   for ep in range(start_ep, cfg.total_epochs):
     if ep > cfg.bound_neg_at_epoch:
       bound_neg = max(cfg.global_margin/2, cfg.local_margin/2)
+      print('hard neg bounded at dist = {0}'.format(str(bound_neg)))
     # Adjust Learning Rate
     for optimizer in optimizers:
       if cfg.lr_decay_type == 'exp':

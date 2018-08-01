@@ -152,8 +152,9 @@ def hard_example_mining(dist_mat, labels, return_inds=False, neg_bound=0.0):
   # shape [N, N]
   is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
   is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
-  neg_bounded = dist_mat.gt(neg_bound)
-  is_neg = is_neg & neg_bounded
+  nd = dist_mat[is_neg]
+  nd[nd<neg_bound] = 1.0
+  dist_mat[is_neg] = nd
   # `dist_ap` means distance(anchor, positive)
   # both `dist_ap` and `relative_p_inds` with shape [N, 1]
   dist_ap, relative_p_inds = torch.max(
@@ -165,7 +166,8 @@ def hard_example_mining(dist_mat, labels, return_inds=False, neg_bound=0.0):
   # shape [N]
   dist_ap = dist_ap.squeeze(1)
   dist_an = dist_an.squeeze(1)
-
+  # dist_an = dist_an[dist_an>neg_bound]
+  # relative_n_inds = relative_n_inds[dist_an>neg_bound]
   if return_inds:
     # shape [N, N]
     ind = (labels.new().resize_as_(labels)
