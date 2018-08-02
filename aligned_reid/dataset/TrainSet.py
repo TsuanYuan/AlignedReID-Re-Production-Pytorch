@@ -5,7 +5,7 @@ import os.path as osp
 from PIL import Image
 import numpy as np
 from collections import defaultdict
-
+import time
 
 class TrainSet(Dataset):
   """Training set for triplet loss.
@@ -38,6 +38,15 @@ class TrainSet(Dataset):
     for ind, id in enumerate(im_ids):
       self.ids_to_im_inds[id].append(ind)
     self.ids = self.ids_to_im_inds.keys()
+    self.presorted_ims_per_pid = {}
+    if frame_interval > 0:
+      start_time = time.time()
+      names_array = np.array(im_names)
+      for id in self.ids_to_im_inds.keys():
+        self.presorted_ims_per_pid[id] = sorted(names_array[self.ids_to_im_inds[id]].tolist())
+      end_time = time.time()
+      elapsed = end_time - start_time
+      print('it took {0} to sort all image names of each id in {1}'.format(elapsed, im_dir))
 
     super(TrainSet, self).__init__(
       dataset_size=len(self.ids),
@@ -54,15 +63,15 @@ class TrainSet(Dataset):
     frame_index = int(parts[2])
     return person_id, camera_id, frame_index
 
-  def get_sample_within_interval(self, im_inds):
-    im_names_class = sorted(np.array(self.im_names)[im_inds].tolist())
+  def get_sample_within_interval(self, person_id):
+    im_names_per_person = self.presorted_ims_per_pid[person_id]
     im_names_valid = []
-    start_ind_local = np.random.choice(len(im_inds), 1)[0]
-    max_ind_local = min(len(im_inds), start_ind_local+self.frame_interval)
-    _ ,start_cid, start_fid = self.decode_im_file_name(im_names_class[start_ind_local])
+    start_ind_local = np.random.choice(len(im_names_per_person), 1)[0]
+    max_ind_local = min(len(im_names_per_person), start_ind_local+self.frame_interval)
+    _ ,start_cid, start_fid = self.decode_im_file_name(im_names_per_person[start_ind_local])
     # get all valid im names within a time interval
     for i in range(start_ind_local, max_ind_local):
-      im_name = osp.basename(im_names_class[i])
+      im_name = osp.basename(im_names_per_person[i])
       _, camera_id, frame_index = self.decode_im_file_name(im_name)
       if camera_id != start_cid and (not self.ignore_camera):
         break
@@ -91,7 +100,7 @@ class TrainSet(Dataset):
         inds = np.random.choice(inds, self.ims_per_id, replace=False)
       im_names = [self.im_names[ind] for ind in inds]
     else:
-      im_names = self.get_sample_within_interval(inds)
+      im_names = self.get_sample_within_interval(self.ids[ptr])
     ims = [np.asarray(Image.open(osp.join(self.im_dir, name)))
              for name in im_names]
 
