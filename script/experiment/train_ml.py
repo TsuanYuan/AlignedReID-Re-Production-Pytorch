@@ -920,7 +920,7 @@ def main():
   # Test #
   ########
 
-  test(load_model_weight=False)
+  #test(load_model_weight=False)
 
   end_time = datetime.datetime.now()
   time_delta = end_time - start_time
