@@ -386,9 +386,9 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     canvas = numpy.zeros((512, 512, 3), dtype=numpy.uint8)
     canvas[:,:256,:] = im0
     canvas[:,256:,:] = im1
-    cv2.putText(canvas, str(os.path.basename(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+    cv2.putText(canvas, str(os.path.basename(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(os.path.basename(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+    cv2.putText(canvas, str(os.path.basename(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(pair_dist), (270, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                 (0, 255, 255), 2)
@@ -397,13 +397,13 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
 
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.01, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
-    tough_num = min(max(round(len(same_sort_ids)*tough_perc), 32), 128)
+    tough_num = min(max(int(round(len(same_sort_ids)*tough_perc)), 32), 128)
     tough_same_ids = same_sort_ids[-tough_num:]
     tough_same_pairs = numpy.array(same_pair_files)[tough_same_ids]
     tough_same_dist = numpy.array(same_pair_dist)[tough_same_ids]
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
-    tough_num = min(round(len(diff_sort_ids)*tough_perc), 128)
+    tough_num = min(int(round(len(diff_sort_ids)*tough_perc)), 128)
     tough_diff_ids = diff_sort_ids[:tough_num]
     tough_diff_pairs = numpy.array(diff_pair_files)[tough_diff_ids]
     tough_diff_dist = numpy.array(diff_pair_dist)[tough_diff_ids]
