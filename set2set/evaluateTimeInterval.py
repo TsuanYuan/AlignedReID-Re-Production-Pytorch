@@ -398,13 +398,15 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.01, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_num = min(max(round(len(same_sort_ids)*tough_perc), 32), 128)
-    tough_same_pairs = same_pair_files[-tough_num:]
-    tough_same_dist = same_pair_dist[-tough_num:]
+    tough_same_ids = same_sort_ids[-tough_num:]
+    tough_same_pairs = same_pair_files[tough_same_ids]
+    tough_same_dist = same_pair_dist[tough_same_ids]
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
     tough_num = min(round(len(diff_sort_ids)*tough_perc), 128)
-    tough_diff_pairs = diff_pair_files[:tough_num]
-    tough_diff_dist = diff_pair_dist[:tough_num]
+    tough_diff_ids = diff_sort_ids[:tough_num]
+    tough_diff_pairs = diff_pair_files[tough_diff_ids]
+    tough_diff_dist = diff_pair_dist[tough_diff_ids]
 
     same_folder = os.path.join(output_folder, 'same')
     if not os.path.isdir(same_folder):
