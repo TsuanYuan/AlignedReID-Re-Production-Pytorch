@@ -399,14 +399,14 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_num = min(max(round(len(same_sort_ids)*tough_perc), 32), 128)
     tough_same_ids = same_sort_ids[-tough_num:]
-    tough_same_pairs = same_pair_files[tough_same_ids]
-    tough_same_dist = same_pair_dist[tough_same_ids]
+    tough_same_pairs = numpy.array(same_pair_files)[tough_same_ids]
+    tough_same_dist = numpy.array(same_pair_dist)[tough_same_ids]
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
     tough_num = min(round(len(diff_sort_ids)*tough_perc), 128)
     tough_diff_ids = diff_sort_ids[:tough_num]
-    tough_diff_pairs = diff_pair_files[tough_diff_ids]
-    tough_diff_dist = diff_pair_dist[tough_diff_ids]
+    tough_diff_pairs = numpy.array(diff_pair_files)[tough_diff_ids]
+    tough_diff_dist = numpy.array(diff_pair_dist)[tough_diff_ids]
 
     same_folder = os.path.join(output_folder, 'same')
     if not os.path.isdir(same_folder):
@@ -425,6 +425,8 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         file_path = os.path.join(diff_folder, '{0}.jpg'.format(str(count)))
         dump_pair_in_folder(file_pair,dist, file_path)
         count+=1
+
+    print 'difficult pairs were dumped to {0}'.format(output_folder)
 
 def process(data_folder,frame_interval, encoder_list, exts, force_compute):
 
