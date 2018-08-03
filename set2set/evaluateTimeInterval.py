@@ -276,6 +276,7 @@ def encode_folder(person_folder, encoder, frame_interval, ext, force_compute):
 
     return descriptors, crop_files_with_interval
 
+
 def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
     for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
         no_ext, _ = os.path.splitext(crop_file)
@@ -284,19 +285,20 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
         feature_arr.tofile(descriptor_file)
 
-def load_descriptor_list(person_folder, encoders, exts, frame_interval, force_compute, device_id):
-    descriptors_for_encoders = []#[None]*len(exts)
-    crop_files = None
-    k = 0
 
+def load_descriptor_list(person_folder, encoders, exts, frame_interval, force_compute):
+    descriptors_for_encoders = []#[None]*len(exts)
+    crop_files = []
+    k = 0
     for encoder, ext in zip(encoders,exts):
         descriptors_for_encoders_t, crop_files = encode_folder(person_folder, encoder, frame_interval, ext, force_compute)
         if len(crop_files)>0:
             descriptors_for_encoders.append(descriptors_for_encoders_t)    
-	   
+
     descriptors_for_encoders = zip(*descriptors_for_encoders)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
-    return descriptors_for_encoders
+    return descriptors_for_encoders, crop_files
+
 
 def compute_experts_distance_matrix(feature_list):
     concat_list = []
@@ -305,6 +307,7 @@ def compute_experts_distance_matrix(feature_list):
     feature_arr = np.array(concat_list)/np.sqrt(float(len(feature_list[0])))
     distance_matrix = sklearn.metrics.pairwise.cosine_distances(feature_arr)
     return distance_matrix
+
 
 def compute_same_pair_distance_interval(features):
     if len(features) <= 1:
@@ -327,6 +330,26 @@ def compute_diff_pair_distance_interval(feature_list):
             d += compute_diff_pair_distance(numpy.squeeze(feature_list[i]), numpy.squeeze(feature_list[j]))
     return d
 
+def make_diff_compare_list(crop_files_a, crop_files_b):
+    compare_list = []
+    for a in crop_files_a:
+        for b in crop_files_b:
+            compare_list.append((a,b))
+    return compare_list
+
+def pair_files(crop_file_list):
+    same_file_pairs = []
+    for crop_files in crop_file_list:
+        same_file_pairs += zip(crop_files[:-1], crop_files[1:])
+
+    diff_file_pairs = []
+    n = len(crop_file_list)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            diff_file_pairs += make_diff_compare_list(crop_file_list[i], crop_file_list[j])
+
+    return same_file_pairs, diff_file_pairs
 
 def compute_interval_pair_distances(feature_list):
     same_pair_dist = []
@@ -354,21 +377,72 @@ def report_TP_at_FP(same_distances, diff_distances, fp_th=0.001):
     return tpr, fpr, th
 
 
-def process(data_folder,frame_interval, encoder_list, exts, force_compute, device_id):
+def dump_pair_in_folder(file_pairs, pair_dist, output_path):
+    import cv2
+    im0 = cv2.imread(file_pairs[0])
+    im1 = cv2.imread(file_pairs[1])
+    im0 = cv2.resize(im0, (256, 512))
+    im1 = cv2.resize(im1, (256, 512))
+    canvas = numpy.zeros((512, 512, 3), dtype=numpy.uint8)
+    canvas[:,:256,:] = im0
+    canvas[:,256:,:] = im1
+    cv2.putText(canvas, str(os.path.basename(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                (0, 0, 255), 2)
+    cv2.putText(canvas, str(os.path.basename(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                (0, 0, 255), 2)
+    cv2.putText(canvas, str(pair_dist), (270, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                (0, 255, 255), 2)
+    cv2.imwrite(output_path, canvas)
+
+
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.01, output_folder='/tmp/difficult/'):
+    same_sort_ids = numpy.argsort(same_pair_dist)
+    tough_num = min(max(round(len(same_sort_ids)*tough_perc), 32), 128)
+    tough_same_pairs = same_pair_files[-tough_num:]
+    tough_same_dist = same_pair_dist[-tough_num:]
+
+    diff_sort_ids = numpy.argsort(diff_pair_dist)
+    tough_num = min(round(len(diff_sort_ids)*tough_perc), 128)
+    tough_diff_pairs = diff_pair_files[:tough_num]
+    tough_diff_dist = diff_pair_dist[:tough_num]
+
+    same_folder = os.path.join(output_folder, 'same')
+    if not os.path.isdir(same_folder):
+        os.makedirs(same_folder)
+    count = 0
+    for dist, same_pair in zip(tough_same_dist, tough_same_pairs):
+        file_path = os.path.join(same_folder, '{0}.jpg'.format(str(count)))
+        dump_pair_in_folder(same_pair,dist, file_path)
+        count+=1
+
+    diff_folder = os.path.join(output_folder, 'diff')
+    if not os.path.isdir(diff_folder):
+        os.makedirs(diff_folder)
+    count = 0
+    for dist, file_pair in zip(tough_diff_dist, tough_diff_pairs):
+        file_path = os.path.join(diff_folder, '{0}.jpg'.format(str(count)))
+        dump_pair_in_folder(file_pair,dist, file_path)
+        count+=1
+
+def process(data_folder,frame_interval, encoder_list, exts, force_compute):
 
     sub_folders = os.listdir(data_folder)
-    feature_list, file_seq_list, person_id_list = [], [], []
+    feature_list, file_seq_list, person_id_list,crops_file_list = [], [], [], []
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit():
             person_id = int(sub_folder)
-            descriptors = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, frame_interval, force_compute, device_id)
+            descriptors, crop_files = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, frame_interval, force_compute)
             #person_id_seqs = [person_id]*len(descriptors)
             if len(descriptors) > 1:
                 feature_list.append(descriptors)
+                crops_file_list.append(crop_files)
             #person_id_list += person_id_seqs
 
     _, tail = os.path.split(data_folder)
     same_pair_dist, diff_pair_dist = compute_interval_pair_distances(feature_list)
+    same_pair_files, diff_pair_files = pair_files(crops_file_list)
+    dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files)
+
     #distance_matrix = compute_experts_distance_matrix(feature_list)
     # auc95, dist_th,mAP = evaluateCrops.compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
     same_pair_dist = numpy.array(same_pair_dist)
@@ -387,7 +461,7 @@ def process_all(folder, sample_size, experts, exts, force_compute, sys_device_id
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(sub_folder_full,sample_size, experts, exts, force_compute, sys_device_ids)
+        process(sub_folder_full,sample_size, experts, exts, force_compute)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -418,6 +492,6 @@ if __name__ == "__main__":
     sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc)
     if args.single_folder:
-        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, sys_device_ids)
+        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
     else:
-        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute, sys_device_ids)
+        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
