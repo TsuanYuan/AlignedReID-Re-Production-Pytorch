@@ -242,7 +242,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             break
         else:
             frame_diff = frame_id - current_fid
-            if frame_diff >= frame_interval and frame_diff < frame_interval*1.2: # allow slight variation if not exact
+            if frame_diff >= frame_interval and frame_diff < frame_interval*1.5: # allow slight variation if not exact
                 crop_files_with_interval.append(crop_file)
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
 
@@ -364,11 +364,11 @@ def report_TP_at_FP(same_distances, diff_distances, fp_th=0.001):
     n_diff = diff_distances.size
     scores = 1-numpy.concatenate((same_distances, diff_distances))
     labels = numpy.concatenate((numpy.ones(n_same), -numpy.ones(n_diff)))
-    fpr, tpr, thresholds = sklearn.metrics.roc_curve(labels, scores)
+    fpr, tpr, thresholds = sklearn.metrics.roc_curve(labels, scores, drop_intermediate=False)
     #fp_th = 0.05
-    idx = numpy.argmax(fpr > fp_th)  # fp lower than 0.05 for auc 95
-    if idx == 0:  # no points with fpr<=0.05
-        return 0
+    idx = numpy.argmin(numpy.abs(fpr - fp_th))
+    #if idx == 0:  # no points with fpr<=0.05
+    #    return 0
     fpr = fpr[idx]
     tpr = tpr[idx]
     th = 1-thresholds[idx]
@@ -401,7 +401,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     cv2.imwrite(output_path, canvas)
 
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.01, output_folder='/tmp/difficult/'):
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.1, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_num = min(max(int(round(len(same_sort_ids)*tough_perc)), 32), 128)
     tough_same_ids = same_sort_ids[-tough_num:]
