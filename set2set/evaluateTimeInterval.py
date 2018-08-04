@@ -376,6 +376,11 @@ def report_TP_at_FP(same_distances, diff_distances, fp_th=0.001):
 
     return tpr, fpr, th
 
+def get_filename_for_display(file_path):
+    bn = os.path.basename(file_path)
+    bn, _ = os.path.splitext(bn)
+    parts = bn.split('_')
+    return parts[-2]+'_'+parts[-1]
 
 def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     import cv2
@@ -386,9 +391,10 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     canvas = numpy.zeros((512, 512, 3), dtype=numpy.uint8)
     canvas[:,:256,:] = im0
     canvas[:,256:,:] = im1
-    cv2.putText(canvas, str(os.path.basename(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+
+    cv2.putText(canvas, str(get_filename_for_display(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(os.path.basename(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
+    cv2.putText(canvas, str(get_filename_for_display(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.4,
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(pair_dist), (270, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
                 (0, 255, 255), 2)
