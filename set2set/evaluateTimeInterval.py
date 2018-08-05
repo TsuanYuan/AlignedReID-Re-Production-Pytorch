@@ -242,7 +242,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             break
         else:
             frame_diff = frame_id - current_fid
-            if frame_diff >= frame_interval and frame_diff < frame_interval*1.5: # allow slight variation if not exact
+            if frame_diff >= frame_interval: # and frame_diff < frame_interval*1.5: # allow slight variation if not exact
                 crop_files_with_interval.append(crop_file)
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
 
