@@ -236,7 +236,8 @@ def get_crop_files_at_interval(crop_files, frame_interval):
         camera_id, person_id, frame_id = decode_raw_image_name(crop_file)
         if current_cid is None:
             current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-            crop_files_with_interval.append(crop_file)
+            sequence_crop_files.append([])
+            sequence_crop_files[-1].append(crop_file)
             continue
         elif current_cid != camera_id or current_pid != person_id:
             #current_cid, current_pid, current_fid = camera_id, person_id, frame_id
@@ -245,12 +246,13 @@ def get_crop_files_at_interval(crop_files, frame_interval):
         else:
             frame_diff = frame_id - current_fid
             if frame_diff >= frame_interval and frame_diff < frame_interval*1.5: # allow slight variation if not exact
-                crop_files_with_interval.append(crop_file)
+                sequence_crop_files[-1].append(crop_file)
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
+                continue
             elif frame_diff >= frame_interval*1.5:
-                sequence_crop_files.append(list(crop_files_with_interval))
+                sequence_crop_files.append([crop_file])
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-                crop_files_with_interval=[crop_file]
+                continue
 
     longest = 0
     for crop_files in sequence_crop_files:
