@@ -480,7 +480,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
               .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
 
 
-def process_all(folder, sample_size, experts, exts, force_compute, sys_device_ids):
+def process_all(folder, sample_size, experts, exts, force_compute):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
