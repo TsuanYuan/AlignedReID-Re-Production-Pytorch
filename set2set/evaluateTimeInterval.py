@@ -73,10 +73,10 @@ class ExtractFeature(object):
         ims = Variable(torch.from_numpy(ims).float())
         global_feat, local_feat = self.model(ims)[:2]
         global_feat = global_feat.data.cpu().numpy()
-
+        local_feat = numpy.squeeze(local_feat.data.cpu().numpy())
         # Restore the model to its old train/eval mode.
-        self.model.train(old_train_eval_model)
-        return global_feat
+        # self.model.train(old_train_eval_model)
+        return global_feat, local_feat
 
 def extract_image_patch(image, bbox, patch_shape, padding='zero'):
     """Extract image patch from bounding box.
@@ -145,7 +145,7 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
 def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image_shape = (256, 128, 3),
                                 local_conv_out_channels=128, num_classes=301, num_models=1,
                                 num_planes=2048, base_name='resnet50', with_final_conv=False,
-                                parts_model=False, skip_fc=False):
+                                parts_model=False, skip_fc=False, local_feature_flag=False):
 
     im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
@@ -180,16 +180,18 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
             patch = patch.transpose((2, 0, 1))
             image_patches.append(patch)
         image_patches = np.asarray(image_patches)
-        global_feat = feature_extraction_func(image_patches)
-
-        l2_norm = np.sqrt((global_feat * global_feat+1e-10).sum(axis=1))
-        global_feat = global_feat / (l2_norm[:, np.newaxis])
-        return global_feat
+        global_feat, local_feature = feature_extraction_func(image_patches)
+        if local_feature_flag:
+            return local_feature
+        else:
+            l2_norm = np.sqrt((global_feat * global_feat+1e-10).sum(axis=1))
+            global_feat = global_feat / (l2_norm[:, np.newaxis])
+            return global_feat
 
     return encoder
 
 
-def load_experts(experts_file, sys_device_ids, skip_fc, num_classes=1442):
+def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_classes=1442):
     expert_models_feature_funcs, exts = [], []
 
     with open(experts_file, 'r') as fp:
@@ -209,7 +211,7 @@ def load_experts(experts_file, sys_device_ids, skip_fc, num_classes=1442):
                 num_planes = 512
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts)
+                                parts_model=parts, local_feature_flag=local_feature_flag)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
@@ -323,18 +325,79 @@ def compute_experts_distance_matrix(feature_list):
     return distance_matrix
 
 
+def shortest_dist(dist_mat):
+  """Parallel version.
+  Args:
+    dist_mat: pytorch Variable, available shape:
+      1) [m, n]
+      2) [m, n, N], N is batch size
+      3) [m, n, *], * can be arbitrary additional dimensions
+  Returns:
+    dist: three cases corresponding to `dist_mat`:
+      1) scalar
+      2) pytorch Variable, with shape [N]
+      3) pytorch Variable, with shape [*]
+  """
+  m, n = dist_mat.shape[:2]
+  # Just offering some reference for accessing intermediate distance.
+  dist = [[0 for _ in range(n)] for _ in range(m)]
+  for i in range(m):
+    for j in range(n):
+      if (i == 0) and (j == 0):
+        dist[i][j] = dist_mat[i, j]
+      elif (i == 0) and (j > 0):
+        dist[i][j] = dist[i][j - 1] + dist_mat[i, j]
+      elif (i > 0) and (j == 0):
+        dist[i][j] = dist[i - 1][j] + dist_mat[i, j]
+      else:
+        dist[i][j] = min(dist[i - 1][j], dist[i][j - 1]) + dist_mat[i, j]
+  dist = dist[-1][-1]
+  return dist
+
+
+def local_dist(x, y):
+  """
+  Args:
+    x: pytorch Variable, with shape [M, m, d]
+    y: pytorch Variable, with shape [N, n, d]
+  Returns:
+    dist: pytorch Variable, with shape [M, N]
+  """
+
+  # shape [M * m, N * n]
+  dist_mat = sklearn.metrics.pairwise.pairwise_distances(x, y)
+  # dist_mat = (torch.exp(dist_mat) - 1.) / (torch.exp(dist_mat) + 1.)
+  # # shape [M * m, N * n] -> [M, m, N, n] -> [m, n, M, N]
+  # dist_mat = dist_mat.contiguous().view(M, m, N, n).permute(1, 3, 0, 2)
+  # # shape [M, N]
+  d = shortest_dist(dist_mat)
+  return d
+
 def compute_same_pair_distance_interval(features):
     if len(features) <= 1:
         return []
     else:
-        features = numpy.squeeze(numpy.array(features))
-        a = numpy.array(features[:-1])*numpy.array(features[1:])
-        cos_dist = 1-numpy.sum(a, axis=1)
-        return cos_dist.tolist()
+        if len(features[0][0].shape) == 1: # global
+            features = numpy.squeeze(numpy.array(features))
+            a = numpy.array(features[:-1])*numpy.array(features[1:])
+            cost_dist = (1-numpy.sum(a, axis=1)).tolist()
+        else:
+            cost_dist = []
+            n = len(features)
+            for i in range(n-1):
+                cost_dist.append(local_dist(numpy.array(numpy.squeeze(features[i])), numpy.array(numpy.squeeze(features[i+1]))))
+        return cost_dist
 
 def compute_diff_pair_distance(features1, features2):
-    d = sklearn.metrics.pairwise.cosine_distances(numpy.array(features1), numpy.array(features2))
-    return d.ravel().tolist()
+    if len(features1[0].shape) == 1: # global
+        d = sklearn.metrics.pairwise.cosine_distances(numpy.array(numpy.squeeze(features1)), numpy.array(numpy.squeeze(features2)))
+        return d.ravel().tolist()
+    else:
+        d = []
+        for feature1 in features1:
+            for feature2 in features2:
+                d.append(local_dist(feature1, feature2))
+    return d
 
 def compute_diff_pair_distance_interval(feature_list):
     n = len(feature_list)
@@ -515,10 +578,13 @@ if __name__ == "__main__":
     parser.add_argument('--skip_fc', action='store_true', default=False,
                         help='skip the fc layers')
 
+    parser.add_argument('--local_feature', action='store_true', default=False,
+                        help='use local feature to compare')
+
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
-    experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc)
+    experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc, args.local_feature)
     if args.single_folder:
         process(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
     else:
