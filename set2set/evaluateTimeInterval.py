@@ -585,7 +585,13 @@ if __name__ == "__main__":
     print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc, args.local_feature)
+    import time
+
+    start_time = time.time()
     if args.single_folder:
         process(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
     else:
         process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
+    finish_time = time.time()
+    elapsed = finish_time - start_time
+    print 'total time = {0}'.format(str(elapsed))
