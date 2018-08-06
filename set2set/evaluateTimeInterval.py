@@ -18,6 +18,7 @@ from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
 import numpy
+import shutil
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -426,6 +427,10 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     tough_diff_ids = diff_sort_ids[:tough_num]
     tough_diff_pairs = numpy.array(diff_pair_files)[tough_diff_ids]
     tough_diff_dist = numpy.array(diff_pair_dist)[tough_diff_ids]
+
+    if os.path.isdir(output_folder):
+        print 'remove existing {0} for difficult pairs output'.format(output_folder)
+        shutil.rmtree(output_folder)
 
     same_folder = os.path.join(output_folder, 'same')
     if not os.path.isdir(same_folder):
