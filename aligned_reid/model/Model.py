@@ -247,14 +247,19 @@ class SwitchClassHeadModel(nn.Module):
 
     def forward_parts(self, x, head_id):
         feat = self.base(x)
-        assert feat.size(2) % self.num_stripes == 0
-        stripe_h = int(feat.size(2) / self.num_stripes)
+        #assert feat.size(2) % self.num_stripes == 0
+
         local_feat_list = []
         logits_list = []
+        stripe_s = float(feat.size(2)) / self.num_stripes
+        #stripe_h = int(np.ceil(stripe_s))
         for i in range(self.num_stripes):
             # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s*i))
+            stripe_end = int(min(np.ceil(stripe_s*(i+1)), feat.size(2)))
+            sh = stripe_end - stripe_start
             local_feat = F.avg_pool2d(
-            feat[:, :, i * stripe_h: (i + 1) * stripe_h, :], (stripe_h, feat.size(-1)))
+            feat[:, :, stripe_start: stripe_end, :], (sh, feat.size(-1)))
             # shape [N, c, 1, 1]
             local_feat = self.local_conv_list[i](local_feat)
             # shape [N, c]
