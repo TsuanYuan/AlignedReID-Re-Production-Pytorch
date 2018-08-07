@@ -73,7 +73,8 @@ class ExtractFeature(object):
         ims = Variable(torch.from_numpy(ims).float())
         global_feat, local_feat = self.model(ims)[:2]
         global_feat = global_feat.data.cpu().numpy()
-        local_feat = numpy.squeeze(local_feat.data.cpu().numpy())
+        if local_feat is not None:
+            local_feat = numpy.squeeze(local_feat.data.cpu().numpy())
         # Restore the model to its old train/eval mode.
         # self.model.train(old_train_eval_model)
         return global_feat, local_feat
