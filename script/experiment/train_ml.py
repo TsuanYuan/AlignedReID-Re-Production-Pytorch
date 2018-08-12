@@ -21,7 +21,7 @@ import numpy as np
 import argparse
 
 from aligned_reid.dataset import create_dataset
-from aligned_reid.model.Model import SwitchClassHeadModel
+from aligned_reid.model.Model import SwitchClassHeadModel, MGNModel
 from aligned_reid.model.TripletLoss import TripletLoss
 from aligned_reid.model.loss import global_loss
 from aligned_reid.model.loss import local_loss
@@ -80,6 +80,7 @@ class Config(object):
     parser.add_argument('-ldmlw', '--ldm_loss_weight', type=float, default=0.)
 
     parser.add_argument('--parts_model', type=str2bool, default=False)
+    parser.add_argument('--use_mgn', type=str2bool, default=False)
     parser.add_argument('--only_test', type=str2bool, default=False)
     parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
@@ -254,7 +255,7 @@ class Config(object):
     # How often (in batches) to log. If only need to log the average
     # information for each epoch, set this to a large value, e.g. 1e10.
     self.log_steps = 1e10
-
+    self.use_MGN = args.use_mgn
     # Only test and without training.
     self.only_test = args.only_test
 
@@ -414,9 +415,17 @@ def main():
   for train_set in train_sets:
     nc.append(len(train_set.ids2labels))
 
-  models = [SwitchClassHeadModel(local_conv_out_channels=cfg.local_conv_out_channels,
-                  num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
+
+  if cfg.use_MGN:
+    models = [MGNModel(local_conv_out_channels=cfg.local_conv_out_channels,
+                     num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
+  else:
+    models = [SwitchClassHeadModel(local_conv_out_channels=cfg.local_conv_out_channels,
+                                 num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
+            for _ in range(cfg.num_models)]
+
+
   # Model wrappers
   model_ws = [DataParallel(models[i], device_ids=relative_device_ids[i])
               for i in range(cfg.num_models)]
