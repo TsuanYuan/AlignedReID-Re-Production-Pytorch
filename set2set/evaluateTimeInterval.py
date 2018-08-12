@@ -539,10 +539,13 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
     # auc95, dist_th,mAP = evaluateCrops.compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
     same_pair_dist = numpy.array(same_pair_dist)
     diff_pair_dist = numpy.array(diff_pair_dist)
+    tpr2, fpr2, th2 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.01)
     tpr3, fpr3, th3 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.001)
     tpr4, fpr4, th4 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.0001)
     
     mlog.info('same_pairs are {0}, diff_pairs are {1}'.format(str(same_pair_dist.size), str(diff_pair_dist.size)))
+    mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
+            .format('%.3f'%tpr2, '%.6f'%th2, '%.5f'%fpr2, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
             .format('%.3f'%tpr3, '%.6f'%th3, '%.5f'%fpr3, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
