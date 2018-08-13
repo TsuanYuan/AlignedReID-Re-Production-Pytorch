@@ -249,7 +249,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             break
         else:
             frame_diff = frame_id - current_fid
-            if frame_diff >= frame_interval and frame_diff < frame_interval*1.5: # allow slight variation if not exact
+            if frame_diff >= frame_interval and frame_diff < frame_interval*1.75: # allow slight variation if not exact
                 sequence_crop_files[-1].append(crop_file)
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
                 continue
@@ -552,11 +552,11 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
               .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
 
 
-def process_all(folder, sample_size, experts, exts, force_compute):
+def process_all(folder, frame_interval, experts, exts, force_compute):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        process(sub_folder_full,sample_size, experts, exts, force_compute)
+        process(sub_folder_full,frame_interval, experts, exts, force_compute)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
