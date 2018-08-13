@@ -221,7 +221,7 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
                 mgn_flag = True
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag)
+                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag, skip_fc=skip_fc)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
