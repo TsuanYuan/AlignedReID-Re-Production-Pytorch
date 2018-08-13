@@ -153,7 +153,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
     if use_mgn:
         models = [
-            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels, num_classes=(),
+            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
                                             base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
     else:

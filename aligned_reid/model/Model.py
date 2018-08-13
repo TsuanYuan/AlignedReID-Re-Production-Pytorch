@@ -279,7 +279,7 @@ class SwitchClassHeadModel(nn.Module):
         else:
             return torch.cat(local_feat_list, dim=1), None, None
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
@@ -348,7 +348,7 @@ class SwitchClassHeadModel(nn.Module):
 
 class MGNModel(nn.Module):
     def __init__(self,
-                 num_classes=(), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+                 num_classes=(1), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
         super(MGNModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
@@ -399,7 +399,7 @@ class MGNModel(nn.Module):
                 fc_list.append(fc)
             self.parts_fc_list.append(fc_list)
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
@@ -492,7 +492,7 @@ class AttentionModel(nn.Module):
                 init.constant_(fc.bias, 0)
                 self.fc_list.append(fc)
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
