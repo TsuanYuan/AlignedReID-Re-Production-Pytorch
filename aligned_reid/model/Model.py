@@ -445,7 +445,8 @@ class MGNModel(nn.Module):
             local_feat_list.append(local_feat)
             if hasattr(self, 'parts_fc_list'):
                 logits_list.append(self.parts_fc_list[head_id][i+self.level2_strips](local_feat))
-
+        if len(global_feat.size()) == 1:
+            global_feat = global_feat.unsqueeze(0)
         local_feat_list.append(global_feat)
         logits_list.append(self.fc_list[head_id](torch.squeeze(global_feat)))
         # sum up logits and concatinate features
