@@ -348,7 +348,7 @@ class SwitchClassHeadModel(nn.Module):
 
 class MGNModel(nn.Module):
     def __init__(self,
-                 num_classes=0, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+                 num_classes=(), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
         super(MGNModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)

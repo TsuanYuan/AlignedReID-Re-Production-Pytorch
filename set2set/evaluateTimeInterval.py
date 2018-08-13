@@ -153,7 +153,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
     if use_mgn:
         models = [
-            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
+            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels, num_classes=(),
                                             base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
     else:
@@ -220,7 +220,7 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
             if folder_name.find('mgn') >= 0:
                 mgn_flag = True
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
-                                num_classes=0, num_planes=num_planes, base_name=base_name,
+                                num_classes=num_classes, num_planes=num_planes, base_name=base_name,
                                 parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
