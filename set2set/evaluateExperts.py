@@ -243,12 +243,15 @@ def encode_folder(person_folder, encoder, sample_size, ext, force_compute):
 
         return descriptors, crop_files
 
-def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
+def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts', single_expert=False):
     for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
         no_ext, _ = os.path.splitext(crop_file)
         descriptor_file = no_ext + '.' + ext
-        feature_arr = np.concatenate(tuple(descriptors))
-        feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
+        if not single_expert:
+            feature_arr = np.concatenate(tuple(descriptors))
+            feature_arr = feature_arr / np.sqrt(float(len(descriptors)))
+        else:
+            feature_arr = np.array(descriptors)
         feature_arr.tofile(descriptor_file)
 
 def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compute, device_id):
@@ -259,15 +262,25 @@ def load_descriptor_list(person_folder, encoders, exts, sample_size, force_compu
     for encoder, ext in zip(encoders,exts):
         descriptors_for_encoders[k], crop_files = encode_folder(person_folder, encoder, sample_size, ext, force_compute)
         k += 1
-    descriptors_for_encoders = zip(*descriptors_for_encoders)    
-    save_joint_descriptors(descriptors_for_encoders, crop_files)
+    if len(encoders) > 1:
+        descriptors_for_encoders = zip(*descriptors_for_encoders)    
+    else:
+        descriptors_for_encoders = descriptors_for_encoders[0]
+    save_joint_descriptors(descriptors_for_encoders, crop_files, single_expert=(len(encoders) == 1))
     return descriptors_for_encoders
 
-def compute_experts_distance_matrix(feature_list):
+def compute_experts_distance_matrix(feature_list, single_expert=False):
     concat_list = []
     for feature_item in feature_list:
-        concat_list.append(np.concatenate(tuple(feature_item)))
-    feature_arr = np.array(concat_list)/np.sqrt(float(len(feature_list[0])))
+        if single_expert:
+            concat_list += feature_item
+            #feature_arr = np.array(concat_list)
+        else:
+            concat_list.append(np.concatenate(tuple(feature_item)))
+    if single_expert:
+        feature_arr = np.array(concat_list)
+    else:
+        feature_arr = np.array(concat_list)/np.sqrt(float(len(feature_list[0])))
     distance_matrix = sklearn.metrics.pairwise.cosine_distances(feature_arr)
     return distance_matrix
 
@@ -284,7 +297,7 @@ def process(data_folder,sample_size, encoder_list, exts, force_compute, device_i
             person_id_list += person_id_seqs
 
     _, tail = os.path.split(data_folder)
-    distance_matrix = compute_experts_distance_matrix(feature_list)
+    distance_matrix = compute_experts_distance_matrix(feature_list, len(exts)==1)
     auc95, dist_th,mAP = evaluateCrops.compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
     mlog.info('AUC95={0} at dist_th={1}, mAP={2} on data set {3} with model extension {4}'
             .format('%.3f'%auc95, '%.6f'%dist_th, '%.3f'%mAP, data_folder, str(exts)))
@@ -324,8 +337,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print 'sample size per ID={0}'.format(args.sample_size)
     sys_device_ids = ((args.device_id,),)
-    experts, _ = load_experts(args.experts_file, sys_device_ids)
+    experts, exts = load_experts(args.experts_file, sys_device_ids)
     if args.single_folder:
-        process(args.test_folder, args.sample_size, experts, args.ext, args.force_compute, sys_device_ids)
+        process(args.test_folder, args.sample_size, experts, exts, args.force_compute, sys_device_ids)
     else:
-        process_all(args.test_folder, args.sample_size, experts, args.ext, args.force_compute, sys_device_ids)
+        process_all(args.test_folder, args.sample_size, experts, exts, args.force_compute, sys_device_ids)
