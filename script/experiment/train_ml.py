@@ -21,7 +21,7 @@ import numpy as np
 import argparse
 
 from aligned_reid.dataset import create_dataset
-from aligned_reid.model.Model import SwitchClassHeadModel, MGNModel
+from aligned_reid.model.Model import SwitchClassHeadModel, MGNModel, AttentionModel
 from aligned_reid.model.TripletLoss import TripletLoss
 from aligned_reid.model.loss import global_loss
 from aligned_reid.model.loss import local_loss
@@ -81,6 +81,7 @@ class Config(object):
 
     parser.add_argument('--parts_model', type=str2bool, default=False)
     parser.add_argument('--use_mgn', type=str2bool, default=False)
+    parser.add_argument('--use_attn', type=str2bool, default=False)
     parser.add_argument('--only_test', type=str2bool, default=False)
     parser.add_argument('--test_num_classids', type=int, default=5)
     parser.add_argument('--resume', type=str2bool, default=False)
@@ -256,6 +257,7 @@ class Config(object):
     # information for each epoch, set this to a large value, e.g. 1e10.
     self.log_steps = 1e10
     self.use_MGN = args.use_mgn
+    self.use_attn = args.use_attn
     # Only test and without training.
     self.only_test = args.only_test
 
@@ -416,7 +418,11 @@ def main():
     nc.append(len(train_set.ids2labels))
 
 
-  if cfg.use_MGN:
+  if cfg.use_attn:
+    models = [AttentionModel(local_conv_out_channels=cfg.local_conv_out_channels,
+                       num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
+              for _ in range(cfg.num_models)]
+  elif cfg.use_MGN:
     models = [MGNModel(local_conv_out_channels=cfg.local_conv_out_channels,
                      num_classes=nc, base_model=cfg.base_model, parts_model=cfg.parts_model)
             for _ in range(cfg.num_models)]
@@ -643,7 +649,7 @@ def main():
         g_dist_an_meter.update(g_d_an)
         g_loss_meter.update(to_scalar(g_loss))
 
-        if cfg.l_loss_weight > 0 and (not cfg.parts_model) and (not cfg.use_MGN):
+        if cfg.l_loss_weight > 0 and (not cfg.parts_model) and (not cfg.use_MGN) and (not cfg.use_attn):
           # precision
           l_prec = (l_dist_an > l_dist_ap).data.float().mean()
           # the proportion of triplets that satisfy margin

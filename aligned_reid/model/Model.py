@@ -292,6 +292,7 @@ class SwitchClassHeadModel(nn.Module):
             feat = self.final_relu(self.final_bn(self.final_conv((self.base(x)))))
         else:
             feat = self.base(x)
+        #height_trucated_feat = feat[:,:,0:6,:]
         global_feat = F.avg_pool2d(feat, feat.size()[2:])
         # shape [N, C]
         global_feat = global_feat.view(global_feat.size(0), -1)
@@ -454,3 +455,72 @@ class MGNModel(nn.Module):
             else:
                 logits += logit_rows
         return torch.cat(local_feat_list, dim=1), None, logits
+
+
+class AttentionModel(nn.Module):
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+        super(AttentionModel, self).__init__()
+        if base_model == 'resnet50':
+            self.base = resnet50_with_layers(pretrained=True)
+            planes = 2048
+        else:
+            raise RuntimeError("unknown base model!")
+
+        self.parts_model = parts_model
+
+
+        self.level3_strips = 8
+        self.level3_planes = 1024
+        self.level3_conv_list = nn.ModuleList()
+        for k in range(self.level3_strips):
+            self.level3_conv_list.append(nn.Sequential(
+                nn.Conv2d(self.level3_planes, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True)
+            ))
+
+        self.global_final_conv = nn.Conv2d(planes, self.level3_strips, 1)
+        self.global_final_bn = nn.BatchNorm2d(self.level3_strips)
+        self.global_final_relu = nn.ReLU(inplace=True)
+
+        if num_classes is not None:
+            self.fc_list = nn.ModuleList()
+            for i, num_class in enumerate(num_classes):
+                fc = nn.Linear(self.level3_strips*local_conv_out_channels, num_class)
+                init.normal_(fc.weight, std=0.001)
+                init.constant_(fc.bias, 0)
+                self.fc_list.append(fc)
+
+    def forward(self, x, head_id):
+        """
+    Returns:
+      global_feat: shape [N, C]
+      local_feat: shape [N, H, c]
+    """
+        # shape [N, C, H, W]
+        feat_final, feat_l3, _ = self.base(x)
+        feat_shorten = self.global_final_relu(self.global_final_bn(self.global_final_conv((feat_final))))
+        global_atten_feat = F.avg_pool2d(feat_shorten, feat_shorten.size()[2:])
+        global_atten_feat = torch.squeeze(global_atten_feat)
+
+        local_feat_list = []
+
+        stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
+        stripe_h = int(stripe_s3 * 2)
+        for i in range(self.level3_strips):
+            # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s3 * i))
+            stripe_end = min(int(stripe_start + stripe_h), feat_l3.size(2))
+            sh = stripe_end - stripe_start
+            local_feat = F.avg_pool2d(
+                feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.level3_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat*global_atten_feat[:, i].unsqueeze(1).expand_as(local_feat)) # attention weight
+        local_feat_concat = torch.cat(local_feat_list, dim=1)
+        logits = self.fc_list[head_id](local_feat_concat)
+
+        return local_feat_concat, None, logits
