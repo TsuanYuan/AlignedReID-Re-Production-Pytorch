@@ -273,7 +273,7 @@ def compute_experts_distance_matrix(feature_list, single_expert=False):
     concat_list = []
     for feature_item in feature_list:
         if single_expert:
-            concat_list += feature_item
+            concat_list.append(feature_item)
             #feature_arr = np.array(concat_list)
         else:
             concat_list.append(np.concatenate(tuple(feature_item)))
