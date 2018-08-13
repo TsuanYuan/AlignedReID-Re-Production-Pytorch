@@ -163,7 +163,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
 
     optimizers = [None for m in models]
     model_opt = models + optimizers
-    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False)
+    aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False, skip_fc=True)
 
     feature_extraction_func = ExtractFeature(model_ws[0])
 
