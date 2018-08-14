@@ -504,7 +504,8 @@ class AttentionModel(nn.Module):
         feat_shorten = self.global_final_relu(self.global_final_bn(self.global_final_conv((feat_final))))
         global_atten_feat = F.avg_pool2d(feat_shorten, feat_shorten.size()[2:])
         global_atten_feat = torch.squeeze(global_atten_feat)
-
+        if len(global_atten_feat.size) == 1:
+            global_atten_feat = global_atten_feat.unsqueeze(0)
         local_feat_list = []
 
         stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
@@ -522,6 +523,9 @@ class AttentionModel(nn.Module):
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat*global_atten_feat[:, i].unsqueeze(1).expand_as(local_feat)) # attention weight
         local_feat_concat = torch.cat(local_feat_list, dim=1)
-        logits = self.fc_list[head_id](local_feat_concat)
+        if hasattr(self, 'fc_list'):
+            logits = self.fc_list[head_id](local_feat_concat)
+        else:
+            logits = None
 
         return local_feat_concat, None, logits
