@@ -17,10 +17,10 @@ def merge_folders(source_folder, output_folder, id_iterval):
         sub_folder_path = os.path.join(source_folder, sub_folder)
         id_folders = next(os.walk(sub_folder_path))[1]
         for id_folder in id_folders:
-            id_folder = os.path.join(sub_folder_path, id_folder)
+            id_folder_path = os.path.join(sub_folder_path, id_folder)
             new_id = int(id_folder) + base
             id_dest_folder = os.path.join(output_folder, str(new_id))
-            shutil.copytree(id_folder, id_dest_folder)
+            shutil.copytree(id_folder_path, id_dest_folder)
             count+=1
         base+=id_iterval
     print "merged {0} ids in total from {1} to {2}".format(str(count), source_folder, output_folder)

@@ -487,19 +487,58 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
                 (0, 255, 255), 2)
     cv2.imwrite(output_path, canvas)
 
+def parse_im_files(image_path):
+    _, file_only = os.path.basename(image_path)
+    file_base, _ = os.path.splitext(file_only)
+    parts = file_base.split('_')
+    pid = int(parts[-2])
+    frame_index = int(parts[-1])
+    return pid, frame_index
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_perc=0.1, output_folder='/tmp/difficult/'):
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.05, tough_same_th = 0.3, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
-    tough_num = min(max(int(round(len(same_sort_ids)*tough_perc)), 32), 128)
-    tough_same_ids = same_sort_ids[-tough_num:]
-    tough_same_pairs = numpy.array(same_pair_files)[tough_same_ids]
-    tough_same_dist = numpy.array(same_pair_dist)[tough_same_ids]
+    tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
+    # tough_num = min(max(int(round(len(same_sort_ids)*tough_perc)), 32), 128)
+    # tough_same_ids = same_sort_ids[-tough_num:]
+    same_select_files, same_select_dist = [],[]
+    same_dict = {}
+    for id in tough_same_ids:
+        p = same_pair_files[id][0]
+        d = same_pair_dist[id]
+        pid, _ = parse_im_files(p)
+        if pid not in same_dict:
+            same_dict[pid] = 1
+        elif same_dict[pid] >= 3:
+            continue
+        else:
+            same_dict[pid] += 1
+        same_select_files.append(p)
+        same_select_dist.append(d)
+
+    tough_same_pairs = numpy.array(same_select_files)
+    tough_same_dist = numpy.array(same_select_dist)
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
-    tough_num = min(int(round(len(diff_sort_ids)*tough_perc)), 128)
-    tough_diff_ids = diff_sort_ids[:tough_num]
-    tough_diff_pairs = numpy.array(diff_pair_files)[tough_diff_ids]
-    tough_diff_dist = numpy.array(diff_pair_dist)[tough_diff_ids]
+    tough_diff_ids = [i for i in diff_sort_ids if diff_pair_dist[i] < tough_diff_th]
+    diff_select_files, diff_select_dist = [], []
+    diff_dict = {}
+    for id in tough_diff_ids:
+        p = diff_pair_files[id]
+        d = diff_pair_dist[id]
+        pid0, _ = parse_im_files(p[0])
+        pid1, _ = parse_im_files(p[1])
+        sorted_pids = sorted((pid0, pid1))
+        if sorted_pids not in diff_dict:
+            diff_dict[sorted_pids] = 1
+        elif diff_dict[sorted_pids] >= 3:
+            continue
+        else:
+            diff_dict[sorted_pids] += 1
+        diff_select_files.append(p)
+        diff_select_dist.append(d)
+
+    tough_diff_pairs = numpy.array(diff_select_files)
+    tough_diff_dist = numpy.array(diff_select_dist)
 
     if os.path.isdir(output_folder):
         print 'remove existing {0} for difficult pairs output'.format(output_folder)
