@@ -576,7 +576,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
 
     print 'difficult pairs were dumped to {0}'.format(output_folder)
 
-def process(data_folder,frame_interval, encoder_list, exts, force_compute):
+def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_folder):
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -593,7 +593,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
     _, tail = os.path.split(data_folder)
     same_pair_dist, diff_pair_dist = compute_interval_pair_distances(feature_list)
     same_pair_files, diff_pair_files = pair_files(crops_file_list)
-    dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files)
+    dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder)
 
     #distance_matrix = compute_experts_distance_matrix(feature_list)
     # auc95, dist_th,mAP = evaluateCrops.compute_metrics(distance_matrix, person_id_list, file_seq_list, file_tag=tail)
@@ -613,12 +613,12 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
 
     return tpr2, tpr3, tpr4
 
-def process_all(folder, frame_interval, experts, exts, force_compute):
+def process_all(folder, frame_interval, experts, exts, force_compute, dump_folder):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        tp3 = process(sub_folder_full,frame_interval, experts, exts, force_compute)
+        tp3 = process(sub_folder_full,frame_interval, experts, exts, force_compute, dump_folder)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -635,6 +635,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--frame_interval', type=int, default=16,
                         help='the num of samples from each ID')
+
+    parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
+                        help='whether to dump tough pairs')
 
     parser.add_argument('--force_compute', action='store_true', default=False,
                         help='whether to force compute features')
@@ -659,9 +662,9 @@ if __name__ == "__main__":
 
     start_time = time.time()
     if args.single_folder:
-        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
+        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder)
     else:
-        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute)
+        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))
