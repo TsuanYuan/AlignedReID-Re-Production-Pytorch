@@ -549,23 +549,26 @@ class UpperModel(nn.Module):
                 self.fc_list.append(fc)
 
     def forward(self, x, head_id=0):
-        upper_height = int(round(x.shape[0]*0.6))
-        head_height = int(round(x.shape[0]*0.25))
-        upper_patch = x[:upper_height, :,:]
-        head_patch = x[:head_height,:,:]
+        upper_height = int(round(x.shape[2]*0.6))
+        head_height = int(round(x.shape[2]*0.25))
+        upper_patch = x[:,:, :upper_height,:]
+        head_patch = x[:,:,:head_height,:]
         upper_feature = self.upper_base(upper_patch)
         head_feature = self.head_base(head_patch)
-        head_width = head_feature.size()[2]/2
+        head_width = head_feature.size()[3]/2
         # N C H W
-        head_window_1 = head_feature[:, :, :, :head_width*2]
-        head_window_2 = head_feature[:, :, :, head_width:head_width*3]
-        head_window_3 = head_feature[:, :, :, head_width*2:]
+        head_window_1 = head_feature[:, :, :, :head_width]
+        head_window_2 = head_feature[:, :, :, head_width/2:head_width/2*3]
+        head_window_3 = head_feature[:, :, :, head_width:]
 
         upper_final = F.avg_pool2d(upper_feature, upper_feature.size()[2:])
         head1_final = F.avg_pool2d(head_window_1, head_window_1.size()[2:])
         head2_final = F.avg_pool2d(head_window_2, head_window_2.size()[2:])
         head3_final = F.avg_pool2d(head_window_3, head_window_3.size()[2:])
         feat_concat = torch.cat([upper_final, head1_final, head2_final, head3_final], dim=1)
+        feat_concat = torch.squeeze(feat_concat)
+        if len(feat_concat.size()) == 1:
+            feat_concat = feat_concat.unsqueeze(0)
         feat_merge = self.merge_layer(feat_concat)
 
         if hasattr(self, 'fc_list'):

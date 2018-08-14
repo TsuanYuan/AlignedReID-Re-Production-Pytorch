@@ -109,7 +109,7 @@ class PreProcessIm(object):
     return im_new
 
   @staticmethod
-  def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
+  def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
     color = [0, 0, 0] # zero padding
     aspect_ratio = desired_size[0]/float(desired_size[1])
     current_ar = im.shape[0]/float(im.shape[1])
@@ -120,12 +120,15 @@ class PreProcessIm(object):
                                   value=color)
     else: # current width is too wide, pad height
       delta_h = int(round(im.shape[1]*aspect_ratio - im.shape[0]))
-      top, bottom = delta_h/2, delta_h - (delta_h / 2)
+      if head_top:
+        top, bottom = 0, delta_h
+      else:
+        top, bottom = delta_h/2, delta_h - (delta_h / 2)
       new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
                                   value=color)
     #debug
-    # import scipy.misc
-    # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+    import scipy.misc
+    scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
 
   @staticmethod
@@ -158,7 +161,7 @@ class PreProcessIm(object):
     if stretch:
       im = cv2.resize(im, desired_size[::-1])
     else:
-      im = self.crop_pad_fixed_aspect_ratio(im, desired_size)
+      im = self.crop_pad_fixed_aspect_ratio(im, desired_size, head_top=True)
 
     # Randomly crop a sub-image.
     if ((self.crop_ratio < 1)
