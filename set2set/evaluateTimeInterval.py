@@ -560,7 +560,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
               .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
 
-    return tpr2, tpr3, tpr3
+    return tpr2, tpr3, tpr4
 
 def process_all(folder, frame_interval, experts, exts, force_compute):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
