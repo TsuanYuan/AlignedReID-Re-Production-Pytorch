@@ -146,12 +146,17 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
 def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image_shape = (256, 128, 3),
                                 local_conv_out_channels=128, num_classes=301, num_models=1,
                                 num_planes=2048, base_name='resnet50', with_final_conv=False,
-                                parts_model=False, skip_fc=False, local_feature_flag=False, use_mgn=False):
+                                parts_model=False, skip_fc=False, local_feature_flag=False, use_mgn=False, use_attn=False):
 
     im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
-    if use_mgn:
+    if use_attn:
+        models = [
+            aligned_reid.model.Model.AttentionModel(local_conv_out_channels=local_conv_out_channels,
+                                              base_model=base_name, parts_model=parts_model)
+            for _ in range(num_models)]
+    elif use_mgn:
         models = [
             aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
                                             base_model=base_name, parts_model=parts_model)
@@ -216,12 +221,15 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
             if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
+            attn_flag = False
+            if folder_name.find('attn') >= 0:
+                attn_flag = True
             mgn_flag = False
             if folder_name.find('mgn') >= 0:
                 mgn_flag = True
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag, skip_fc=skip_fc)
+                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag, skip_fc=skip_fc, use_attn=attn_flag)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
