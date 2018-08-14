@@ -488,7 +488,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     cv2.imwrite(output_path, canvas)
 
 def parse_im_files(image_path):
-    _, file_only = os.path.basename(image_path)
+    file_only = os.path.basename(image_path)
     file_base, _ = os.path.splitext(file_only)
     parts = file_base.split('_')
     pid = int(parts[-2])
@@ -503,9 +503,9 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     same_select_files, same_select_dist = [],[]
     same_dict = {}
     for id in tough_same_ids:
-        p = same_pair_files[id][0]
+        p = same_pair_files[id]
         d = same_pair_dist[id]
-        pid, _ = parse_im_files(p)
+        pid, _ = parse_im_files(p[0])
         if pid not in same_dict:
             same_dict[pid] = 1
         elif same_dict[pid] >= 3:
