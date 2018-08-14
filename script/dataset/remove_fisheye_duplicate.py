@@ -13,7 +13,7 @@ def remove_duplicates(top_folder, ids):
         print 'deleted duplicated pid folder {0}'.format(sub_folder)
 
 if __name__ == '__main__':
-    
+
     parser = argparse.ArgumentParser(description="merge fisheye folders dataset")
     parser.add_argument('top_folder', type=str, help="dataset_original_folder")
     parser.add_argument('dup_file', type=str, help="txt file of duplicated ids")

@@ -529,3 +529,48 @@ class AttentionModel(nn.Module):
             logits = None
         return local_feat_concat, None, logits
 
+class UpperModel(nn.Module):
+    def __init__(self,
+                 num_classes=None, final_out_channels=512):
+        super(UpperModel, self).__init__()
+
+        self.head_base = resnet34(pretrained=True)
+        self.upper_base = resnet50(pretrained=True)
+        upper_out_channels = 2048
+        head_out_channels = 512
+        total_nc = upper_out_channels+head_out_channels*3
+        self.merge_layer =  nn.Linear(total_nc, final_out_channels)
+        if num_classes is not None:
+            self.fc_list = nn.ModuleList()
+            for i, num_class in enumerate(num_classes):
+                fc = nn.Linear(final_out_channels, num_class)
+                init.normal_(fc.weight, std=0.001)
+                init.constant_(fc.bias, 0)
+                self.fc_list.append(fc)
+
+    def forward(self, x, head_id=0):
+        upper_height = int(round(x.shape[0]*0.6))
+        head_height = int(round(x.shape[0]*0.25))
+        upper_patch = x[:upper_height, :,:]
+        head_patch = x[:head_height,:,:]
+        upper_feature = self.upper_base(upper_patch)
+        head_feature = self.head_base(head_patch)
+        head_width = head_feature.size()[2]/2
+        # N C H W
+        head_window_1 = head_feature[:, :, :, :head_width*2]
+        head_window_2 = head_feature[:, :, :, head_width:head_width*3]
+        head_window_3 = head_feature[:, :, :, head_width*2:]
+
+        upper_final = F.avg_pool2d(upper_feature, upper_feature.size()[2:])
+        head1_final = F.avg_pool2d(head_window_1, head_window_1.size()[2:])
+        head2_final = F.avg_pool2d(head_window_2, head_window_2.size()[2:])
+        head3_final = F.avg_pool2d(head_window_3, head_window_3.size()[2:])
+        feat_concat = torch.cat([upper_final, head1_final, head2_final, head3_final], dim=1)
+        feat_merge = self.merge_layer(feat_concat)
+
+        if hasattr(self, 'fc_list'):
+            logits = self.fc_list[head_id](feat_merge)
+        else:
+            logits = None
+
+        return feat_merge, None, logits
