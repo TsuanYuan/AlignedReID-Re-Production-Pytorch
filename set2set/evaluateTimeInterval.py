@@ -472,10 +472,12 @@ def report_TP_at_FP(same_distances, diff_distances, fp_th=0.001):
     return tpr, fpr, th
 
 def get_filename_for_display(file_path):
+    p1, _ = os.path.split(file_path)
+    folder_name = os.path.basename(p1)
     bn = os.path.basename(file_path)
     bn, _ = os.path.splitext(bn)
     parts = bn.split('_')
-    return parts[-2]+'_'+parts[-1]
+    return parts[-2]+'_'+parts[-1], folder_name
 
 def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     import cv2
@@ -487,11 +489,19 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
     canvas[:,:256,:] = im0
     canvas[:,256:,:] = im1
 
-    cv2.putText(canvas, str(get_filename_for_display(file_pairs[0])), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    top_name, folder_name = get_filename_for_display(file_pairs[0])
+    cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(get_filename_for_display(file_pairs[1])), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                (0, 255, 0), 2)
+
+    top_name, folder_name = get_filename_for_display(file_pairs[1])
+    cv2.putText(canvas, str(top_name), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(pair_dist), (270, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+    cv2.putText(canvas, str(folder_name), (270, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                (0, 255, 0), 2)
+
+    cv2.putText(canvas, str(pair_dist), (120, 400), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 255), 2)
     cv2.imwrite(output_path, canvas)
 
