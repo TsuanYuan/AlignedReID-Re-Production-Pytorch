@@ -531,7 +531,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         d = diff_pair_dist[id]
         pid0, _ = parse_im_files(p[0])
         pid1, _ = parse_im_files(p[1])
-        sorted_pids = sorted((pid0, pid1))
+        sorted_pids = tuple(sorted((pid0, pid1)))
         if sorted_pids not in diff_dict:
             diff_dict[sorted_pids] = 1
         elif diff_dict[sorted_pids] >= 3:
