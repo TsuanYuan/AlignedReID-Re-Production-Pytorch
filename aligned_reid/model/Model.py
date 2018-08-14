@@ -527,9 +527,5 @@ class AttentionModel(nn.Module):
             logits = self.fc_list[head_id](local_feat_concat)
         else:
             logits = None
-<<<<<<< HEAD
         return local_feat_concat, None, logits
-=======
 
-        return local_feat_concat, None, logits
->>>>>>> 79e79f8d156a20f04d14d997894d2cbf7b9f811b
