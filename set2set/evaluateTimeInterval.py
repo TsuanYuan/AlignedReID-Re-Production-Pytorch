@@ -146,12 +146,18 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
 def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image_shape = (256, 128, 3),
                                 local_conv_out_channels=128, num_classes=301, num_models=1,
                                 num_planes=2048, base_name='resnet50', with_final_conv=False,
-                                parts_model=False, skip_fc=False, local_feature_flag=False):
+                                parts_model=False, skip_fc=False, local_feature_flag=False, use_mgn=False):
 
     im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
-    models = [aligned_reid.model.Model.Model(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
+    if use_mgn:
+        models = [
+            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
+                                            base_model=base_name, parts_model=parts_model)
+            for _ in range(num_models)]
+    else:
+        models = [aligned_reid.model.Model.Model(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
                     final_conv_out_channels=num_planes, base_model=base_name,with_final_conv=with_final_conv,
                     parts_model=parts_model)
         for _ in range(num_models)]
@@ -210,9 +216,12 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
             if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
+            mgn_flag = False
+            if folder_name.find('mgn') >= 0:
+                mgn_flag = True
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, local_feature_flag=local_feature_flag)
+                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag, skip_fc=skip_fc)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
@@ -249,7 +258,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             break
         else:
             frame_diff = frame_id - current_fid
-            if frame_diff >= frame_interval and frame_diff < frame_interval*1.5: # allow slight variation if not exact
+            if frame_diff >= frame_interval and frame_diff < frame_interval*1.75: # allow slight variation if not exact
                 sequence_crop_files[-1].append(crop_file)
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
                 continue
@@ -553,12 +562,12 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute):
 
     return tpr2, tpr3, tpr3
 
-def process_all(folder, sample_size, experts, exts, force_compute):
+def process_all(folder, frame_interval, experts, exts, force_compute):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        tp3 = process(sub_folder_full,sample_size, experts, exts, force_compute)
+        tp3 = process(sub_folder_full,frame_interval, experts, exts, force_compute)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)

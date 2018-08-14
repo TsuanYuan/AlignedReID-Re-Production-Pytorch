@@ -174,7 +174,7 @@ class Model(nn.Module):
 
 class SwitchClassHeadModel(nn.Module):
     def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512,
-                 num_classes=None, base_model='resnet50', with_final_conv=False, parts_model=False, num_stripes=4):
+                 num_classes=(1,), base_model='resnet50', with_final_conv=False, parts_model=False, num_stripes=4):
         super(SwitchClassHeadModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50(pretrained=True)
@@ -279,7 +279,7 @@ class SwitchClassHeadModel(nn.Module):
         else:
             return torch.cat(local_feat_list, dim=1), None, None
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
@@ -348,7 +348,7 @@ class SwitchClassHeadModel(nn.Module):
 
 class MGNModel(nn.Module):
     def __init__(self,
-                 num_classes=None, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+                 num_classes=(1,), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
         super(MGNModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
@@ -399,7 +399,7 @@ class MGNModel(nn.Module):
                 fc_list.append(fc)
             self.parts_fc_list.append(fc_list)
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
@@ -445,7 +445,8 @@ class MGNModel(nn.Module):
             local_feat_list.append(local_feat)
             if hasattr(self, 'parts_fc_list'):
                 logits_list.append(self.parts_fc_list[head_id][i+self.level2_strips](local_feat))
-
+        if len(global_feat.size()) == 1:
+            global_feat = global_feat.unsqueeze(0)
         local_feat_list.append(global_feat)
         logits_list.append(self.fc_list[head_id](torch.squeeze(global_feat)))
         # sum up logits and concatinate features
@@ -492,7 +493,7 @@ class AttentionModel(nn.Module):
                 init.constant_(fc.bias, 0)
                 self.fc_list.append(fc)
 
-    def forward(self, x, head_id):
+    def forward(self, x, head_id=0):
         """
     Returns:
       global_feat: shape [N, C]
