@@ -18,12 +18,14 @@ import aligned_reid.model.Model
 from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
-
+import evaluateTimeInterval
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
 level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
+
+HEAD_TOP=False
 def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     aspect_ratio = desired_size[1] / float(desired_size[0])
     current_ar = im.shape[1] / float(im.shape[0])
@@ -131,7 +133,7 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
         sx, sy, ex, ey = bbox
         image = image[sy:ey, sx:ex]
         if padding == 'zero':
-            image = crop_pad_fixed_aspect_ratio(image, patch_shape)
+            image = evaluateTimeInterval.crop_pad_fixed_aspect_ratio(image, patch_shape, head_top=HEAD_TOP)
         else:
             image = image
     if padding == 'roi':
@@ -215,12 +217,18 @@ def load_experts(experts_file, sys_device_ids, num_classes=1442):
             if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
-            mgn_flag = False
-            if folder_name.find('mgn') >= 0:
-                mgn_flag = True
-            encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
+            if folder_name.find('attn') >= 0:
+                model_name = 'attn'
+            elif folder_name.find('mgn') >= 0:
+                model_name = 'mgn'
+            elif folder_name.find('upper') >= 0:
+                model_name = 'upper'
+            else:
+                model_name = ''
+            print 'model name is {0}'.format(model_name)
+            encoder = evaluateTimeInterval.create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, use_mgn=mgn_flag)
+                                parts_model=parts, model_name=model_name)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
@@ -344,6 +352,10 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
+
+    HEAD_TOP = args.head_top
+    if HEAD_TOP:
+        print 'put partial head crop at top'
     print 'sample size per ID={0}'.format(args.sample_size)
     sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids)

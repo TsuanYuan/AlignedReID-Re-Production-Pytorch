@@ -41,7 +41,7 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
 
-def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
+def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
     color = [0, 0, 0]  # zero padding
     aspect_ratio = desired_size[0] / float(desired_size[1])
     current_ar = im.shape[0] / float(im.shape[1])
@@ -52,7 +52,7 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
                                     value=color)
     else:  # current width is too wide, pad height
         delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
-        if HEAD_TOP:
+        if head_top:
             top, bottom = 0, delta_h
         else:
             top, bottom = delta_h / 2, delta_h - (delta_h / 2)
@@ -138,7 +138,7 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
         sx, sy, ex, ey = bbox
         image = image[sy:ey, sx:ex]
         if padding == 'zero':
-            image = crop_pad_fixed_aspect_ratio(image, patch_shape)
+            image = crop_pad_fixed_aspect_ratio(image, patch_shape, head_top=HEAD_TOP)
         else:
             image = image
     if padding == 'roi':
