@@ -19,10 +19,11 @@ if __name__ == '__main__':
     parser.add_argument('dup_file', type=str, help="txt file of duplicated ids")
 
     args = parser.parse_args()
-    ids = []
+    ids = set()
     with open(args.dup_fille, 'r') as fp:
         for line in fp:
             fields = line.rstrip('\n').rstrip(' ').split(' ')
-            ids.append(fields[1])
+            for i in range(1, len(fields)):
+                ids.add(int(fields[1]))
     print "ids to delete are {0}".format(str(ids))
     remove_duplicates(args.top_folder, ids)

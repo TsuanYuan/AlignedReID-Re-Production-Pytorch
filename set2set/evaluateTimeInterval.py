@@ -702,7 +702,7 @@ if __name__ == "__main__":
         print 'put partial head crop at top'
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))
-        
+
     start_time = time.time()
     if args.single_folder:
         process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder, args.ignore_ids)
