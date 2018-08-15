@@ -605,6 +605,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list,crops_file_list = [], [], [], []
+
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit():
             person_id = int(sub_folder)
@@ -614,7 +615,13 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
                 feature_list.append(descriptors)
                 crops_file_list.append(crop_files)
             #person_id_list += person_id_seqs
-
+    # avoid bias towards person of long tracks
+    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/len(crops_file_list)
+    len_limit = int(mean_len*1.5)
+    for i, crop_files in enumerate(crops_file_list):
+        if len(crop_files) > len_limit:
+            crops_file_list[i] = crop_files[-len_limit:]
+            
     _, tail = os.path.split(data_folder)
     same_pair_dist, diff_pair_dist = compute_interval_pair_distances(feature_list)
     same_pair_files, diff_pair_files = pair_files(crops_file_list)
