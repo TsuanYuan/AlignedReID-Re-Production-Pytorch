@@ -89,7 +89,6 @@ class Config(object):
     parser.add_argument('--frame_interval', type=int, default=-1)
     parser.add_argument('--ignore_camera', type=str2bool, default=False)
     parser.add_argument('--bound_neg_at_epoch', type=int, default=100000)
-    parser.add_argument('--bound_neg_th', type=float, default=0.0)
     parser.add_argument('--base_lr', type=float, default=2e-4)
     parser.add_argument('--lr_decay_type', type=str, default='exp',
                         choices=['exp', 'staircase'])
@@ -159,7 +158,6 @@ class Config(object):
     self.masks_path = args.masks_path
     self.frame_interval = args.frame_interval
     self.bound_neg_at_epoch = args.bound_neg_at_epoch
-    self.bound_neg = args.bound_neg_th
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
     dataset_kwargs = dict(
@@ -528,7 +526,7 @@ def main():
   # and exit too.
   # Real reason should be further explored.
   exit_event = threading.Event()
-  bound_neg = cfg.bound_neg
+  bound_neg = 0.0
   # The function to be called by threads.
   def thread_target(i):
     while not exit_event.isSet():
@@ -704,7 +702,8 @@ def main():
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
     if ep > cfg.bound_neg_at_epoch:
-      print('hard neg bounded at dist = {0}'.format(str(cfg.bound_neg)))
+      bound_neg = 0.05 #max(cfg.global_margin/2, cfg.local_margin/2)
+      print('hard neg bounded at dist = {0}'.format(str(bound_neg)))
     # Adjust Learning Rate
     for optimizer in optimizers:
       if cfg.lr_decay_type == 'exp':
