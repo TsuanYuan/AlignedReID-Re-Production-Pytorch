@@ -620,8 +620,8 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
     len_limit = int(mean_len*1.5)
     for i, crop_files in enumerate(crops_file_list):
         if len(crop_files) > len_limit:
-            crops_file_list[i] = crop_files[-len_limit:]
-            
+            crops_file_list[i] = crop_files[:len_limit]
+            feature_list[i] = feature_list[:len_limit]
     _, tail = os.path.split(data_folder)
     same_pair_dist, diff_pair_dist = compute_interval_pair_distances(feature_list)
     same_pair_files, diff_pair_files = pair_files(crops_file_list)
