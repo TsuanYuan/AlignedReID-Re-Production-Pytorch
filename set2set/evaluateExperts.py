@@ -350,7 +350,9 @@ if __name__ == "__main__":
     parser.add_argument('--single_folder', action='store_true', default=False,
                         help='process only current folder')
 
-
+    parser.add_argument('--head_top', action='store_true', default=False,
+                        help='crop attach at top')
+    
     args = parser.parse_args()
 
     HEAD_TOP = args.head_top
