@@ -25,6 +25,8 @@ mlog = logging.getLogger('myLogger')
 level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
+HEAD_TOP = False
+
 def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     aspect_ratio = desired_size[1] / float(desired_size[0])
     current_ar = im.shape[1] / float(im.shape[0])
@@ -50,7 +52,10 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
                                     value=color)
     else:  # current width is too wide, pad height
         delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
-        top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+        if HEAD_TOP:
+            top, bottom = 0, delta_h
+        else:
+            top, bottom = delta_h / 2, delta_h - (delta_h / 2)
         new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
                                     value=color)
     # debug
@@ -146,26 +151,31 @@ def extract_image_patch(image, bbox, patch_shape, padding='zero'):
 def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image_shape = (256, 128, 3),
                                 local_conv_out_channels=128, num_classes=301, num_models=1,
                                 num_planes=2048, base_name='resnet50', with_final_conv=False,
-                                parts_model=False, skip_fc=False, local_feature_flag=False, use_mgn=False, use_attn=False):
+                                parts_model=False, skip_fc=False, local_feature_flag=False, model_name=''):
 
     im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
-    if use_attn:
+
+    if len(model_name) ==0:
+        models = [aligned_reid.model.Model.Model(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
+                                                 final_conv_out_channels=num_planes, base_model=base_name, with_final_conv=with_final_conv,
+                                                 parts_model=parts_model)
+                  for _ in range(num_models)]
+    elif model_name == 'attn':
         models = [
             aligned_reid.model.Model.AttentionModel(local_conv_out_channels=local_conv_out_channels,
                                               base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
-    elif use_mgn:
+    elif model_name == 'mgn':
         models = [
             aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
                                             base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
-    else:
-        models = [aligned_reid.model.Model.Model(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
-                    final_conv_out_channels=num_planes, base_model=base_name,with_final_conv=with_final_conv,
-                    parts_model=parts_model)
-        for _ in range(num_models)]
+    elif model_name == 'upper':
+        models = [
+            aligned_reid.model.Model.UpperModel()
+            for _ in range(num_models)]
     model_ws = [DataParallel(models[i], device_ids=relative_device_ids[0]) for i in range(num_models)]
 
     optimizers = [None for m in models]
@@ -177,6 +187,7 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     def encoder(image, boxes):
         image_patches = []
         for box in boxes:
+
             patch = extract_image_patch(image, box, image_shape[:2])
             if patch is None:
                 # out of bound
@@ -221,15 +232,19 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
             if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
-            attn_flag = False
+
             if folder_name.find('attn') >= 0:
-                attn_flag = True
-            mgn_flag = False
-            if folder_name.find('mgn') >= 0:
-                mgn_flag = True
+                model_name = 'attn'
+            elif folder_name.find('mgn') >= 0:
+                model_name = 'mgn'
+            elif folder_name.find('upper') >= 0:
+                model_name = 'upper'
+            else:
+                model_name = ''
+            print 'model name is {0}'.format(model_name)
             encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
                                 num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, local_feature_flag=local_feature_flag, use_mgn=mgn_flag, skip_fc=skip_fc, use_attn=attn_flag)
+                                parts_model=parts, local_feature_flag=local_feature_flag, skip_fc=skip_fc, model_name=model_name)
             expert_models_feature_funcs.append(encoder)
             exts.append(ext)
     return expert_models_feature_funcs, exts
@@ -664,11 +679,17 @@ if __name__ == "__main__":
     parser.add_argument('--local_feature', action='store_true', default=False,
                         help='use local feature to compare')
 
+    parser.add_argument('--head_top', action='store_true', default=False,
+                        help='crop attach at top')
+
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
     experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc, args.local_feature)
     import time
+    HEAD_TOP = args.head_top
+    if HEAD_TOP:
+        print 'put partial head crop at top'
 
     start_time = time.time()
     if args.single_folder:
