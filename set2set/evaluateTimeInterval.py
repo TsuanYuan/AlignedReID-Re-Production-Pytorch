@@ -689,8 +689,8 @@ if __name__ == "__main__":
     parser.add_argument('--head_top', action='store_true', default=False,
                         help='crop attach at top')
 
-    parser.add_argument('--ignore_ids', nargs='+',  type=int,default=False,
-                        help='crop attach at top')
+    parser.add_argument('--ignore_ids', nargs='+',  type=int,default=[],
+                        help='ids to ignore in evaluation')
 
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)

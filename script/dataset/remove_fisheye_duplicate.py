@@ -9,8 +9,15 @@ import os, shutil
 def remove_duplicates(top_folder, ids):
     for id in ids:
         sub_folder = os.path.join(top_folder, str(id))
-        shutil.rmtree(sub_folder)
-        print 'deleted duplicated pid folder {0}'.format(sub_folder)
+        sub_folder_8 = os.path.join(top_folder, '%08d' % id)
+        if os.path.isdir(sub_folder):
+            shutil.rmtree(sub_folder)
+            print 'deleted duplicated pid folder {0}'.format(sub_folder)
+        sub_folder = os.path.join(top_folder, '%08d' % id)
+        if os.path.isdir(sub_folder):
+            shutil.rmtree(sub_folder)
+            print 'deleted duplicated pid folder {0}'.format(sub_folder)
+        
 
 if __name__ == '__main__':
 
@@ -20,7 +27,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     ids = set()
-    with open(args.dup_fille, 'r') as fp:
+    with open(args.dup_file, 'r') as fp:
         for line in fp:
             fields = line.rstrip('\n').rstrip(' ').split(' ')
             for i in range(1, len(fields)):
