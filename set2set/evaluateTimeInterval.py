@@ -601,12 +601,13 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
 
     print 'difficult pairs were dumped to {0}'.format(output_folder)
 
-def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_folder):
+def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_folder, ignore_ids):
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list,crops_file_list = [], [], [], []
+
     for sub_folder in sub_folders:
-        if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit():
+        if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
             person_id = int(sub_folder)
             descriptors, crop_files = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, frame_interval, force_compute)
             #person_id_seqs = [person_id]*len(descriptors)
@@ -614,7 +615,13 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
                 feature_list.append(descriptors)
                 crops_file_list.append(crop_files)
             #person_id_list += person_id_seqs
-
+    # avoid bias towards person of long tracks
+    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/len(crops_file_list)
+    len_limit = int(mean_len*1.5)
+    for i, crop_files in enumerate(crops_file_list):
+        if len(crop_files) > len_limit:
+            crops_file_list[i] = crop_files[:len_limit]
+            feature_list[i] = feature_list[i][:len_limit]
     _, tail = os.path.split(data_folder)
     same_pair_dist, diff_pair_dist = compute_interval_pair_distances(feature_list)
     same_pair_files, diff_pair_files = pair_files(crops_file_list)
@@ -638,12 +645,12 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
 
     return tpr2, tpr3, tpr4
 
-def process_all(folder, frame_interval, experts, exts, force_compute, dump_folder):
+def process_all(folder, frame_interval, experts, exts, force_compute, dump_folder, ignore_ids):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        tp3 = process(sub_folder_full,frame_interval, experts, exts, force_compute, dump_folder)
+        tp3 = process(sub_folder_full,frame_interval, experts, exts, force_compute, dump_folder, ignore_ids)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -682,6 +689,9 @@ if __name__ == "__main__":
     parser.add_argument('--head_top', action='store_true', default=False,
                         help='crop attach at top')
 
+    parser.add_argument('--ignore_ids', nargs='+',  type=int,default=[],
+                        help='ids to ignore in evaluation')
+
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
     sys_device_ids = ((args.device_id,),)
@@ -690,12 +700,14 @@ if __name__ == "__main__":
     HEAD_TOP = args.head_top
     if HEAD_TOP:
         print 'put partial head crop at top'
+    if len(args.ignore_ids) > 0:
+        print 'ignore ids {0}'.format(str(args.ignore_ids))
 
     start_time = time.time()
     if args.single_folder:
-        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder)
+        process(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder, args.ignore_ids)
     else:
-        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder)
+        process_all(args.test_folder, args.frame_interval, experts, exts, args.force_compute, args.dump_folder,args.ignore_ids)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

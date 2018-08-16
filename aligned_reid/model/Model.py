@@ -535,8 +535,8 @@ class UpperModel(nn.Module):
         super(UpperModel, self).__init__()
 
         self.head_base = resnet34(pretrained=True)
-        self.upper_base = resnet50(pretrained=True)
-        upper_out_channels = 2048
+        self.upper_base = resnet34(pretrained=True)
+        upper_out_channels = 512
         head_out_channels = 512
         total_nc = upper_out_channels+head_out_channels*3
         self.merge_layer =  nn.Linear(total_nc, final_out_channels)
