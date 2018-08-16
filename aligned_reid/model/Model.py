@@ -9,7 +9,7 @@ from .resnet import resnet50, resnet18, resnet34, resnet50_with_layers
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
-
+from torchvision.utils import save_image
 
 class Model(nn.Module):
     def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512,
@@ -553,6 +553,8 @@ class UpperModel(nn.Module):
         head_height = int(round(x.shape[2]*0.25))
         upper_patch = x[:,:, :upper_height,:]
         head_patch = x[:,:,:head_height,:]
+        #save_image(torch.squeeze(upper_patch[0, :, :, :]),'/tmp/upper_patch.jpg')
+        #save_image(torch.squeeze(head_patch[0, :, :, :]),'/tmp/head_patch.jpg')
         upper_feature = self.upper_base(upper_patch)
         head_feature = self.head_base(head_patch)
         head_width = head_feature.size()[3]/2

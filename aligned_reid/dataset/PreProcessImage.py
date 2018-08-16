@@ -174,8 +174,8 @@ class PreProcessIm(object):
       im = self.rand_crop_im(im, (crop_w, crop_h), prng=self.prng)
 
     # apply k blocks for occlusion
-    for k in range(12):
-      im = self.rand_mask_im(im, im.shape[1]/4)
+    #for k in range(12):
+    #  im = self.rand_mask_im(im, im.shape[1]/4)
     # debug
     # import scipy.misc
     # scipy.misc.imsave('/tmp/new_im.jpg', im)
