@@ -568,11 +568,11 @@ class UpperModel(nn.Module):
         head2_final = F.avg_pool2d(head_window_2, head_window_2.size()[2:])
         head3_final = F.avg_pool2d(head_window_3, head_window_3.size()[2:])
         feat_concat = torch.cat([upper_final, head1_final, head2_final, head3_final], dim=1)
-        feat_concat = torch.squeeze(feat_concat)
-        if len(feat_concat.size()) == 1:
-            feat_concat = feat_concat.unsqueeze(0)
-        feat_merge = self.merge_layer(feat_concat)
-
+        # feat_concat = torch.squeeze(feat_concat)
+        # if len(feat_concat.size()) == 1:
+        #     feat_concat = feat_concat.unsqueeze(0)
+        # feat_merge = self.merge_layer(feat_concat)
+        feat_merge = feat_concat
         if hasattr(self, 'fc_list'):
             logits = self.fc_list[head_id](feat_merge)
         else:
