@@ -68,6 +68,7 @@ class Config(object):
     parser.add_argument('--log_to_file', type=str2bool, default=True)
     parser.add_argument('--normalize_feature', type=str2bool, default=True)
     parser.add_argument('--skip_fc', type=str2bool, default=False)
+    parser.add_argument('--head_top', type=str2bool, default=False)
     parser.add_argument('--local_dist_own_hard_sample',
                         type=str2bool, default=False)
     parser.add_argument('-gm', '--global_margin', type=float, default=0.3)
@@ -160,6 +161,7 @@ class Config(object):
     self.bound_neg_at_epoch = args.bound_neg_at_epoch
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
+    self.head_top = args.head_top
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -179,6 +181,7 @@ class Config(object):
       ids_per_batch=self.ids_per_batch,
       ims_per_id=self.ims_per_id,
       frame_interval=args.frame_interval,
+      head_top=self.head_top,
       ignore_camera=args.ignore_camera,
       final_batch=self.train_final_batch,
       shuffle=self.train_shuffle,

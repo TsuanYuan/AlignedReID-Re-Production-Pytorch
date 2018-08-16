@@ -14,6 +14,7 @@ class PreProcessIm(object):
       crop_ratio=1.0,
       resize_h_w=None,
       scale=True,
+      head_top=False,
       im_mean=None,
       im_std=None,
       mirror_type=None,
@@ -50,6 +51,7 @@ class PreProcessIm(object):
     self.mirror_type = mirror_type
     self.check_batch_dims(batch_dims)
     self.batch_dims = batch_dims
+    self.head_top = head_top
     if masks_path is not None and len(masks_path)>0 and os.path.isfile(masks_path):
       with open(masks_path, 'rb') as mf:
         self.occlusion_masks = cPickle.load(mf)
@@ -161,7 +163,7 @@ class PreProcessIm(object):
     if stretch:
       im = cv2.resize(im, desired_size[::-1])
     else:
-      im = self.crop_pad_fixed_aspect_ratio(im, desired_size, head_top=True)
+      im = self.crop_pad_fixed_aspect_ratio(im, desired_size, head_top=self.head_top)
 
     # Randomly crop a sub-image.
     if ((self.crop_ratio < 1)
