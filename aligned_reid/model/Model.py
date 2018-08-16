@@ -539,11 +539,11 @@ class UpperModel(nn.Module):
         upper_out_channels = 512
         head_out_channels = 512
         total_nc = upper_out_channels+head_out_channels*3
-        self.merge_layer =  nn.Linear(total_nc, final_out_channels)
+        #self.merge_layer = nn.Linear(total_nc, final_out_channels)
         if num_classes is not None:
             self.fc_list = nn.ModuleList()
             for i, num_class in enumerate(num_classes):
-                fc = nn.Linear(final_out_channels, num_class)
+                fc = nn.Linear(total_nc, num_class)
                 init.normal_(fc.weight, std=0.001)
                 init.constant_(fc.bias, 0)
                 self.fc_list.append(fc)
