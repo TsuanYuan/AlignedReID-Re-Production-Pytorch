@@ -563,10 +563,10 @@ class UpperModel(nn.Module):
         head_window_2 = head_feature[:, :, :, head_width/2:head_width/2*3]
         head_window_3 = head_feature[:, :, :, head_width:]
 
-        upper_final = F.avg_pool2d(upper_feature, upper_feature.size()[2:])
-        head1_final = F.avg_pool2d(head_window_1, head_window_1.size()[2:])
-        head2_final = F.avg_pool2d(head_window_2, head_window_2.size()[2:])
-        head3_final = F.avg_pool2d(head_window_3, head_window_3.size()[2:])
+        upper_final = F.max_pool2d(upper_feature, upper_feature.size()[2:])
+        head1_final = F.max_pool2d(head_window_1, head_window_1.size()[2:])
+        head2_final = F.max_pool2d(head_window_2, head_window_2.size()[2:])
+        head3_final = F.max_pool2d(head_window_3, head_window_3.size()[2:])
         feat_concat = torch.cat([upper_final, head1_final, head2_final, head3_final], dim=1)
         feat_concat = torch.squeeze(feat_concat)
         if len(feat_concat.size()) == 1:
