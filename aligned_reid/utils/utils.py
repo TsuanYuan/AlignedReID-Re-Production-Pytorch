@@ -541,7 +541,7 @@ def find_index(seq, item):
   return -1
 
 
-def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep):
+def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep, min_lr):
   """Decay exponentially in the later phase of training. All parameters in the 
   optimizer share the same learning rate.
   
@@ -568,12 +568,12 @@ def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep):
     return
 
   for g in optimizer.param_groups:
-    g['lr'] = (base_lr * (0.001 ** (float(ep + 1 - start_decay_at_ep)
-                                    / (total_ep + 1 - start_decay_at_ep))))
+    g['lr'] = max((base_lr * (0.001 ** (float(ep + 1 - start_decay_at_ep)
+                                    / (total_ep + 1 - start_decay_at_ep)))), min_lr)
   print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
-def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
+def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor, min_lr):
   """Multiplied by a factor at the BEGINNING of specified epochs. All 
   parameters in the optimizer share the same learning rate.
   
@@ -604,7 +604,7 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
 
   ind = find_index(decay_at_epochs, ep)
   for g in optimizer.param_groups:
-    g['lr'] = base_lr * factor ** (ind + 1)
+    g['lr'] = max(base_lr * factor ** (ind + 1), min_lr)
   print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 

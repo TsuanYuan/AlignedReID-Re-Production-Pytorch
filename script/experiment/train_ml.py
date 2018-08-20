@@ -702,6 +702,9 @@ def main():
       thread.start()
       threads.append(thread)
 
+  # avoid learning rate goes too low
+  min_lr = 1e-6
+  print('min lr bounded at {0}'.format(str(min_lr)))
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
     if ep > cfg.bound_neg_at_epoch:
@@ -715,14 +718,14 @@ def main():
           cfg.base_lr,
           ep + 1,
           cfg.total_epochs,
-          cfg.exp_decay_at_epoch)
+          cfg.exp_decay_at_epoch, min_lr)
       else:
         adjust_lr_staircase(
           optimizer,
           cfg.base_lr,
           ep + 1,
           cfg.staircase_decay_at_epochs,
-          cfg.staircase_decay_multiply_factor)
+          cfg.staircase_decay_multiply_factor, min_lr)
 
     may_set_mode(modules_optims, 'train')
 
