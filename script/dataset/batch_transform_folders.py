@@ -42,16 +42,34 @@ def run_detection(inputs):  # video_path, detection_file, start_frame, end_frame
         print 'finished {0}'.format(cmd_str)
 
 
-def run(args):
-    a = os.listdir(args.input_folder)
-    set_folders = [folder for folder in a if os.path.isdir(os.path.join(args.input_folder, folder)) ]
-    if not os.path.isdir(args.output_folder):
-        os.makedirs(args.output_folder)
+def create_folders(input_folder, output_folder, two_layers):
+    a = os.listdir(input_folder)
+    set_folders = [folder for folder in a if os.path.isdir(os.path.join(input_folder, folder))]
+    if not os.path.isdir(output_folder):
+        os.makedirs(output_folder)
     if not os.path.isdir(args.log_folder):
         os.makedirs(args.log_folder)
     input_set_folders = [os.path.join(args.input_folder, set_folder) for set_folder in set_folders]
     output_set_folders = [os.path.join(args.output_folder, set_folder) for set_folder in set_folders]
-    num_commands = len(set_folders)
+    if two_layers:
+        input_2_folders, output_2_folders = [], []
+        for set_folder_in, set_folder_out in zip(input_set_folders, output_set_folders):
+            input_2_folders += [folder for folder in os.listdir(set_folder_in) if os.path.isdir(os.path.join(set_folder_in, folder))]
+            output_2_folders += [folder for folder in os.listdir(set_folder_out) if os.path.isdir(os.path.join(set_folder_out, folder))]
+        return input_2_folders, output_2_folders
+    else:
+        return input_set_folders, output_set_folders
+
+def run(args):
+    # a = os.listdir(args.input_folder)
+    # set_folders = [folder for folder in a if os.path.isdir(os.path.join(args.input_folder, folder))]
+    # if not os.path.isdir(args.output_folder):
+    #     os.makedirs(args.output_folder)
+    #
+    # input_set_folders = [os.path.join(args.input_folder, set_folder) for set_folder in set_folders]
+    # output_set_folders = [os.path.join(args.output_folder, set_folder) for set_folder in set_folders]
+    input_set_folders, output_set_folders = create_folders(args.input_folder, args.output_folder, args.two_layers)
+    num_commands = len(output_set_folders)
     start_time = time.time()
     # pool to queue trackers at gpus
     p = multiprocessing.Pool(processes=GROUP_SIZE)
@@ -70,9 +88,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("input_folder", type=str,help="path to input folder sets")
     ap.add_argument("output_folder", type=str,help="path to output folder sets")
-    ap.add_argument("--log_folder", type=str, help="path to output folder sets", default='/tmp/tranform_logs/')
+    ap.add_argument("--log_folder", type=str, help="path to log folder sets", default='/tmp/tranform_logs/')
+    ap.add_argument("--two_layers", action='store_true', help="if the path have two layers", default=False)
     ap.add_argument('--sub_folder_bug', action='store_true', help="handle the bug case where there is an extra folder", required=False,
                         default=False)
-    ap.add_argument("--email_address", type=str, default='qyuan@aibee.com', help='email address')
+
+
     args = ap.parse_args()
     run(args)
