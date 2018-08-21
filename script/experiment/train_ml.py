@@ -82,6 +82,7 @@ class Config(object):
 
     parser.add_argument('--parts_model', type=str2bool, default=False)
     parser.add_argument('--model_name', type=str, default='')
+    parser.add_argument('--min_labels_for_id_loss', type=int, default=64)
 
     parser.add_argument('--only_test', type=str2bool, default=False)
     parser.add_argument('--test_num_classids', type=int, default=5)
@@ -113,7 +114,7 @@ class Config(object):
       self.seed = 1
     else:
       self.seed = None
-
+    print('skip id loss if number of id is < {0}'.format(str(args.min_labels_for_id_loss)))
     # The experiments can be run for several times and performances be averaged.
     # `run` starts from `1`, not `0`.
     self.run = args.run
@@ -162,6 +163,7 @@ class Config(object):
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
     self.head_top = args.head_top
+    self.min_labels_for_id_loss = args.min_labels_for_id_loss
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -552,7 +554,7 @@ def main():
       labels_var = Variable(labels_t)
 
       global_feat, local_feat, logits = model_w(ims_var, head_id)
-      if logits is not None:
+      if logits is not None and len(labels) > cfg.min_labels_for_id_loss:
         probs = F.softmax(logits, dim=1)
         log_probs = F.log_softmax(logits, dim=1)
 
