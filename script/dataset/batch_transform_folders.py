@@ -54,8 +54,9 @@ def create_folders(input_folder, output_folder, two_layers):
     if two_layers:
         input_2_folders, output_2_folders = [], []
         for set_folder_in, set_folder_out in zip(input_set_folders, output_set_folders):
-            input_2_folders += [folder for folder in os.listdir(set_folder_in) if os.path.isdir(os.path.join(set_folder_in, folder))]
-            output_2_folders += [folder for folder in os.listdir(set_folder_out) if os.path.isdir(os.path.join(set_folder_out, folder))]
+            input_2_folders += [os.path.join(set_folder_in, folder) for folder in os.listdir(set_folder_in) if os.path.isdir(os.path.join(set_folder_in, folder))]
+            output_2_folders += [os.path.join(set_folder_out, folder) for folder in os.listdir(set_folder_in) if os.path.isdir(os.path.join(set_folder_in, folder))]
+       
         return input_2_folders, output_2_folders
     else:
         return input_set_folders, output_set_folders
