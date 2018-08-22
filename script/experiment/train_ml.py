@@ -82,6 +82,7 @@ class Config(object):
 
     parser.add_argument('--parts_model', type=str2bool, default=False)
     parser.add_argument('--model_name', type=str, default='')
+    parser.add_argument('--min_labels_for_id_loss', type=int, default=64)
 
     parser.add_argument('--only_test', type=str2bool, default=False)
     parser.add_argument('--test_num_classids', type=int, default=5)
@@ -113,7 +114,7 @@ class Config(object):
       self.seed = 1
     else:
       self.seed = None
-
+    print('skip id loss if number of id is < {0}'.format(str(args.min_labels_for_id_loss)))
     # The experiments can be run for several times and performances be averaged.
     # `run` starts from `1`, not `0`.
     self.run = args.run
@@ -162,6 +163,7 @@ class Config(object):
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
     self.head_top = args.head_top
+    self.min_labels_for_id_loss = args.min_labels_for_id_loss
     dataset_kwargs = dict(
       name=self.dataset,
       resize_h_w=self.resize_h_w,
@@ -405,16 +407,16 @@ def main():
   #nc = len(train_set.ids2labels)
   #if cfg.only_test:
   #  nc = cfg.test_num_classids
-  to_remove = []
-  min_count_id = cfg.ids_per_batch
-  for train_set in train_sets:
-     nid = len(train_set.ids2labels)
-     if nid < min_count_id:
-         to_remove.append(train_set)
-
-  for train_set in to_remove:
-      print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
-      train_sets.remove(train_set)
+  # to_remove = []
+  # min_count_id = cfg.ids_per_batch
+  # for train_set in train_sets:
+  #    nid = len(train_set.ids2labels)
+  #    if nid < min_count_id:
+  #        to_remove.append(train_set)
+  #
+  # for train_set in to_remove:
+  #     print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
+  #     train_sets.remove(train_set)
 
   nc = []
   for train_set in train_sets:
@@ -552,7 +554,7 @@ def main():
       labels_var = Variable(labels_t)
 
       global_feat, local_feat, logits = model_w(ims_var, head_id)
-      if logits is not None:
+      if logits is not None and len(labels) > cfg.min_labels_for_id_loss:
         probs = F.softmax(logits, dim=1)
         log_probs = F.log_softmax(logits, dim=1)
 
@@ -702,6 +704,9 @@ def main():
       thread.start()
       threads.append(thread)
 
+  # avoid learning rate goes too low
+  min_lr = 1e-6
+  print('min lr bounded at {0}'.format(str(min_lr)))
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
     if ep > cfg.bound_neg_at_epoch:
@@ -715,14 +720,14 @@ def main():
           cfg.base_lr,
           ep + 1,
           cfg.total_epochs,
-          cfg.exp_decay_at_epoch)
+          cfg.exp_decay_at_epoch, min_lr)
       else:
         adjust_lr_staircase(
           optimizer,
           cfg.base_lr,
           ep + 1,
           cfg.staircase_decay_at_epochs,
-          cfg.staircase_decay_multiply_factor)
+          cfg.staircase_decay_multiply_factor, min_lr)
 
     may_set_mode(modules_optims, 'train')
 

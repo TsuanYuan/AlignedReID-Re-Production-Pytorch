@@ -634,7 +634,8 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
     tpr2, fpr2, th2 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.01)
     tpr3, fpr3, th3 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.001)
     tpr4, fpr4, th4 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.0001)
-    
+    tpr5, fpr5, th5 = report_TP_at_FP(same_pair_dist, diff_pair_dist, fp_th=0.00001)
+
     mlog.info('same_pairs are {0}, diff_pairs are {1}'.format(str(same_pair_dist.size), str(diff_pair_dist.size)))
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
             .format('%.3f'%tpr2, '%.6f'%th2, '%.5f'%fpr2, data_folder, str(exts)))
@@ -642,8 +643,9 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
             .format('%.3f'%tpr3, '%.6f'%th3, '%.5f'%fpr3, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
               .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
-
-    return tpr2, tpr3, tpr4
+    mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
+              .format('%.3f' % tpr5, '%.6f' % th5, '%.5f' % fpr5, data_folder, str(exts)))
+    return tpr2, tpr3, tpr4, tpr5
 
 def process_all(folder, frame_interval, experts, exts, force_compute, dump_folder, ignore_ids):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]

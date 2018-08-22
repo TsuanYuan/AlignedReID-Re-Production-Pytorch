@@ -408,7 +408,7 @@ class MGNModel(nn.Module):
         # shape [N, C, H, W]
         feat_final, feat_l3, feat_l2 = self.base(x)
         feat_shorten = self.global_final_relu(self.global_final_bn(self.global_final_conv((feat_final))))
-        global_feat = F.avg_pool2d(feat_shorten, feat_shorten.size()[2:])
+        global_feat = F.max_pool2d(feat_shorten, feat_shorten.size()[2:])
         global_feat = torch.squeeze(global_feat)
         local_feat_list = []
         logits_list = []
@@ -419,7 +419,7 @@ class MGNModel(nn.Module):
             stripe_start = int(round(stripe_s2 * i))
             stripe_end = int(min(np.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
             sh = stripe_end - stripe_start
-            local_feat = F.avg_pool2d(
+            local_feat = F.max_pool2d(
                 feat_l2[:, :, stripe_start: stripe_end, :], (sh, feat_l2.size(-1)))
             # shape [N, c, 1, 1]
             local_feat = self.level2_conv_list[i](local_feat)
@@ -436,7 +436,7 @@ class MGNModel(nn.Module):
             stripe_start = int(round(stripe_s3 * i))
             stripe_end = int(min(np.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
             sh = stripe_end - stripe_start
-            local_feat = F.avg_pool2d(
+            local_feat = F.max_pool2d(
                 feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))
             # shape [N, c, 1, 1]
             local_feat = self.level3_conv_list[i](local_feat)
