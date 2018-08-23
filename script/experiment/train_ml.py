@@ -50,7 +50,7 @@ class Config(object):
     parser.add_argument('--num_models', type=int, default=1)
     parser.add_argument('-r', '--run', type=int, default=1)
     parser.add_argument('--set_seed', type=str2bool, default=False)
-    parser.add_argument('--dataset', type=str, default='market1501',
+    parser.add_argument('--dataset', type=str, default='customized',
                         choices=['customized','zeros','market1501', 'cuhk03', 'duke', 'combined4',  'folder0','folder1','folder2','folder3','folder4', 'folder_all','public4'])
     parser.add_argument('--trainset_part', type=str, default='trainval',
                         choices=['trainval', 'train'])
@@ -72,13 +72,13 @@ class Config(object):
     parser.add_argument('--head_top', type=str2bool, default=False)
     parser.add_argument('--local_dist_own_hard_sample',
                         type=str2bool, default=False)
-    parser.add_argument('-gm', '--global_margin', type=float, default=0.3)
-    parser.add_argument('-lm', '--local_margin', type=float, default=0.3)
+    parser.add_argument('-gm', '--global_margin', type=float, default=0.5)
+    parser.add_argument('-lm', '--local_margin', type=float, default=0.5)
     parser.add_argument('-glw', '--g_loss_weight', type=float, default=1.)
     parser.add_argument('-llw', '--l_loss_weight', type=float, default=0.)
     parser.add_argument('-idlw', '--id_loss_weight', type=float, default=0.)
-    parser.add_argument('-pmlw', '--pm_loss_weight', type=float, default=1.)
-    parser.add_argument('-gdmlw', '--gdm_loss_weight', type=float, default=1.)
+    parser.add_argument('-pmlw', '--pm_loss_weight', type=float, default=0.)
+    parser.add_argument('-gdmlw', '--gdm_loss_weight', type=float, default=0.)
     parser.add_argument('-ldmlw', '--ldm_loss_weight', type=float, default=0.)
 
     parser.add_argument('--parts_model', type=str2bool, default=False)
