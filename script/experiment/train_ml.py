@@ -68,6 +68,7 @@ class Config(object):
     parser.add_argument('--log_to_file', type=str2bool, default=True)
     parser.add_argument('--normalize_feature', type=str2bool, default=True)
     parser.add_argument('--skip_fc', type=str2bool, default=False)
+    parser.add_argument('--remove_small_sets', type=str2bool, default=False)
     parser.add_argument('--head_top', type=str2bool, default=False)
     parser.add_argument('--local_dist_own_hard_sample',
                         type=str2bool, default=False)
@@ -162,6 +163,7 @@ class Config(object):
     self.bound_neg_at_epoch = args.bound_neg_at_epoch
     self.ignore_camera = args.ignore_camera
     self.skip_fc = args.skip_fc
+    self.remove_small_sets = args.remove_small_sets
     self.head_top = args.head_top
     self.min_labels_for_id_loss = args.min_labels_for_id_loss
     dataset_kwargs = dict(
@@ -407,16 +409,17 @@ def main():
   #nc = len(train_set.ids2labels)
   #if cfg.only_test:
   #  nc = cfg.test_num_classids
-  # to_remove = []
-  # min_count_id = cfg.ids_per_batch
-  # for train_set in train_sets:
-  #    nid = len(train_set.ids2labels)
-  #    if nid < min_count_id:
-  #        to_remove.append(train_set)
-  #
-  # for train_set in to_remove:
-  #     print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
-  #     train_sets.remove(train_set)
+  if cfg.remove_small_sets:
+    to_remove = []
+    min_count_id = cfg.ids_per_batch
+    for train_set in train_sets:
+       nid = len(train_set.ids2labels)
+       if nid < min_count_id:
+           to_remove.append(train_set)
+
+    for train_set in to_remove:
+        print('remove set {0} for its size < {1}'.format(train_set.im_dir, str(min_count_id)))
+        train_sets.remove(train_set)
 
   nc = []
   for train_set in train_sets:
