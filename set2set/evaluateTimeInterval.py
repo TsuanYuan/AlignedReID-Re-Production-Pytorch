@@ -645,7 +645,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
               .format('%.3f' % tpr4, '%.6f'%th4, '%.5f' % fpr4, data_folder, str(exts)))
     mlog.info('tpr={0}, dist_th={1}, fpr={2} on data {3} with model extension {4}'
               .format('%.3f' % tpr5, '%.6f' % th5, '%.5f' % fpr5, data_folder, str(exts)))
-    return tpr2, tpr3, tpr4, tpr5
+    return tpr2, tpr3, tpr4, tpr5, th2, th3, th4, th4
 
 def process_all(folder, frame_interval, experts, exts, force_compute, dump_folder, ignore_ids):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
@@ -656,7 +656,7 @@ def process_all(folder, frame_interval, experts, exts, force_compute, dump_folde
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
-    mlog.info('average of tprs are {0}'.format(str(mean_tps)))
+    mlog.info('average of tprs and thresholds are {0}'.format(str(mean_tps)))
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
