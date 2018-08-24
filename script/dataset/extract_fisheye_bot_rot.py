@@ -30,7 +30,7 @@ def load_rot_ims(im_folder, rot_json, save_folder):
         crop_box = body_box
         image = cv2.imread(image_path)
         crop = image[crop_box[1]:crop_box[1] + crop_box[3], crop_box[0]:crop_box[0] + crop_box[2], :]
-        track_id, _, video_name = decode_rot_image_name(image_path)
+        track_id, _, video_name = decode_rot_image_name(image_file)
         id_folder = os.path.join(save_folder, video_name, str(track_id))
         if not os.path.isdir(id_folder):
             os.makedirs(id_folder)
