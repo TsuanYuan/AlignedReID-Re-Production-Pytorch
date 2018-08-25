@@ -33,7 +33,7 @@ class Counter(object):
 
 
 class Enqueuer(object):
-  def __init__(self, get_element, num_elements, num_threads=1, queue_size=20):
+  def __init__(self, get_element, num_elements, num_threads=1, queue_size=2):
     """
     Args:
       get_element: a function that takes a pointer and returns an element

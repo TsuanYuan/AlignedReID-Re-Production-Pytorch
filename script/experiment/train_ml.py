@@ -762,11 +762,13 @@ def main():
     epoch_done = [False] * len(train_sets)
     epoch_all_done = False
     epoch_done_sets = []
+    remaining_set_ids = range(len(train_sets))
     while not epoch_all_done:
 
       step += 1
       step_st = time.time()
-      set_id = (step-1) % len(train_sets)
+      set_rid = (step-1) % len(remaining_set_ids)
+      set_id = remaining_set_ids[set_rid]
       if set_id in epoch_done_sets:
         epoch_all_done = all(epoch_done)
         continue
@@ -774,6 +776,7 @@ def main():
         ims, im_names, labels, mirrored, epoch_done[set_id] = train_sets[set_id].next_batch()
         if epoch_done[set_id]:
           epoch_done_sets.append(set_id)
+          remaining_set_ids.remove(set_id)
 
       epoch_all_done = all(epoch_done)
       for i in range(cfg.num_models):
