@@ -34,9 +34,8 @@ def load_rot_ims(im_folder, rot_json, save_folder):
         id_folder = os.path.join(save_folder, video_name, str(track_id))
         if not os.path.isdir(id_folder):
             os.makedirs(id_folder)
-        dest_im_file = os.path.join(id_folder, image_path[:-8] + '.jpg')
+        dest_im_file = os.path.join(id_folder, image_file[:-8] + '.jpg')
         cv2.imwrite(dest_im_file, crop)
-
 
     # json_files = glob.glob(os.path.join(im_folder, '*.json'))
     # for json_file in json_files:
