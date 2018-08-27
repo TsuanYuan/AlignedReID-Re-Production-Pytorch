@@ -616,7 +616,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
                 crops_file_list.append(crop_files)
             #person_id_list += person_id_seqs
     # avoid bias towards person of long tracks
-    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/len(crops_file_list)
+    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/max(1,len(crops_file_list))
     len_limit = int(mean_len*1.5)
     for i, crop_files in enumerate(crops_file_list):
         if len(crop_files) > len_limit:
