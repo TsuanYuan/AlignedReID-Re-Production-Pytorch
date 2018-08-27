@@ -528,7 +528,7 @@ def parse_im_files(image_path):
     frame_index = int(parts[-1])
     return pid, frame_index
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.3, output_folder='/tmp/difficult/'):
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
     if len(tough_same_ids) < 8:
