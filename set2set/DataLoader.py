@@ -87,7 +87,7 @@ class ReIDAppearanceDataset(Dataset):
         person_id = self.person_id_im_paths.keys()[set_id]
         im_paths = self.person_id_im_paths[person_id]
         random.shuffle(im_paths)
-        im_paths_sample = im_paths[0:min(self.sample_size, len(im_paths))]
+        im_paths_sample = im_paths[0:min(self.crop_per_id, len(im_paths))]
         ims = []
         w_h_ratios = []
         for im_path in im_paths_sample:
@@ -103,6 +103,8 @@ class ReIDAppearanceDataset(Dataset):
 
             w_h_ratios.append(w_h_ratio)
             ims.append(im)
+            # import scipy.misc
+            # scipy.misc.imsave('/tmp/new_im.jpg', im)
         sample = {'images': ims, 'w_h_ratios':w_h_ratios, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
