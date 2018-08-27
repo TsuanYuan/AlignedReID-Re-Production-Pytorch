@@ -102,7 +102,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    decay_at_epochs = {80:1, 120:2}
+    decay_at_epochs = {200:1, 400:2}
     staircase_decay_multiply_factor = 0.1
     # if loss_name == 'ranking':
     #     loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
@@ -174,12 +174,12 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=2, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
-    parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
+    parser.add_argument('--num_epoch', type=int, default=600, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='ranking', help="loss to use")
-    parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+    parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")
     parser.add_argument('--original_ar', action='store_true', default=False, help="whether use original aspect ratio")
