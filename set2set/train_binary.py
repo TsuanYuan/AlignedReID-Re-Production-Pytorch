@@ -178,8 +178,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  crops_per_id={0}, batch_size={1},  with_roi={2}'.
-          format(str(args.crops_per_id), str(args.batch_size), str(args.with_roi)))
+    print('  crops_per_id={0}, batch_size={1}'.
+          format(str(args.crops_per_id), str(args.batch_size)))
 
     check_data_folder_01(args.data_folder)
     torch.backends.cudnn.benchmark = False
