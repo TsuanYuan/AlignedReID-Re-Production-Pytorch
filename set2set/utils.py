@@ -1,11 +1,12 @@
 from __future__ import absolute_import
-import os
+import os, glob
 import sys
 import errno
 import shutil
 import json
 import os.path as osp
-
+from skimage import io
+import shutil
 import torch
 
 def mkdir_if_missing(directory):
@@ -88,3 +89,13 @@ def write_json(obj, fpath):
     mkdir_if_missing(osp.dirname(fpath))
     with open(fpath, 'w') as f:
         json.dump(obj, f, indent=4, separators=(',', ': '))
+
+def clean_up_bad_jpgs(folder):
+
+    jpgs = glob.glob(os.path.join(folder, '*.jpg'))
+    for jpg in jpgs:
+        try:
+            io.imread(jpg)
+        except:
+            print "fail to read a jpg file {0}, remove it.".format(jpg)
+            os.remove(jpg)
