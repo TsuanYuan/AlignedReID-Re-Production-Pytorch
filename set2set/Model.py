@@ -200,3 +200,47 @@ class WeightedReIDFeatureModel(nn.Module):
             logits = self.fc(feat)
             return feat, logits
         return feat, None
+
+
+class BinaryModel(nn.Module):
+    def __init__(self, local_conv_out_channels=256, base_model='resnet18', device_id=-1, num_classes=None):
+        super(BinaryModel, self).__init__()
+        if base_model == 'resnet50':
+          self.base = resnet50(pretrained=True, device=device_id)
+          planes = 2048
+        elif  base_model == 'resnet34':
+          self.base = resnet34(pretrained=True, device=device_id)
+          planes = 512
+        elif base_model == 'resnet18':
+          self.base = resnet18(pretrained=True,device=device_id)
+          planes = 512
+        elif base_model == 'inception_v3':
+          self.base = inception_v3(pretrained=True)
+          planes = 1024  # not correct
+        elif base_model == 'squeezenet':
+          self.base = squeezenet1_0(pretrained=True)
+          planes = 1000  # not correct
+        elif base_model == 'vgg16':
+          vgg = vgg16_bn(pretrained=True)
+          self.base = vgg.features
+          planes = 512
+        elif base_model == 'vgg11':
+          vgg = vgg11_bn(pretrained=True)
+          self.base = vgg.features
+          planes = 512
+        else:
+          raise RuntimeError("unknown base model!")
+
+        self.fc = nn.Linear(planes, 2)
+        init.normal_(self.fc.weight, std=0.001)
+        init.constant_(self.fc.bias, 0)
+
+    def forward(self, x):
+        base_conv = self.base(x)
+        #final_conv_feat = base_conv
+        condensed_feat = torch.squeeze(F.max_pool2d(base_conv, base_conv.size()[2:]))  # descriptor were fist conv into shorter channels and then average
+        if len(condensed_feat.size()) == 1: # in case of single feature
+            condensed_feat = condensed_feat.unsqueeze(0)
+        feat = F.normalize(condensed_feat, p=2, dim=1)
+        logits = self.fc(feat)
+        return feat, logits
