@@ -102,7 +102,7 @@ def main(data_folder, model_folder, batch_size, decay_interval=80,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    decay_at_epochs = {decay_interval*i:i for i in range(1, 8) } 
+    decay_at_epochs = {decay_interval*i:i for i in range(1, 8) }
     staircase_decay_multiply_factor = 0.2
 
     criterion = nn.BCELoss()
@@ -171,14 +171,9 @@ if __name__ == '__main__':
     parser.add_argument('--decay_interval', type=int, default=80, help="number of iteration to decay learning rate")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=600, help="num of epochs")
-    parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
-    parser.add_argument('--loss', type=str, default='ranking', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
-    parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
-    parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")
-    parser.add_argument('--original_ar', action='store_true', default=False, help="whether use original aspect ratio")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -190,4 +185,4 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     main(args.data_folder, args.model_folder, args.batch_size, decay_interval=args.decay_interval,
          gpu_id=args.gpu_id, num_epochs= args.num_epoch, base_model=args.base_model, crops_per_id=args.crops_per_id,
-         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi)
+         optimizer_name=args.optimizer, base_lr=args.lr)
