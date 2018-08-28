@@ -528,7 +528,7 @@ def parse_im_files(image_path):
     frame_index = int(parts[-1])
     return pid, frame_index
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.3, output_folder='/tmp/difficult/'):
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2, output_folder='/tmp/difficult/'):
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
     if len(tough_same_ids) < 8:
@@ -616,7 +616,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
                 crops_file_list.append(crop_files)
             #person_id_list += person_id_seqs
     # avoid bias towards person of long tracks
-    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/len(crops_file_list)
+    mean_len = sum([len(crop_files) for crop_files in crops_file_list])/max(1,len(crops_file_list))
     len_limit = int(mean_len*1.5)
     for i, crop_files in enumerate(crops_file_list):
         if len(crop_files) > len_limit:
