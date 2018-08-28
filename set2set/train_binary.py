@@ -91,9 +91,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.WeightedReIDFeatureModel(base_model=base_model, device_id=gpu_id, num_classes=num_classes).cuda(device=gpu_id)
+        model = Model.BinaryModel(base_model=base_model, device_id=gpu_id, num_classes=num_classes).cuda(device=gpu_id)
     else:
-        model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
+        model = Model.BinaryModel(base_model=base_model,num_classes=num_classes)
 
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
