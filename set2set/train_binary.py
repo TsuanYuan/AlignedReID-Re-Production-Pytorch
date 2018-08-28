@@ -64,9 +64,9 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(data_folder, model_folder, sample_size, batch_size,
-         num_epochs=200, gpu_id=-1, margin=0.1, base_model='resnet18', loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, crops_per_id=128, threshold=0.1, original_ar=False, with_roi=False):
+def main(data_folder, model_folder, batch_size,
+         num_epochs=200, gpu_id=-1, base_model='resnet18',
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, crops_per_id=128, with_roi=False):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                                   transforms_reid.Rescale((256, 128)),
@@ -104,12 +104,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
 
     decay_at_epochs = {200:1, 400:2}
     staircase_decay_multiply_factor = 0.1
-    # if loss_name == 'ranking':
-    #     loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
-    # elif loss_name == 'class_th':
-    #     loss_function = losses.WeightedAverageThLoss(th=threshold)
-    # else:
-    #     raise Exception('unknown loss name')
+
     criterion = nn.BCELoss()
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     #average_meter = utils.AverageMeter()
@@ -127,7 +122,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
             person_ids = sample_batched['person_id']
             w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
-            images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
+            images = images_5d.view([actual_size[0]*crops_per_id,3,256,128])  # unfolder to 4-D
 
             if gpu_id >= 0:
                 features, logits = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
@@ -170,7 +165,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
     parser.add_argument('data_folder', type=str, help="dataset original folder with subfolders of person id crops")
     parser.add_argument('model_folder', type=str, help="folder to save the model")
-    parser.add_argument('--sample_size', type=int, default=128, help="total number of images of each ID in a sample")
+    parser.add_argument('--crops_per_id', type=int, default=128, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=2, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
@@ -187,12 +182,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={0}, batch_size={1},  margin={2}, original_ar={3}, with_roi={4}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.original_ar), str(args.with_roi)))
+    print('  crops_per_id={0}, batch_size={1},  with_roi={2}'.
+          format(str(args.crops_per_id), str(args.batch_size), str(args.with_roi)))
 
     check_data_folder_01(args.data_folder)
     torch.backends.cudnn.benchmark = False
-    main(args.data_folder, args.model_folder, args.sample_size, args.batch_size,
-         gpu_id=args.gpu_id, margin=args.margin, num_epochs= args.num_epoch, base_model=args.base_model,
-         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, threshold=args.class_th,
-         original_ar=args.original_ar)
+    main(args.data_folder, args.model_folder, args.batch_size,
+         gpu_id=args.gpu_id, num_epochs= args.num_epoch, base_model=args.base_model, crops_per_id=args.crops_per_id,
+         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi)
