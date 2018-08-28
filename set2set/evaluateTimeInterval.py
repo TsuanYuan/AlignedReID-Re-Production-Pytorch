@@ -19,6 +19,7 @@ from torch.autograd import Variable
 import torch
 import numpy
 import shutil
+import json
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -528,13 +529,26 @@ def parse_im_files(image_path):
     frame_index = int(parts[-1])
     return pid, frame_index
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2, output_folder='/tmp/difficult/'):
+def plot_error_spatial(canvas, tough_pair_files):
+    #canvas = numpy.zeros((frame_shape[1], frame_shape[0], 3))
+    for tough_pair in tough_pair_files:
+        for tough_file in tough_pair:
+            no_ext, _ = os.path.splitext(tough_file)
+            json_file = no_ext+'.json'
+            with open(json_file, 'r') as fp:
+                data = json.load(fp)
+                box_br = (data['box'][0] +  data['box'][2], data['box'][1] +  data['box'][3])
+                cv2.rectangle(canvas, tuple(data['box'][0:2]), box_br, (0,255,0))
+    return canvas
+
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2,
+                              output_folder='/tmp/difficult/',frame_shape=(1920, 1080)):
     same_sort_ids = numpy.argsort(same_pair_dist)
     tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
     if len(tough_same_ids) < 8:
         tough_num = min(max(int(round(len(same_sort_ids)*0.1)), 32), 128)
         tough_same_ids = same_sort_ids[-tough_num:]
-    same_select_files, same_select_dist = [],[]
+    same_select_files, same_select_dist, same_all_files = [],[],[]
     same_dict = {}
     for id in tough_same_ids:
         p = same_pair_files[id]
@@ -543,6 +557,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         if pid not in same_dict:
             same_dict[pid] = 1
         elif same_dict[pid] >= 3:
+            same_all_files.append(p)
             continue
         else:
             same_dict[pid] += 1
@@ -552,12 +567,15 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     tough_same_pairs = numpy.array(same_select_files)
     tough_same_dist = numpy.array(same_select_dist)
 
+    canvas = numpy.zeros((frame_shape[1], frame_shape[0], 3))
+    canvas = plot_error_spatial(canvas, numpy.array(same_all_files))
+
     diff_sort_ids = numpy.argsort(diff_pair_dist)
     tough_diff_ids = [i for i in diff_sort_ids if diff_pair_dist[i] < tough_diff_th]
     if len(tough_diff_ids) < 8:
         tough_num = min(max(int(round(len(diff_sort_ids)*0.1)), 32), 128)
         tough_diff_ids = diff_sort_ids[0:tough_num]
-    diff_select_files, diff_select_dist = [], []
+    diff_select_files, diff_select_dist, diff_all_files =[], [], []
     diff_dict = {}
     for id in tough_diff_ids:
         p = diff_pair_files[id]
@@ -568,6 +586,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         if sorted_pids not in diff_dict:
             diff_dict[sorted_pids] = 1
         elif diff_dict[sorted_pids] >= 3:
+            diff_all_files.append(p)
             continue
         else:
             diff_dict[sorted_pids] += 1
@@ -576,6 +595,10 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
 
     tough_diff_pairs = numpy.array(diff_select_files)
     tough_diff_dist = numpy.array(diff_select_dist)
+
+    canvas = plot_error_spatial(canvas, numpy.array(diff_all_files))
+    output_tough_image_file = os.path.join(output_folder,'spatial.jpg')
+
 
     if os.path.isdir(output_folder):
         print 'remove existing {0} for difficult pairs output'.format(output_folder)
@@ -598,7 +621,9 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         file_path = os.path.join(diff_folder, '{0}.jpg'.format(str(count)))
         dump_pair_in_folder(file_pair,dist, file_path)
         count+=1
-
+        
+    cv2.imwrite(output_tough_image_file, canvas)
+    print 'output tough image map to {0}'.format(output_tough_image_file)
     print 'difficult pairs were dumped to {0}'.format(output_folder)
 
 def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_folder, ignore_ids):
