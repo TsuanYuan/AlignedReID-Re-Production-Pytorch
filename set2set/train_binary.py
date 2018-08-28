@@ -64,7 +64,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(data_folder, model_folder, batch_size,
+def main(data_folder, model_folder, batch_size, decay_interval=80,
          num_epochs=200, gpu_id=-1, base_model='resnet18',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, crops_per_id=128, with_roi=False):
     if with_roi:
@@ -102,8 +102,8 @@ def main(data_folder, model_folder, batch_size,
     model_file = os.path.join(model_folder, 'model.ckpt')
     print('model path is {0}'.format(model_file))
 
-    decay_at_epochs = {200:1, 400:2}
-    staircase_decay_multiply_factor = 0.1
+    decay_at_epochs = {decay_interval*i:i for i in range(1, 8) } 
+    staircase_decay_multiply_factor = 0.2
 
     criterion = nn.BCELoss()
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
@@ -168,6 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--crops_per_id', type=int, default=128, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=2, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_id', type=int, default=0, help="gpu id to use")
+    parser.add_argument('--decay_interval', type=int, default=80, help="number of iteration to decay learning rate")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=600, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
@@ -187,6 +188,6 @@ if __name__ == '__main__':
 
     check_data_folder_01(args.data_folder)
     torch.backends.cudnn.benchmark = False
-    main(args.data_folder, args.model_folder, args.batch_size,
+    main(args.data_folder, args.model_folder, args.batch_size, decay_interval=args.decay_interval,
          gpu_id=args.gpu_id, num_epochs= args.num_epoch, base_model=args.base_model, crops_per_id=args.crops_per_id,
          optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi)
