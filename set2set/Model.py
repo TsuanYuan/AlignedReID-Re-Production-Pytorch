@@ -238,9 +238,10 @@ class BinaryModel(nn.Module):
     def forward(self, x):
         base_conv = self.base(x)
         #final_conv_feat = base_conv
-        condensed_feat = torch.squeeze(F.max_pool2d(base_conv, base_conv.size()[2:]))  # descriptor were fist conv into shorter channels and then average
+        condensed_feat = torch.squeeze(F.max_pool2d(base_conv, base_conv.size()[2:])) 
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
-        feat = F.normalize(condensed_feat, p=2, dim=1)
+        #feat = F.normalize(condensed_feat, p=2, dim=1)
+        feat = condensed_feat
         logits = self.fc(feat)
         return feat, logits

@@ -12,6 +12,7 @@ from torch import nn
 import torch
 
 from torchvision import transforms
+from torchvision.utils import make_grid, save_image
 import transforms_reid, Model
 import utils
 import losses
@@ -123,11 +124,11 @@ def main(data_folder, model_folder, batch_size, decay_interval=80,
             w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*crops_per_id,3,256,128])  # unfolder to 4-D
-
+            # grid_image = make_grid(images, padding=10)
+            # save_image(grid_image, '/tmp/grid.jpg')
             if gpu_id >= 0:
                 features, logits = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
-
             else:
                 features, logits = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
             # outputs = features.view([actual_size[0], sample_size, -1])
