@@ -621,7 +621,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
         file_path = os.path.join(diff_folder, '{0}.jpg'.format(str(count)))
         dump_pair_in_folder(file_pair,dist, file_path)
         count+=1
-        
+
     cv2.imwrite(output_tough_image_file, canvas)
     print 'output tough image map to {0}'.format(output_tough_image_file)
     print 'difficult pairs were dumped to {0}'.format(output_folder)

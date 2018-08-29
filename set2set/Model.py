@@ -8,9 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-
+import numpy
 from torch.autograd import Variable
-from BackBones import resnet50, resnet18, resnet34
+from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
@@ -238,10 +238,125 @@ class BinaryModel(nn.Module):
     def forward(self, x):
         base_conv = self.base(x)
         #final_conv_feat = base_conv
-        condensed_feat = torch.squeeze(F.max_pool2d(base_conv, base_conv.size()[2:])) 
+        condensed_feat = torch.squeeze(F.max_pool2d(base_conv, base_conv.size()[2:]))
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
-        #feat = F.normalize(condensed_feat, p=2, dim=1)
-        feat = condensed_feat
+        feat = F.normalize(condensed_feat, p=2, dim=1)
+        #feat = condensed_feat
         logits = self.fc(feat)
         return feat, logits
+
+
+
+class MGNModel(nn.Module):
+    def __init__(self,
+                 num_classes=(1,), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+        super(MGNModel, self).__init__()
+        if base_model == 'resnet50':
+            self.base = resnet50_with_layers(pretrained=True)
+            planes = 2048
+        else:
+            raise RuntimeError("unknown base model!")
+
+        # self.parts_model = parts_model
+        # if num_classes is not None:
+        #     self.fc_list = nn.ModuleList()
+        #     for i, num_class in enumerate(num_classes):
+        #         fc = nn.Linear(local_conv_out_channels, num_class)
+        #         init.normal_(fc.weight, std=0.001)
+        #         init.constant_(fc.bias, 0)
+        #         self.fc_list.append(fc)
+
+        self.global_final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+        self.global_final_bn = nn.BatchNorm2d(local_conv_out_channels)
+        self.global_final_relu = nn.ReLU(inplace=True)
+
+        self.level2_strips = 6
+        self.level2_planes = 512
+        self.level2_conv_list = nn.ModuleList()
+        for k in range(self.level2_strips):
+            self.level2_conv_list.append(nn.Sequential(
+                nn.Conv2d(self.level2_planes, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True)
+            ))
+
+        self.level3_strips = 4
+        self.level3_planes = 1024
+        self.level3_conv_list = nn.ModuleList()
+        for k in range(self.level3_strips):
+            self.level3_conv_list.append(nn.Sequential(
+                nn.Conv2d(self.level3_planes, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True)
+            ))
+
+
+        self.fc_list = nn.ModuleList()
+        for _ in range(self.level2_strips+self.level3_strips):
+            fc = nn.Linear(local_conv_out_channels, 2)
+            init.normal_(fc.weight, std=0.001)
+            init.constant_(fc.bias, 0)
+            self.fc_list.append(fc)
+        fc = nn.Linear(local_conv_out_channels, 2)
+        init.normal_(fc.weight, std=0.001)
+        init.constant_(fc.bias, 0)
+        self.fc_list.append(fc)
+
+    def forward(self, x):
+        """
+    Returns:
+      global_feat: shape [N, C]
+      local_feat: shape [N, H, c]
+    """
+        # shape [N, C, H, W]
+        feat_final, feat_l3, feat_l2 = self.base(x)
+        feat_shorten = self.global_final_relu(self.global_final_bn(self.global_final_conv((feat_final))))
+        global_feat = F.max_pool2d(feat_shorten, feat_shorten.size()[2:])
+        global_feat = torch.squeeze(global_feat)
+        local_feat_list = []
+        logits_list = []
+        stripe_s2 = float(feat_l2.size(2)) / self.level2_strips
+        # stripe_h = int(np.ceil(stripe_s))
+        for i in range(self.level2_strips):
+            # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s2 * i))
+            stripe_end = int(min(numpy.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
+            sh = stripe_end - stripe_start
+            local_feat = F.max_pool2d(
+                feat_l2[:, :, stripe_start: stripe_end, :], (sh, feat_l2.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.level2_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat)
+            if hasattr(self, 'parts_fc_list'):
+                logits_list.append(self.fc_list[i](local_feat))
+
+        stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
+        # stripe_h = int(np.ceil(stripe_s))
+        for i in range(self.level3_strips):
+            # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s3 * i))
+            stripe_end = int(min(numpy.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
+            sh = stripe_end - stripe_start
+            local_feat = F.max_pool2d(
+                feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.level3_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat)
+            if hasattr(self, 'parts_fc_list'):
+                logits_list.append(self.parts_fc_list[i+self.level2_strips](local_feat))
+        if len(global_feat.size()) == 1:
+            global_feat = global_feat.unsqueeze(0)
+        local_feat_list.append(global_feat)
+        logits_list.append(self.fc_list[-1](torch.squeeze(global_feat)))
+        # sum up logits and concatinate features
+        for i, logit_rows in enumerate(logits_list):
+            if i == 0:
+                logits = logit_rows
+            else:
+                logits += logit_rows
+        return torch.cat(local_feat_list, dim=1), logits

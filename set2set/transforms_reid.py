@@ -142,6 +142,7 @@ class PixelNormalize(object):
 
     def __call__(self, sample):
         # images, person_id = sample['images'], sample['person_id']
+
         images = sample
         images_n = []
         for image in images:

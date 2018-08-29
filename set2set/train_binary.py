@@ -66,7 +66,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, model_folder, batch_size, decay_interval=80,
-         num_epochs=200, gpu_id=-1, base_model='resnet18',
+         num_epochs=200, gpu_id=-1, base_model='resnet50',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, crops_per_id=128, with_roi=False):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -92,9 +92,9 @@ def main(data_folder, model_folder, batch_size, decay_interval=80,
         gpu_id = -1
 
     if gpu_id>=0:
-        model = Model.BinaryModel(base_model=base_model, device_id=gpu_id, num_classes=num_classes).cuda(device=gpu_id)
+        model = Model.MGNModel(base_model=base_model, num_classes=num_classes).cuda(device=gpu_id)
     else:
-        model = Model.BinaryModel(base_model=base_model,num_classes=num_classes)
+        model = Model.MGNModel(base_model=base_model,num_classes=num_classes)
 
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
@@ -124,8 +124,8 @@ def main(data_folder, model_folder, batch_size, decay_interval=80,
             w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*crops_per_id,3,256,128])  # unfolder to 4-D
-            # grid_image = make_grid(images, padding=10)
-            # save_image(grid_image, '/tmp/grid.jpg')
+            #grid_image = make_grid(images, nrow=1, padding=10)
+            #save_image(grid_image, '/tmp/grid.jpg')
             if gpu_id >= 0:
                 features, logits = model(Variable(images.cuda(device=gpu_id))) #, Variable(w_h_ratios.cuda(device=gpu_id)))
                 person_ids = person_ids.cuda(device=gpu_id)
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('--decay_interval', type=int, default=80, help="number of iteration to decay learning rate")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=600, help="num of epochs")
-    parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
+    parser.add_argument('--base_model', type=str, default='resnet50', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
 

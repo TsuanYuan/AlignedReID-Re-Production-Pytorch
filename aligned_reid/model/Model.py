@@ -412,9 +412,9 @@ class MGNModel(nn.Module):
         global_feat = torch.squeeze(global_feat)
         local_feat_list = []
         logits_list = []
-        stripe_s2 = float(feat_l2.size(2)) / self.level3_strips
+        stripe_s2 = float(feat_l2.size(2)) / self.level2_strips
         # stripe_h = int(np.ceil(stripe_s))
-        for i in range(self.level3_strips):
+        for i in range(self.level2_strips):
             # shape [N, C, 1, 1]
             stripe_start = int(round(stripe_s2 * i))
             stripe_end = int(min(np.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
