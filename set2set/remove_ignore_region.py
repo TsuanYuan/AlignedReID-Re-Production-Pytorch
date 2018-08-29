@@ -31,7 +31,7 @@ def move_crops(folder, ignore_minmax, dest_folder, dry_run):
                     shutil.copy2(jpg, os.path.join(dest_folder, tail_jpg))
                 else:
                     shutil.move(json_file, os.path.join(dest_folder, tail_json))
-                    shutil.copy2(jpg, os.path.join(dest_folder, tail_jpg))
+                    shutil.move(jpg, os.path.join(dest_folder, tail_jpg))
 
 
 if __name__ == "__main__":

@@ -546,6 +546,8 @@ def plot_error_spatial(canvas, tough_pair_files):
         for tough_file in tough_pair:
             no_ext, _ = os.path.splitext(tough_file)
             json_file = no_ext+'.json'
+            if not os.path.isfile(json_file):
+                continue
             with open(json_file, 'r') as fp:
                 data = json.load(fp)
                 box_br = (data['box'][0] +  data['box'][2], data['box'][1] +  data['box'][3])
