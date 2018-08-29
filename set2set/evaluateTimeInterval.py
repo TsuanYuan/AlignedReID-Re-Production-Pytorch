@@ -496,7 +496,16 @@ def get_filename_for_display(file_path):
     return parts[-2]+'_'+parts[-1], folder_name
 
 def dump_pair_in_folder(file_pairs, pair_dist, output_path):
+    json0 = os.path.splitext(file_pairs[0])[0]+'.json'
+    json1 = os.path.splitext(file_pairs[1])[0] + '.json'
+    with open(json0, 'r') as fp:
+        d0 = json.load(fp)
+    with open(json1,'r') as fp:
+        d1 = json.load(fp)
+    box0 = d0['box'][0:4]
+    box1 = d1['box'][0:4]
     import cv2
+
     im0 = cv2.imread(file_pairs[0])
     im1 = cv2.imread(file_pairs[1])
     im0 = cv2.resize(im0, (256, 512))
@@ -510,13 +519,15 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path):
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-
+    cv2.putText(canvas, str(box0), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                (0, 255, 0), 2)
     top_name, folder_name = get_filename_for_display(file_pairs[1])
     cv2.putText(canvas, str(top_name), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(folder_name), (270, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-
+    cv2.putText(canvas, str(box1), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                (0, 255, 0), 2)
     cv2.putText(canvas, str(pair_dist), (120, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     cv2.imwrite(output_path, canvas)
