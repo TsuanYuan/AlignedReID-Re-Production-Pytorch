@@ -947,7 +947,7 @@ def main():
     # save ckpt
     if cfg.log_to_file:
       save_ckpt(modules_optims, ep + 1, 0, cfg.ckpt_file)
-      if (ep+1)%20 == 0:
+      if (ep+1)%20 == 0 or ((ep+1)%4==0 and ep < 20):
         ck_file_at_ep = cfg.ckpt_file+'.ep_{0}.ckpt'.format(str(ep+1))
         save_ckpt(modules_optims, ep + 1, 0, ck_file_at_ep)
   ########
