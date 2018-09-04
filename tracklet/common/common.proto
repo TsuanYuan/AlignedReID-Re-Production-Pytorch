@@ -1,0 +1,9 @@
+/* Proto definition for common components. */
+
+syntax = "proto3";
+
+package tracking_pipeline;
+
+message KeyPoint {
+  repeated float points = 1 [packed=true];
+}
