@@ -1,0 +1,91 @@
+/* Proto definition for tracking results. */
+
+syntax = "proto3";
+
+package tracking_pipeline;
+
+import "common.proto";
+
+message TrackingResults {
+  string detection_file = 1;
+  string video_path = 2;
+  float detection_confidence = 3;
+  repeated TrackingDetection tracked_detections = 4;
+  string version = 5;
+}
+
+message StaffRecognitionResult {
+  // default value "0" means not-found/no-match from staff database.
+  int32 staff_recog_id = 1;
+
+  // corresponding face_id.
+  int32 face_id = 2;
+
+  float confidence = 3;
+}
+
+message CustomerRecognitionResult {
+  // default value "0" means not-found/no-match from customer database.
+  int32 customer_recog_id = 1;
+
+  float confidence = 2;
+}
+
+message LabelingResult {
+  int32 pure_tracklet_id = 1; // tracklet id of single view results after purity check
+  int32 long_tracklet_id = 2; // long tracklet id of merged long tracks
+  int32 pid = 3;             // pid of associated long tracks
+}
+
+message TrackingDetection {
+  string video_name = 20;
+
+  uint32 frame_index = 1;
+  uint32 tracklet_index = 2;
+  bool track_confirmed = 3;
+
+  bool body_visible = 4;
+  repeated KeyPoint key_points = 5;
+  repeated float body_kf_velocity = 6;
+
+  float human_detection_score = 7;
+  int32 human_box_x = 8;
+  int32 human_box_y = 9;
+  int32 human_box_height = 10;
+  int32 human_box_width = 11;
+
+  int32 head_box_x = 12;
+  int32 head_box_y = 13;
+  int32 head_box_height = 14;
+  int32 head_box_width = 15;
+
+  // Saving apperance_feature is uaually memory/storage inefficient.
+  bytes appearance_feature = 16;
+
+  // This is the originial single view tracklet id.
+  // The difference between tracklet_id and sv_tracklet_id is that, after mv and/or final post processing,
+  // tracklet_id might be updated by various association/merging strategies. But sv_tracklet_id will stay
+  // the same as the original single_view tracklets.
+  int32 sv_tracklet_id = 23;
+
+  /* The following parameters are only present after futher processing on singel view tracking results - for example,
+   multi-view association, face_track/human_track matching, or staff recognition.
+  */
+
+  // "linked_id" after MV associations.
+  int32 mv_linked_id = 17;
+
+  // Face recognition tries to map tracklet to recognized faces in database.
+  // deafult value "0" (proto3 stops supporting explicit default values) means not-found/no-match from face database.
+  int32 face_recog_id = 18;
+
+  // Staff recognition tries to map tracklet to recognized staff members.
+  StaffRecognitionResult staff_recognition_result = 19;
+  // Labeling results.
+  LabelingResult labeling_result = 21;
+
+  // Customer recognition tries to map tracklet to recognized customers.
+  CustomerRecognitionResult customer_recognition_result = 22;
+
+  // Next tag: 24
+}
