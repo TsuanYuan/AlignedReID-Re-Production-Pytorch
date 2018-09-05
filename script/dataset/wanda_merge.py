@@ -39,12 +39,16 @@ if __name__ == '__main__':
                 os.makedirs(dest_folder)
 
             n = len(source_files)
+            # print "n={0}".format(str(n))
+            # print "source_files = {0}".format(str(source_files))
             # step = max(1, int(n/float(args.sample_size)))
+            if n==0:
+                continue
             sample_files = [source_files[int(round(k))] for k in numpy.linspace(0, n-1, args.sample_size)]
             for jpg_file in sample_files:
                 shutil.copy(jpg_file, dest_folder)
                 no_ext, _ = os.path.splitext(jpg_file)
-                json_file = no_ext+'*.json'
+                json_file = no_ext+'.json'
                 shutil.copy(json_file, dest_folder)
 
             print "copied {0} to {1}".format(source_path, dest_folder)
