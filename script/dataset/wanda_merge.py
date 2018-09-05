@@ -42,9 +42,9 @@ if __name__ == '__main__':
             # step = max(1, int(n/float(args.sample_size)))
             sample_files = [source_files[int(round(k))] for k in numpy.linspace(0, n-1, args.sample_size)]
             for jpg_file in sample_files:
-                shutil.copyfile(jpg_file, dest_folder)
+                shutil.copy(jpg_file, dest_folder)
                 no_ext, _ = os.path.splitext(jpg_file)
                 json_file = no_ext+'*.json'
-                shutil.copyfile(json_file, dest_folder)
+                shutil.copy(json_file, dest_folder)
 
             print "copied {0} to {1}".format(source_path, dest_folder)
