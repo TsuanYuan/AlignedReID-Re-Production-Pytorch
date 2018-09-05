@@ -13,7 +13,7 @@ def train(args):
         for i_batch, sample_batched in enumerate(dataloader):
             pass
 
-        
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
