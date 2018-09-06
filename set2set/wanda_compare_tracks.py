@@ -17,7 +17,7 @@ import compute_feature_alignedReid
 def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
 
-    descriptors_per_file = compute_feature_alignedReid.get_descriptors(pid_folder, model, force_compute=True, ext=ext)
+    descriptors_per_file = compute_feature_alignedReid.get_descriptors(pid_folder, model, force_compute=False, ext=ext)
     pid_descriptors = {}
     descriptors = []
     for pid_folder in descriptors_per_file:
