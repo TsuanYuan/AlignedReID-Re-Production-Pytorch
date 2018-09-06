@@ -36,7 +36,7 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                     sample_size=16, batch_max=32):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
-
+    im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
     batch_full = True
     for k, id_folder in enumerate(id_folders):
         if not id_folder.isdigit():
@@ -61,9 +61,7 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
                 im = crop_pad_fixed_aspect_ratio(im)
                 im = cv2.resize(im, (128, 256))
-                imt = im.transpose(2, 0, 1)
-                imt = imt/255.0
-                ims.append(imt)
+                ims.append(im)
 
         if len(descriptor_files) == 0:
             print "folder {0} is empty.".format(p)
