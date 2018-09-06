@@ -53,6 +53,8 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_desc
         descriptors = []
         for descriptor_item in track_descritpors[track_id_str]:
             descriptors.append(descriptor_item['descriptor'])
+        if len(descriptors) == 0:
+            continue
         m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
         l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
         m = m / (l2_norm[:, numpy.newaxis])
@@ -71,6 +73,7 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_desc
         pickle.dump(track_match_results, fp, protocol=pickle.HIGHEST_PROTOCOL)
     print "matching results are dumped to {0}".format(output_file)
 
+
 def batch_run_match(inputs):
     video_folder = inputs[0]
     model = inputs[1]
@@ -83,8 +86,8 @@ def batch_run_match(inputs):
 
 def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descriptors, device_id, start_index=0, num_to_run=-1, num_gpus=8):
     video_folders = os.listdir(folder)
-    #models = []
-    #n = len(video_folders)
+    # models = []
+    # n = len(video_folders)
     # for i in range(num_gpus):
     #     models.append(AppearanceModelForward(model_path, ((i,),)))
     model = AppearanceModelForward(model_path, ((device_id,),))

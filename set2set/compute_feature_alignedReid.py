@@ -14,7 +14,7 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
-    color = [0, 0, 0]  # zero padding
+    color = [0, 0, 0]  # if padding
     aspect_ratio = desired_size[0] / float(desired_size[1])
     current_ar = im.shape[0] / float(im.shape[1])
     if current_ar > aspect_ratio:  # current height is too high, pad width
@@ -32,11 +32,12 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
     # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
 
+
 def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                     sample_size=16, batch_max=32):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
-    im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
+    # im_mean, im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
     batch_full = True
     for k, id_folder in enumerate(id_folders):
         if not id_folder.isdigit():
