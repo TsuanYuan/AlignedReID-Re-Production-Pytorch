@@ -133,5 +133,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     start_time = time.time()
-    pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.device_id)
+
+    pid_file = os.path.join(args.output_folder, 'pids.pkl')
+    if os.path.isfile(pid_file):
+        with open(pid_file, 'rb') as fp:
+            pid_descriptors = pickle.load(fp)
+    else:
+        pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.device_id)
+        with open(pid_file, 'wb') as fp:
+            pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
     compare_unknown_tracks(args.tracklet_folder,args.model_path, args.output_folder, args.ext, pid_descriptors, num_gpus=8)
