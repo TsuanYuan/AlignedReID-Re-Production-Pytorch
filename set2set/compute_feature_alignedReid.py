@@ -66,6 +66,7 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                 ims.append(imt)
 
         if len(descriptor_files) == 0:
+            print "folder {0} is empty.".format(p)
             continue
         if len(descriptor_files) >= batch_max or k==len(id_folders)-1:
             batch_full = True
@@ -90,6 +91,7 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                 if descriptor_folder not in data:
                     data[descriptor_folder] = []
                 data[descriptor_folder].append(item.copy())
+        print "finished folder {0}".format(p)
     return data
 
 def distance(a,b):
