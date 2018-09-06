@@ -70,9 +70,9 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
             batch_full = True
             if len(ims) > 0:
                 if torch.has_cudnn:
-                    descriptor_batch = model.extract_feature(numpy.array(ims))
+                    descriptor_batch = model.compute_features_on_batch(numpy.array(ims))
                 else:
-                    descriptor_batch = model.extract_feature(numpy.array(ims)) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
+                    descriptor_batch = model.compute_features_on_batch(numpy.array(ims)) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
             di = 0
             for i, descriptor_file in enumerate(descriptor_files):
                 if os.path.isfile(descriptor_file) and (not force_compute):
