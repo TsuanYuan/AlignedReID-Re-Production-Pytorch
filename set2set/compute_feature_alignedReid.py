@@ -32,13 +32,13 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
     # scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
 
-def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
-                    sample_size=16, batch_max=128):
+def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
+                    sample_size=16, batch_max=32):
     id_folders = os.listdir(top_folder)
     data,item = {},{}
 
     batch_full = True
-    for i, id_folder in enumerate(id_folders):
+    for k, id_folder in enumerate(id_folders):
         if not id_folder.isdigit():
             continue
         p = os.path.join(top_folder, id_folder)
@@ -56,7 +56,6 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
             descriptor_files.append(descriptor_file)
             if os.path.isfile(descriptor_file) and (not force_compute):
                 continue
-                #descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
             else:
                 im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
@@ -64,31 +63,33 @@ def get_descriptors(top_folder,model, device_id, force_compute=False, ext='dsc',
                 im = cv2.resize(im, (128, 256))
                 imt = im.transpose(2, 0, 1)
                 imt = imt/255.0
-                #imt = numpy.expand_dims(imt, 0)
                 ims.append(imt)
-                # basename, _ = os.path.splitext(crop_file)
-                #json_file = basename + '.json'
-        if len(ims) == 0:
+
+        if len(descriptor_files) == 0:
             continue
-        if len(ims) >= batch_max or i==len(id_folders)-1:
+        if len(descriptor_files) >= batch_max or k==len(id_folders)-1:
             batch_full = True
-            if torch.has_cudnn:
-                descriptor_batch = model.extract_feature(numpy.array(ims))
-            else:
-                descriptor_batch = model.extract_feature(numpy.array(ims)) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
+            if len(ims) > 0:
+                if torch.has_cudnn:
+                    descriptor_batch = model.extract_feature(numpy.array(ims))
+                else:
+                    descriptor_batch = model.extract_feature(numpy.array(ims)) #,torch.from_numpy(numpy.array([aspect_ratio])).float())
+            di = 0
             for i, descriptor_file in enumerate(descriptor_files):
                 if os.path.isfile(descriptor_file) and (not force_compute):
                     descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
                 else:
-                    descriptor = descriptor_batch[i]
+                    descriptor = descriptor_batch[di]
                     descriptor.tofile(descriptor_file)
+                    di+=1
 
                 descriptor = numpy.squeeze(descriptor)
                 item['descriptor'] = descriptor
                 item['file'] = descriptor_file
-                if id_folder not in data:
-                    data[id_folder] = []
-                data[id_folder].append(item.copy())
+                descriptor_folder, _ = os.path.split(descriptor_file)
+                if descriptor_folder not in data:
+                    data[descriptor_folder] = []
+                data[descriptor_folder].append(item.copy())
     return data
 
 def distance(a,b):
@@ -101,15 +102,15 @@ def distance(a,b):
     return d0
 
 
-def process(model,folder, device, force_compute_desc, ext, sample_size):
-    get_descriptors(folder, model, device, force_compute=force_compute_desc, ext=ext, sample_size=sample_size)
+def process(model,folder, force_compute_desc, ext, sample_size):
+    get_descriptors(folder, model, force_compute=force_compute_desc, ext=ext, sample_size=sample_size)
     mlog.info('descriptors were computed in {0}'.format(folder))
 
 
-def process_root_folder(model,root_folder, device, force_compute_desc, ext, sample_size):
+def process_root_folder(model,root_folder, force_compute_desc, ext, sample_size):
     folders = os.listdir(root_folder)
     for folder in folders:
-        process(model, os.path.join(root_folder,folder), device, force_compute_desc, ext, sample_size)
+        process(model, os.path.join(root_folder,folder), force_compute_desc, ext, sample_size)
 
 
 if __name__ == '__main__':
@@ -142,14 +143,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     start_time = time.time()
     print "sample size per ID={0}".format(args.sample_size)
-    model = AppearanceModelForward(args.model_path, sys_device_ids=((args.device_id,), ))
+    model = AppearanceModelForward(args.model_path, sys_device_ids=(args.device_id,))
     if args.parent_folder:
-        process_root_folder(model, args.folder,
-                            args.device_id, args.force_compute, args.ext, args.sample_size)
+        process_root_folder(model, args.folder, args.force_compute, args.ext, args.sample_size)
     else:
-        process(model, args.folder,
-                args.device_id, args.force_compute, args.ext,
-                args.sample_size)
+        process(model, args.folder,args.force_compute, args.ext,args.sample_size)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

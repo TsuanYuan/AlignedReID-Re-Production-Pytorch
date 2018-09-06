@@ -31,7 +31,7 @@ class AppearanceModelForward(object):
         if mgn_model:
             model = MGNModel()
         else:
-            model = [SwitchClassHeadModel(parts_model=parts_model)]
+            model = SwitchClassHeadModel(parts_model=parts_model)
 
         self.model_ws = DataParallel(model, device_ids=relative_device_ids[0])
         # Set eval mode.
@@ -56,7 +56,8 @@ class AppearanceModelForward(object):
         ims = Variable(torch.from_numpy(ims).float())
         # global_feat, local_feat, logits = self.model(ims)[0]
         global_feat = self.model_ws(ims)[0].data.cpu().numpy()
-
+        l2_norm = numpy.sqrt((global_feat * global_feat + 1e-10).sum(axis=1))
+        global_feat = global_feat / (l2_norm[:, numpy.newaxis])
         return global_feat
 
 
