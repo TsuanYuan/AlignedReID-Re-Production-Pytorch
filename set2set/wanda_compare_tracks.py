@@ -81,12 +81,13 @@ def batch_run_match(inputs):
     compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_descriptor_name, output_folder, ext)
 
 
-def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descriptors, num_gpus=8):
+def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descriptors, device_id, start_index=0, num_to_run=-1, num_gpus=8):
     video_folders = os.listdir(folder)
-    models = []
-    n  = len(video_folders)
-    for i in range(num_gpus):
-        models.append(AppearanceModelForward(model_path, ((i,),)))
+    #models = []
+    #n = len(video_folders)
+    # for i in range(num_gpus):
+    #     models.append(AppearanceModelForward(model_path, ((i,),)))
+    model = AppearanceModelForward(model_path, ((device_id,),))
     pid_descriptor_array = []
     pid_descriptor_names = []
     for pid_str in pid_descriptors:
@@ -96,8 +97,10 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
     # for debug run
-    for video_folder in video_folders:
-        model = models[0]
+    if num_to_run < 0:
+        num_to_run = len(video_folders[start_index:])
+    for video_folder in video_folders[start_index:start_index+num_to_run]:
+        #model = models[device_id]
         full_folder = os.path.join(folder,video_folder)
         compare_one_video_folder(full_folder, model, numpy.array(pid_descriptor_array).transpose(), numpy.array(pid_descriptor_names), output_folder, ext)
     """
@@ -132,6 +135,12 @@ if __name__ == '__main__':
     parser.add_argument('--device_id', type=int, default=0, required=False,
                         help='the gpu id')
 
+    parser.add_argument('--start_video_index', type=int, default=0,
+                        help='the start video folder index')
+
+    parser.add_argument('--num_videos', type=int, default=150,
+                        help='the num of videos to process')
+
     args = parser.parse_args()
     start_time = time.time()
     if not os.path.isdir(args.output_folder):
@@ -144,4 +153,6 @@ if __name__ == '__main__':
         pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.device_id)
         with open(pid_file, 'wb') as fp:
             pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
-    compare_unknown_tracks(args.tracklet_folder,args.model_path, args.output_folder, args.ext, pid_descriptors, num_gpus=8)
+    compare_unknown_tracks(args.tracklet_folder,args.model_path, args.output_folder, args.ext, pid_descriptors,
+                           args.device_id, start_index=args.start_video_index, num_to_run=args.num_videos,
+                           num_gpus=8)
