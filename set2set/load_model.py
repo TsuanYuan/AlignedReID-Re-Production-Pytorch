@@ -11,6 +11,8 @@ import pickle
 import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from aligned_reid.model.Model import MGNModel, SwitchClassHeadModel
 
