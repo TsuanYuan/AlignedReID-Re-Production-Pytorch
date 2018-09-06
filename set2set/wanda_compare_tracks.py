@@ -96,11 +96,11 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
     # for debug run
-    # for video_folder in video_folders:
-    #     model = models[0]
-    #     full_folder = os.path.join(folder,video_folder)
-    #     compare_one_video_folder(full_folder, model, numpy.array(pid_descriptor_array).transpose(), numpy.array(pid_descriptor_names), output_folder, ext)
-
+    for video_folder in video_folders:
+        model = models[0]
+        full_folder = os.path.join(folder,video_folder)
+        compare_one_video_folder(full_folder, model, numpy.array(pid_descriptor_array).transpose(), numpy.array(pid_descriptor_names), output_folder, ext)
+    """
     assgined_models = [models[i%num_gpus] for i, _ in enumerate(video_folders)]
     pid_descriptor_names = [numpy.array(pid_descriptor_names)]*n
     pid_descriptor_arrays = [numpy.array(pid_descriptor_array).transpose()]*n
@@ -109,7 +109,7 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
     output_folders = [ext]*n
     p = multiprocessing.Pool(processes=num_gpus)
     p.map(batch_run_match, zip(video_folders, assgined_models, pid_descriptor_arrays, pid_descriptor_names, output_folders, exts))
-
+    """
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
