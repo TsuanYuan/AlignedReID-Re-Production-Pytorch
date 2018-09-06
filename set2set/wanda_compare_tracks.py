@@ -19,11 +19,12 @@ def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
 
     descriptors_per_file = compute_feature_alignedReid.get_descriptors(pid_folder, model, force_compute=False, ext=ext)
     pid_descriptors = {}
-    descriptors = []
+
     for pid_folder in descriptors_per_file:
         pid_str = os.path.basename(pid_folder)
+        descriptors = []
         for descriptor_item in descriptors_per_file[pid_folder]:
-                descriptors.append(descriptor_item['descriptor'])
+            descriptors.append(descriptor_item['descriptor'])
         m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
         l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
         m = m / (l2_norm[:, numpy.newaxis])
