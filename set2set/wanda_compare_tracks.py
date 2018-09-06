@@ -134,7 +134,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     start_time = time.time()
-
+    if not os.path.isdir(args.output_folder):
+        os.makedirs(args.output_folder)
     pid_file = os.path.join(args.output_folder, 'pids.pkl')
     if os.path.isfile(pid_file):
         with open(pid_file, 'rb') as fp:
