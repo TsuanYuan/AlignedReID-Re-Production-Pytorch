@@ -28,6 +28,7 @@ def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
         l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
         m = m / (l2_norm[:, numpy.newaxis])
         pid_descriptors[pid_str] = numpy.squeeze(m)
+        print "finished pid folder {0}".format(pid_folder)
     return pid_descriptors
 
 def distance(a,b):
