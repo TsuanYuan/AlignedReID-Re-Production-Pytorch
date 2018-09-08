@@ -295,7 +295,7 @@ class WeightedAverageLoss(nn.Module):
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
         element_loss, max_same_d, min_diff_d = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
-        mc_loss = self.id_loss(pids_expand, logits)
+        #mc_loss = self.id_loss(pids_expand, logits)
         return element_loss, element_loss, max_same_d, min_diff_d
 
 
