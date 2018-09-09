@@ -98,7 +98,7 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
 
     ind = decay_at_epochs[ep]
     for g in optimizer.param_groups:
-        g['lr'] = base_lr * factor ** (ind + 1)
+        g['lr'] = base_lr * factor ** ind
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
@@ -157,7 +157,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
         model_p = DataParallel(model, device_ids=gpu_ids)
     else:
         model_p = model
-    decay_at_epochs = {3:1, 10:2}
+    decay_at_epochs = {50:1, 100:2, 200:3}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'ranking':
         loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
