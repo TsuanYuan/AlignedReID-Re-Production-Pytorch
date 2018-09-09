@@ -90,7 +90,7 @@ def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     loss = torch.sum(loss_row[loss_row > 0])
     #y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
     #loss = ranking_loss(dist_an, dist_ap, y)
-    return loss, torch.max(dist_ap), torch.min(dist_an)
+    return loss, torch.mean(dist_ap), torch.mean(dist_an)
 
 def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
     # threshold loss
