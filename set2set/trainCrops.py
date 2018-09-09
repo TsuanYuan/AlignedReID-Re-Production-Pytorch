@@ -17,6 +17,27 @@ from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 
 
+def save_ckpt(modules_optims, ep, scores, ckpt_file):
+  """Save state_dict's of modules/optimizers to file.
+  Args:
+    modules_optims: A list, which members are either torch.nn.optimizer
+      or torch.nn.Module.
+    ep: the current epoch number
+    scores: the performance of current model
+    ckpt_file: The file path.
+  Note:
+    torch.save() reserves device type and id of tensors to save, so when
+    loading ckpt, you have to inform torch.load() to load these tensors to
+    cpu or your desired gpu, if you change devices.
+  """
+  state_dicts = [m.state_dict() for m in modules_optims]
+  ckpt = dict(state_dicts=state_dicts,
+              ep=ep,
+              scores=scores)
+  if not os.path.isdir(os.path.dirname(os.path.abspath(ckpt_file))):
+      os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
+  torch.save(ckpt, ckpt_file)
+
 def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
@@ -135,7 +156,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
         model_p = DataParallel(model, device_ids=gpu_ids)
     else:
         model_p = model
-    decay_at_epochs = {80:1, 120:2}
+    decay_at_epochs = {3:1, 10:2}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'ranking':
         loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
@@ -179,8 +200,8 @@ def main(data_folder, model_folder, sample_size, batch_size,
                             str(dist_neg.data.cpu().numpy()), str(sum_loss), str(sum_tri_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,num_epochs/8))==0:
-                    torch.save(model, model_file+'.epoch_{0}'.format(str(epoch)))
-                torch.save(model, model_file)
+                    save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
+                save_ckpt([model],  epoch, log_str, model_file)
     print('model saved to {0}'.format(model_file))
 
 
