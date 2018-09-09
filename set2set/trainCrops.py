@@ -190,7 +190,7 @@ if __name__ == '__main__':
     parser.add_argument('model_folder', type=str, help="folder to save the model")
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
-    parser.add_argument('--gpu_ids', type=eval, default=(0,), help="gpu id to use")
+    parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
