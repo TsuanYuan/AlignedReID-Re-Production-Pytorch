@@ -138,8 +138,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
     if not torch.cuda.is_available():
         gpu_ids = None
 
-    #if len(gpu_ids)>=0:
     model = Model.MGNModel()
+    if len(gpu_ids)>=0:
+        model = model.cuda()
     # else:
     #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
