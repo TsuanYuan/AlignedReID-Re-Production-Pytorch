@@ -7,6 +7,7 @@ import time
 import torch
 from torch.autograd import Variable
 from load_model import AppearanceModelForward
+import random
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -45,8 +46,21 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
         p = os.path.join(top_folder, id_folder)
         # print 'descriptor computing in {0}'.format(p)
         crop_files = glob.glob(os.path.join(p, '*.jpg'))
-        interval = max(len(crop_files) / sample_size, 1)
-        crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
+        if len(crop_files) <= 0:
+            print "folder {0} is empty.".format(p)
+            if not k==len(id_folders)-1:
+                continue
+        else:
+            interval = max(len(crop_files) / sample_size, 1)
+            crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
+            crop_files = crop_files[:sample_size]
+            if len(crop_files) < sample_size:
+                pad_num = sample_size - len(crop_files)
+                if pad_num <= sample_size/2:
+                    crop_files = crop_files + crop_files[:pad_num]
+                else:
+                    crop_files = [random.choice(crop_files) for _ in range(sample_size)]
+
         if batch_full:
             ims = []
             descriptor_files = []
@@ -64,9 +78,6 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
                 im = cv2.resize(im, (128, 256))
                 ims.append(im)
 
-        if len(descriptor_files) == 0:
-            print "folder {0} is empty.".format(p)
-            continue
         if len(descriptor_files) >= batch_max or k==len(id_folders)-1:
             batch_full = True
             if len(ims) > 0:
