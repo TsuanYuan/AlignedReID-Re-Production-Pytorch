@@ -14,10 +14,10 @@ from load_model import AppearanceModelForward
 import compute_feature_alignedReid
 
 
-def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
+def get_pid_descriptors(pid_folder, model_path, ext, sample_size, device_id=0):
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
 
-    descriptors_per_file = compute_feature_alignedReid.get_descriptors(pid_folder, model, force_compute=False, ext=ext)
+    descriptors_per_file = compute_feature_alignedReid.get_descriptors(pid_folder, model, sample_size=sample_size, force_compute=False, ext=ext)
     pid_descriptors = {}
 
     for pid_folder in descriptors_per_file:
@@ -32,25 +32,32 @@ def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
         print "finished pid folder {0}".format(pid_folder)
     return pid_descriptors
 
-def distance(single_set_descriptor, multi_set_descriptors, multi_set_sizes):
+def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     # cosine
-    d = []
+    # d = []
     dm = (1-numpy.dot(single_set_descriptor, multi_set_descriptors.transpose()))
-    start_count = 0
-    for set_size in multi_set_sizes:
-        #dm = (1-numpy.dot(single_set_descriptor, set_descriptors.transpose()))
-        dx = dm[:, start_count:start_count+set_size]
-        d.append(numpy.median(dx))
-        start_count += set_size
-    #d0 = (1-numpy.dot(a,b))
+    # start_count = 0
+    n_multi = multi_set_descriptors.shape[0]
+    n_sets = n_multi/sample_size
+    n_single = single_set_descriptor.shape[0]
+    dm = dm.reshape((n_single, n_sets, sample_size))
+    dm = numpy.moveaxis(dm, 0, -1).reshape((n_sets, sample_size*n_single))
+    d = numpy.median(dm, axis=1)
+    return d
+    # for set_size in multi_set_sizes:
+    #     #dm = (1-numpy.dot(single_set_descriptor, set_descriptors.transpose()))
+    #     dx = dm[:, start_count:start_count+set_size]
+    #     d.append(numpy.median(dx))
+    #     start_count += set_size
+    # d0 = (1-numpy.dot(a,b))
     # # euclidean
     # d1 = numpy.linalg.norm(a-b)
     # if abs(d0*2-d1)>0.0001:
     #     raise Exception('cosine and euclidean distance not equal')
-    return numpy.array(d)
+    # return numpy.array(d)
 
 
-def compare_one_video_folder(video_folder, model, pid_descriptor_list, pid_descriptor_names, output_folder, ext, max_id=100):
+def compare_one_video_folder(video_folder, model, pid_descriptor_list, pid_descriptor_names, output_folder, ext, sample_size, max_id=100):
     track_folders = os.listdir(video_folder)
     track_match_results = {}
     # for track_folder in track_folders:
@@ -69,7 +76,7 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_list, pid_descr
         # m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
         # l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
         # m = m / (l2_norm[:, numpy.newaxis])
-        distances = distance(descriptors, pid_descriptor_array, pid_descriptor_sizes)
+        distances = distance(numpy.array(descriptors), pid_descriptor_array, sample_size)
         sort_ids = numpy.argsort(distances)
         top_ids = sort_ids[:100]
         matching_names = pid_descriptor_names[top_ids]
@@ -92,10 +99,11 @@ def batch_run_match(inputs):
     pid_descriptor_name = inputs[3]
     output_folder = inputs[4]
     ext = inputs[5]
-    compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_descriptor_name, output_folder, ext)
+    sample_size = inputs[6]
+    compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_descriptor_name, output_folder, ext, sample_size)
 
 
-def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descriptors, device_id, start_index=0, num_to_run=-1, num_gpus=8):
+def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descriptors, device_id, sample_size, start_index=0, num_to_run=-1, num_gpus=8):
     video_folders = os.listdir(folder)
     # models = []
     # n = len(video_folders)
@@ -116,7 +124,7 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
     for video_folder in video_folders[start_index:start_index+num_to_run]:
         #model = models[device_id]
         full_folder = os.path.join(folder,video_folder)
-        compare_one_video_folder(full_folder, model, pid_descriptor_array, numpy.array(pid_descriptor_names), output_folder, ext)
+        compare_one_video_folder(full_folder, model, pid_descriptor_array, numpy.array(pid_descriptor_names), output_folder, ext, sample_size)
     """
     assgined_models = [models[i%num_gpus] for i, _ in enumerate(video_folders)]
     pid_descriptor_names = [numpy.array(pid_descriptor_names)]*n
@@ -155,6 +163,9 @@ if __name__ == '__main__':
     parser.add_argument('--num_videos', type=int, default=150,
                         help='the num of videos to process')
 
+    parser.add_argument('--sample_size', type=int, default=16,
+                        help='the num of crops to sample per id')
+
     args = parser.parse_args()
     start_time = time.time()
     if not os.path.isdir(args.output_folder):
@@ -164,9 +175,9 @@ if __name__ == '__main__':
         with open(pid_file, 'rb') as fp:
             pid_descriptors = pickle.load(fp)
     else:
-        pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.device_id)
+        pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.sample_size, device_id=args.device_id)
         with open(pid_file, 'wb') as fp:
             pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
     compare_unknown_tracks(args.tracklet_folder,args.model_path, args.output_folder, args.ext, pid_descriptors,
-                           args.device_id, start_index=args.start_video_index, num_to_run=args.num_videos,
+                           args.device_id, args.sample_size, start_index=args.start_video_index, num_to_run=args.num_videos,
                            num_gpus=8)

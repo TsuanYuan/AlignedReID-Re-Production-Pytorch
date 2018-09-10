@@ -53,7 +53,8 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
         else:
             interval = max(len(crop_files) / sample_size, 1)
             crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
-            crop_files = crop_files[:sample_size]
+            if len(crop_files) > sample_size:
+                crop_files = crop_files[:sample_size]
             if len(crop_files) < sample_size:
                 pad_num = sample_size - len(crop_files)
                 if pad_num <= sample_size/2:
