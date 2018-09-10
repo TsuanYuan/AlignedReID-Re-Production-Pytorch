@@ -17,6 +17,35 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from aligned_reid.model.Model import MGNModel, SwitchClassHeadModel
 
 
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
+  """Load state_dict's of modules/optimizers from file.
+  Args:
+    modules_optims: A list, which members are either torch.nn.optimizer
+      or torch.nn.Module.
+    ckpt_file: The file path.
+    load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
+      to cpu type.
+  """
+  map_location = (lambda storage, loc: storage) if load_to_cpu else None
+  ckpt = torch.load(ckpt_file, map_location=map_location)
+  if skip_fc:
+    print('skip fc layers when loading the model!')
+  for m, sd in zip(modules_optims, ckpt['state_dicts']):
+    if m is not None:
+      if skip_fc:
+        for k in sd.keys():
+          if k.find('fc') >= 0:
+            sd.pop(k, None)
+      if hasattr(m, 'param_groups'):
+        m.load_state_dict(sd)
+      else:
+        m.load_state_dict(sd, strict=False)
+  if verbose:
+    print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
+      ckpt_file, ckpt['ep'], ckpt['scores']))
+  return ckpt['ep'], ckpt['scores']
+
+
 class AppearanceModelForward(object):
     def __init__(self, model_path, sys_device_ids=(0,)):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
@@ -35,7 +64,9 @@ class AppearanceModelForward(object):
         else:
             model = SwitchClassHeadModel(parts_model=parts_model)
 
+        load_ckpt([model], model_path, skip_fc=True)
         self.model_ws = DataParallel(model, device_ids=relative_device_ids[0])
+
         # Set eval mode.
         # Force all BN layers to use global mean and variance, also disable
         # dropout.

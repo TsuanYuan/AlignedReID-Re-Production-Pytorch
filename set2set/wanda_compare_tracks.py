@@ -32,12 +32,16 @@ def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
         print "finished pid folder {0}".format(pid_folder)
     return pid_descriptors
 
-def distance(single_set_descriptor, multi_set_descriptors):
+def distance(single_set_descriptor, multi_set_descriptors, multi_set_sizes):
     # cosine
     d = []
-    for set_descriptors in multi_set_descriptors:
-        dm = (1-numpy.dot(single_set_descriptor, set_descriptors.transpose()))
-        d.append(numpy.median(dm))
+    dm = (1-numpy.dot(single_set_descriptor, multi_set_descriptors.transpose()))
+    start_count = 0
+    for set_size in multi_set_sizes:
+        #dm = (1-numpy.dot(single_set_descriptor, set_descriptors.transpose()))
+        dx = dm[:, start_count:start_count+set_size]
+        d.append(numpy.median(dx))
+        start_count += set_size
     #d0 = (1-numpy.dot(a,b))
     # # euclidean
     # d1 = numpy.linalg.norm(a-b)
@@ -46,11 +50,14 @@ def distance(single_set_descriptor, multi_set_descriptors):
     return numpy.array(d)
 
 
-def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_descriptor_names, output_folder, ext, max_id=100):
+def compare_one_video_folder(video_folder, model, pid_descriptor_list, pid_descriptor_names, output_folder, ext, max_id=100):
     track_folders = os.listdir(video_folder)
     track_match_results = {}
     # for track_folder in track_folders:
     #     track_full_folder = os.path.join(video_folder, track_folder)
+    pid_descriptor_sizes = [s.shape[0] for s in pid_descriptor_list]
+    pid_descriptor_array = numpy.vstack(pid_descriptor_list)
+    #pid_descriptor_array = [numpy.concatenate((pid_descriptor_array )) for pid_array in pid_descriptor_list]
 
     track_descritpors = compute_feature_alignedReid.get_descriptors(video_folder, model, force_compute=False, ext=ext)
     for track_id_str in track_descritpors:
@@ -62,7 +69,7 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_desc
         # m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
         # l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
         # m = m / (l2_norm[:, numpy.newaxis])
-        distances = distance(descriptors, pid_descriptor_array)
+        distances = distance(descriptors, pid_descriptor_array, pid_descriptor_sizes)
         sort_ids = numpy.argsort(distances)
         top_ids = sort_ids[:100]
         matching_names = pid_descriptor_names[top_ids]
