@@ -25,21 +25,25 @@ def get_pid_descriptors(pid_folder, model_path, ext, device_id=0):
         descriptors = []
         for descriptor_item in descriptors_per_file[pid_folder]:
             descriptors.append(descriptor_item['descriptor'])
-        m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
-        l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
-        m = m / (l2_norm[:, numpy.newaxis])
-        pid_descriptors[pid_str] = numpy.squeeze(m)
+        # m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
+        # l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
+        # m = m / (l2_norm[:, numpy.newaxis])
+        pid_descriptors[pid_str] = numpy.squeeze(descriptors)
         print "finished pid folder {0}".format(pid_folder)
     return pid_descriptors
 
-def distance(a,b):
+def distance(single_set_descriptor, multi_set_descriptors):
     # cosine
-    d0 = (1-numpy.dot(a,b))
+    d = []
+    for set_descriptors in multi_set_descriptors:
+        dm = (1-numpy.dot(single_set_descriptor, set_descriptors.transpose()))
+        d.append(numpy.median(dm))
+    #d0 = (1-numpy.dot(a,b))
     # # euclidean
     # d1 = numpy.linalg.norm(a-b)
     # if abs(d0*2-d1)>0.0001:
     #     raise Exception('cosine and euclidean distance not equal')
-    return numpy.squeeze(d0)
+    return numpy.array(d)
 
 
 def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_descriptor_names, output_folder, ext, max_id=100):
@@ -55,10 +59,10 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_array, pid_desc
             descriptors.append(descriptor_item['descriptor'])
         if len(descriptors) == 0:
             continue
-        m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
-        l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
-        m = m / (l2_norm[:, numpy.newaxis])
-        distances = distance(m, pid_descriptor_array)
+        # m = numpy.expand_dims(numpy.mean(numpy.array(descriptors), axis=0),0)
+        # l2_norm = numpy.sqrt((m * m + 1e-10).sum(axis=1))
+        # m = m / (l2_norm[:, numpy.newaxis])
+        distances = distance(descriptors, pid_descriptor_array)
         sort_ids = numpy.argsort(distances)
         top_ids = sort_ids[:100]
         matching_names = pid_descriptor_names[top_ids]
@@ -105,7 +109,7 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
     for video_folder in video_folders[start_index:start_index+num_to_run]:
         #model = models[device_id]
         full_folder = os.path.join(folder,video_folder)
-        compare_one_video_folder(full_folder, model, numpy.array(pid_descriptor_array).transpose(), numpy.array(pid_descriptor_names), output_folder, ext)
+        compare_one_video_folder(full_folder, model, pid_descriptor_array, numpy.array(pid_descriptor_names), output_folder, ext)
     """
     assgined_models = [models[i%num_gpus] for i, _ in enumerate(video_folders)]
     pid_descriptor_names = [numpy.array(pid_descriptor_names)]*n
@@ -148,7 +152,7 @@ if __name__ == '__main__':
     start_time = time.time()
     if not os.path.isdir(args.output_folder):
         os.makedirs(args.output_folder)
-    pid_file = os.path.join(args.output_folder, 'pids.pkl')
+    pid_file = os.path.join(args.output_folder, 'pids'+'_'+args.ext+'.pkl')
     if os.path.isfile(pid_file):
         with open(pid_file, 'rb') as fp:
             pid_descriptors = pickle.load(fp)
