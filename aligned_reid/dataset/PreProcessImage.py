@@ -129,8 +129,9 @@ class PreProcessIm(object):
       new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
                                   value=color)
     #debug
-    import scipy.misc
-    scipy.misc.imsave('/tmp/new_im.jpg', new_im)
+    #import scipy.misc
+    #print "debug output to /tmp/new_im.jpg"
+    #scipy.misc.imsave('/tmp/new_im.jpg', new_im)
     return new_im
 
   @staticmethod

@@ -138,7 +138,7 @@ class PixelNormalize(object):
 """
 
     def __init__(self):
-        pass
+        self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
 
     def __call__(self, sample):
         # images, person_id = sample['images'], sample['person_id']
@@ -147,6 +147,8 @@ class PixelNormalize(object):
         images_n = []
         for image in images:
             image = image/255.0
+            image = image - numpy.array(self.im_mean)
+            image = image / numpy.array(self.im_std).astype(float)
             images_n.append(image)
         return images_n  # {'images': images_cropped, 'person_id': person_id}
 

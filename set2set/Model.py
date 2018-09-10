@@ -354,9 +354,14 @@ class MGNModel(nn.Module):
         local_feat_list.append(global_feat)
         logits_list.append(self.fc_list[-1](torch.squeeze(global_feat)))
         # sum up logits and concatinate features
+        logits = None
         for i, logit_rows in enumerate(logits_list):
             if i == 0:
                 logits = logit_rows
             else:
                 logits += logit_rows
-        return torch.cat(local_feat_list, dim=1), logits
+        condensed_feat = torch.cat(local_feat_list, dim=1)
+        if len(condensed_feat.size()) == 1: # in case of single feature
+            condensed_feat = condensed_feat.unsqueeze(0)
+        feat = F.normalize(condensed_feat, p=2, dim=1)
+        return feat, logits
