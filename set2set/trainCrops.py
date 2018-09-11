@@ -182,23 +182,24 @@ def main(data_folder, model_folder, sample_size, batch_size,
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
             if len(gpu_ids)>0:
-                person_ids = person_ids.cuda()
-                features, logits = model_p(Variable(images.cuda())) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
+                with torch.cuda.device(gpu_ids[0]):
+                    person_ids = person_ids.cuda()
+                    features, logits = model_p(Variable(images.cuda())) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
                 features, logits = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,tri_loss, dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
+            loss,dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             #average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
             sum_loss+=loss.data.cpu().numpy()
-            sum_tri_loss += tri_loss.data.cpu().numpy()
+            # sum_tri_loss += tri_loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
             if i_batch==len(dataloader)-1:
-                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}, sum_tri_loss={}"\
+                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
-                            str(dist_neg.data.cpu().numpy()), str(sum_loss), str(sum_tri_loss))
+                            str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,num_epochs/8))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))

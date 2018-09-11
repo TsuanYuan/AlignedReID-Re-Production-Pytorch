@@ -139,8 +139,8 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
   #dist_np, labels_np = pair_example_mining(dist_mat, labels)
 
   loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
-  return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
-
+  return loss, torch.mean(dist_ap), torch.mean(dist_an)
+  # return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
 
 def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     #self.ranking_loss = nn.MarginRankingLoss(margin=margin)
@@ -356,7 +356,7 @@ class GlobalLoss(nn.Module):
         feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
         element_loss, max_same_d, min_diff_d = global_loss(self.triple_loss, feature_expand, pids_expand)
         # mc_loss = self.id_loss(pids_expand, logits)
-        return element_loss, element_loss, max_same_d, min_diff_d
+        return element_loss, max_same_d, min_diff_d
 
 
 class WeightedAverageLoss(nn.Module):
