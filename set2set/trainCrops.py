@@ -102,6 +102,38 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
+def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep, min_lr):
+    """Decay exponentially in the later phase of training. All parameters in the
+    optimizer share the same learning rate.
+
+    Args:
+      optimizer: a pytorch `Optimizer` object
+      base_lr: starting learning rate
+      ep: current epoch, ep >= 1
+      total_ep: total number of epochs to train
+      start_decay_at_ep: start decaying at the BEGINNING of this epoch
+
+    Example:
+      base_lr = 2e-4
+      total_ep = 300
+      start_decay_at_ep = 201
+      It means the learning rate starts at 2e-4 and begins decaying after 200
+      epochs. And training stops after 300 epochs.
+
+    NOTE:
+      It is meant to be called at the BEGINNING of an epoch.
+    """
+    assert ep >= 1, "Current epoch number should be >= 1"
+
+    if ep < start_decay_at_ep:
+        return
+
+    for g in optimizer.param_groups:
+        g['lr'] = max((base_lr * (0.001 ** (float(ep + 1 - start_decay_at_ep)
+                                            / (total_ep + 1 - start_decay_at_ep)))), min_lr)
+    print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
+
+
 def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     if optim == 'adam':
         return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
@@ -158,7 +190,9 @@ def main(data_folder, model_folder, sample_size, batch_size,
     else:
         model_p = model
     decay_at_epochs = {50:1, 100:2, 200:3}
+    start_decay = 50
     staircase_decay_multiply_factor = 0.1
+    min_lr = 1e-9
     if loss_name == 'ranking':
         loss_function = losses.GlobalLoss(margin=margin)#losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
     elif loss_name == 'class_th':
@@ -172,7 +206,13 @@ def main(data_folder, model_folder, sample_size, batch_size,
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
-                adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
+                adjust_lr_exp(
+                    optimizer,
+                    base_lr,
+                    epoch + 1,
+                    num_epochs,
+                    start_decay, min_lr)
+                #adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
