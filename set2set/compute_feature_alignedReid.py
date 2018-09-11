@@ -51,8 +51,9 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
             if not k==len(id_folders)-1:
                 continue
         else:
-            interval = max(len(crop_files) / sample_size, 1)
-            crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
+            # interval = max(len(crop_files) / sample_size, 1)
+            inds = numpy.linspace(0, len(crop_files), sample_size)
+            crop_files = [crop_files[int(round(k))] for k in inds]
             if len(crop_files) > sample_size:
                 crop_files = crop_files[:sample_size]
             if len(crop_files) < sample_size:
