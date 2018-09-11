@@ -8,6 +8,61 @@ import numpy
 import random
 from torch.utils.data import Dataset
 import json
+from struct_format.utils import SingleFileCrops
+
+
+def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
+    color = [0, 0, 0]  # zero padding
+    aspect_ratio = desired_size[0] / float(desired_size[1])
+    current_ar = im.shape[0] / float(im.shape[1])
+    if current_ar > aspect_ratio:  # current height is too high, pad width
+        delta_w = int(round(im.shape[0] / aspect_ratio - im.shape[1]))
+        left, right = delta_w / 2, delta_w - (delta_w / 2)
+        new_im = cv2.copyMakeBorder(im, 0, 0, int(left), int(right), cv2.BORDER_CONSTANT,
+                                    value=color)
+    else:  # current width is too wide, pad height
+        delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
+        top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+        new_im = cv2.copyMakeBorder(im, int(top), int(bottom), 0, 0, cv2.BORDER_CONSTANT,
+                                    value=color)
+
+    return new_im, im.shape[1] / float(im.shape[0])
+
+
+class ReIDSingleFileCropsDataset(Dataset):
+    """ReID data set with single file crops format"""
+    def __init__(self, data_folder, transform=None, sample_size=8, desired_size=(256, 128),
+                 index_ext='.pickl'):
+        """
+        Args:
+            root_dir (string): Directory with all the index files and binary data files.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.root_dir = data_folder
+        self.single_file_data = SingleFileCrops(data_folder, index_ext=index_ext)
+        self.person_ids = self.single_file_data.get_pid_list()
+        self.sample_size = sample_size
+        self.transform = transform
+        self.desired_size = desired_size
+
+    def __len__(self):
+        return len(self.person_ids)
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.person_ids[set_id]
+        ims = self.single_file_data.load_fixed_count_images_of_one_pid(person_id, self.sample_size)
+        for i, im in enumerate(ims):
+            ims[i], w_h_ratio = crop_pad_fixed_aspect_ratio(im, desired_size=self.desired_size)
+
+        sample = {'images': ims, 'person_id': person_id}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+
+        return sample
+
 
 
 class ReIDAppearanceDataset(Dataset):

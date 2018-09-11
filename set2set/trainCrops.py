@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceSet2SetDataset
+from DataLoader import ReIDAppearanceSet2SetDataset, ReIDSingleFileCropsDataset
 import argparse
 import os
 import datetime
@@ -129,9 +129,11 @@ def main(data_folder, model_folder, sample_size, batch_size,
                                               transforms_reid.ToTensor(),
                                               ])
 
-    reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
-                                                sample_size=sample_size, with_roi=with_roi)
-    num_classes = len(reid_dataset.person_id_im_paths)
+    # reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
+    #                                             sample_size=sample_size, with_roi=with_roi)
+    reid_dataset = ReIDSingleFileCropsDataset(data_folder, transform=composed_transforms,
+                                                sample_size=sample_size)
+    num_classes = len(reid_dataset)
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=4)
 
@@ -216,7 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
-    parser.add_argument('--base_model', type=str, default='resnet18', help="base backbone model")
+    parser.add_argument('--base_model', type=str, default='resnet50', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='ranking', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
