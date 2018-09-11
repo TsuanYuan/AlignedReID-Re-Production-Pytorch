@@ -160,7 +160,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
     decay_at_epochs = {50:1, 100:2, 200:3}
     staircase_decay_multiply_factor = 0.1
     if loss_name == 'ranking':
-        loss_function = losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
+        loss_function = losses.GlobalLoss(margin=margin)#losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
     elif loss_name == 'class_th':
         loss_function = losses.WeightedAverageThLoss(th=threshold)
     else:
