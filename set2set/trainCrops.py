@@ -196,7 +196,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
             sum_tri_loss += tri_loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
             if i_batch==len(dataloader)-1:
-                log_str = "time_str: epoch={0}, iter={1}, train_loss={2}, dist_pos={3}, dist_neg={4} sum_loss_epoch={5}, sum_tri_loss={6}"\
+                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}, sum_tri_loss={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss), str(sum_tri_loss))
                 print(log_str)
