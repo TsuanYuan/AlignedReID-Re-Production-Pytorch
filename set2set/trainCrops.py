@@ -168,7 +168,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
-                            shuffle=True, num_workers=4)
+                            shuffle=True, num_workers=8)
 
     if not torch.cuda.is_available():
         gpu_ids = None
