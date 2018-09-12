@@ -140,14 +140,20 @@ class MultiFileCrops(object):
         images = []
         if pos + count > len(self.pid_index[pid]):
             random.shuffle(self.pid_index[pid])
-        for i in range(pos, pos + count):
+        i = pos
+        while i<pos + count:
             k = i%len(self.pid_index[pid])
             data_file_name, place = self.pid_index[pid][k]
             path_parts = os.path.normcase(data_file_name).split('/')[-path_tail_len:]
             path_tail = os.path.join(*path_parts)
             data_file = os.path.join(self.data_folder, path_tail)
-            one_image = read_one_image(data_file, place)
-            images.append(one_image)
+            try:
+                one_image = read_one_image(data_file, place)
+                images.append(one_image)
+                i+=1
+            except:
+                print "failed to read one image from path {}".format(data_file)
+                
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
