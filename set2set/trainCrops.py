@@ -166,6 +166,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
     reid_dataset = ReIDSingleFileCropsDataset(data_folder, transform=composed_transforms,
                                                 sample_size=sample_size)
     num_classes = len(reid_dataset)
+    print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=4)
 
@@ -217,6 +218,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                 #adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
+            # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
