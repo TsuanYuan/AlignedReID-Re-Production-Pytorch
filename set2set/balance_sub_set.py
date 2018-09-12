@@ -6,6 +6,7 @@ Quan Yuan
 
 import os, glob
 import argparse
+import numpy
 
 def balance_sub_sets(folder, cap_number):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
@@ -14,7 +15,10 @@ def balance_sub_sets(folder, cap_number):
         jpgs = glob.glob(os.path.join(sub_folder_full,'*.jpg'))
         if len(jpgs) <= cap_number:
             continue
-        for jpg in jpgs[cap_number:]:
+        idx = numpy.round(numpy.linspace(0, len(jpgs)-1, cap_number)).astype(int).tolist()
+        for i, jpg in enumerate(jpgs):
+            if i in idx:
+                continue
             basename = os.path.splitext(jpg)[0]
             json_file = basename+'.json'
             if os.path.isfile(jpg):

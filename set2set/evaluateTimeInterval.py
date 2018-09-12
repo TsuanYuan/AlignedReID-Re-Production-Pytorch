@@ -271,25 +271,31 @@ def get_crop_files_at_interval(crop_files, frame_interval):
     sequence_crop_files = []
     for crop_file in crop_files:
         camera_id, person_id, frame_id = decode_raw_image_name(crop_file)
-        if current_cid is None:
-            current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-            sequence_crop_files.append([])
-            sequence_crop_files[-1].append(crop_file)
-            continue
-        elif current_cid != camera_id or current_pid != person_id:
-            #current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-            # only keep the crops from the first camera
-            break
-        else:
-            frame_diff = frame_id - current_fid
-            if frame_diff >= frame_interval and frame_diff < frame_interval*1.75: # allow slight variation if not exact
-                sequence_crop_files[-1].append(crop_file)
-                current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-                continue
-            elif frame_diff >= frame_interval*1.5:
+        if frame_interval < 0:
+            if len(sequence_crop_files) == 0:
                 sequence_crop_files.append([crop_file])
+            else:
+                sequence_crop_files[0].append(crop_file)
+        else:
+            if current_cid is None:
                 current_cid, current_pid, current_fid = camera_id, person_id, frame_id
+                sequence_crop_files.append([])
+                sequence_crop_files[-1].append(crop_file)
                 continue
+            elif current_cid != camera_id or current_pid != person_id:
+                #current_cid, current_pid, current_fid = camera_id, person_id, frame_id
+                # only keep the crops from the first camera
+                break
+            else:
+                frame_diff = frame_id - current_fid
+                if frame_diff >= frame_interval and frame_diff < frame_interval*1.75: # allow slight variation if not exact
+                    sequence_crop_files[-1].append(crop_file)
+                    current_cid, current_pid, current_fid = camera_id, person_id, frame_id
+                    continue
+                elif frame_diff >= frame_interval*1.5:
+                    sequence_crop_files.append([crop_file])
+                    current_cid, current_pid, current_fid = camera_id, person_id, frame_id
+                    continue
 
     longest = 0
     for crop_files in sequence_crop_files:
