@@ -78,6 +78,69 @@ def pair_loss_func(feature, pids, margin, sub_sample_neg=10):
     loss = torch.sum(loss_mat[loss_ids])
     return loss, torch.max(dist_pos), torch.min(dist_neg)
 
+def normalize(x, axis=-1):
+  """Normalizing to unit length along the specified dimension.
+  Args:
+    x: pytorch Variable
+  Returns:
+    x: pytorch Variable, same shape as input
+  """
+  x = 1. * x / (torch.norm(x, 2, axis, keepdim=True).expand_as(x) + 1e-12)
+  return x
+
+
+def euclidean_dist(x, y):
+  """
+  Args:
+    x: pytorch Variable, with shape [m, d]
+    y: pytorch Variable, with shape [n, d]
+  Returns:
+    dist: pytorch Variable, with shape [m, n]
+  """
+  m, n = x.size(0), y.size(0)
+  xx = torch.pow(x, 2).sum(1, keepdim=True).expand(m, n)
+  yy = torch.pow(y, 2).sum(1, keepdim=True).expand(n, m).t()
+  dist = xx + yy
+  dist.addmm_(1, -2, x, y.t())
+  dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
+  return dist
+
+
+def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
+  """
+  Args:
+    tri_loss: a `TripletLoss` object
+    global_feat: pytorch Variable, shape [N, C]
+    labels: pytorch LongTensor, with shape [N]
+    normalize_feature: whether to normalize feature to unit length along the
+      Channel dimension
+  Returns:
+    loss: pytorch Variable, with shape [1]
+    p_inds: pytorch LongTensor, with shape [N];
+      indices of selected hard positive samples; 0 <= p_inds[i] <= N - 1
+    n_inds: pytorch LongTensor, with shape [N];
+      indices of selected hard negative samples; 0 <= n_inds[i] <= N - 1
+    =============
+    For Debugging
+    =============
+    dist_ap: pytorch Variable, distance(anchor, positive); shape [N]
+    dist_an: pytorch Variable, distance(anchor, negative); shape [N]
+    ===================
+    For Mutual Learning
+    ===================
+    dist_mat: pytorch Variable, pairwise euclidean distance; shape [N, N]
+  """
+  if normalize_feature:
+    global_feat = normalize(global_feat, axis=-1)
+  # shape [N, N]
+  dist_mat = euclidean_dist(global_feat, global_feat)
+  dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
+    dist_mat, labels, return_inds=True)
+  #dist_np, labels_np = pair_example_mining(dist_mat, labels)
+
+  loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
+  return loss, torch.mean(dist_ap), torch.mean(dist_an)
+  # return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
 
 def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     #self.ranking_loss = nn.MarginRankingLoss(margin=margin)
@@ -90,7 +153,7 @@ def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     loss = torch.sum(loss_row[loss_row > 0])
     #y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
     #loss = ranking_loss(dist_an, dist_ap, y)
-    return loss, torch.max(dist_ap), torch.min(dist_an)
+    return loss, torch.mean(dist_ap), torch.mean(dist_an)
 
 def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
     # threshold loss
@@ -277,6 +340,23 @@ class WeightedAverageSeqThLoss(nn.Module):
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
+class GlobalLoss(nn.Module):
+    """Weighted avearge loss.
+       assume the last element of the feature is a weight vector
+       """
+
+    def __init__(self, margin):
+        super(GlobalLoss, self).__init__()
+        self.margin = margin
+        self.triple_loss = TripletLoss(margin=margin)
+
+    def forward(self, feature, pids, logits):
+        feature_size = list(feature.size())
+        pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
+        feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
+        element_loss, max_same_d, min_diff_d = global_loss(self.triple_loss, feature_expand, pids_expand)
+        # mc_loss = self.id_loss(pids_expand, logits)
+        return element_loss, max_same_d, min_diff_d
 
 
 class WeightedAverageLoss(nn.Module):
@@ -289,13 +369,14 @@ class WeightedAverageLoss(nn.Module):
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
         self.id_loss = MultiClassLoss(num_classes=num_classes)
+        self.triple_loss = TripletLoss()
 
     def forward(self, feature, pids, logits):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
         element_loss, max_same_d, min_diff_d = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
-        mc_loss = self.id_loss(pids_expand, logits)
+        #mc_loss = self.id_loss(pids_expand, logits)
         return element_loss, element_loss, max_same_d, min_diff_d
 
 
