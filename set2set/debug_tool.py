@@ -16,7 +16,7 @@ def dump_images_in_batch(images_5d, output_folder):
     for i in range(s[0]):
         for j in range(s[1]):
             image_chw = numpy.squeeze(images_5d_np[i,j,:,:,:])
-            image = image_chw.transpose((1, 2, 0)).astype(numpy.uint8)
+            image = image_chw.transpose((1, 2, 0)) #.astype(numpy.uint8)
             image = ((image*numpy.array([0.229, 0.224, 0.225])+numpy.array([0.486, 0.459, 0.408]))*255).astype(numpy.uint8)
             image_path = os.path.join(output_folder, str(i)+'_'+str(j)+'.jpg')
             scipy.misc.imsave(image_path, image)
