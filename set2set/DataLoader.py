@@ -8,7 +8,7 @@ import numpy
 import random
 from torch.utils.data import Dataset
 import json
-from struct_format.utils import SingleFileCrops
+from struct_format.utils import SingleFileCrops, MultiFileCrops
 
 
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
@@ -32,7 +32,7 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 class ReIDSingleFileCropsDataset(Dataset):
     """ReID data set with single file crops format"""
     def __init__(self, data_folder, transform=None, sample_size=8, desired_size=(256, 128),
-                 index_ext='.pickl'):
+                 index_ext='.list'):
         """
         Args:
             root_dir (string): Directory with all the index files and binary data files.
@@ -40,7 +40,7 @@ class ReIDSingleFileCropsDataset(Dataset):
                 on a sample.
         """
         self.root_dir = data_folder
-        self.single_file_data = SingleFileCrops(data_folder, index_ext=index_ext)
+        self.single_file_data = MultiFileCrops(data_folder, 0, index_ext=index_ext)
         self.person_ids = self.single_file_data.get_pid_list()
         self.sample_size = sample_size
         self.transform = transform

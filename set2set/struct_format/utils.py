@@ -66,7 +66,8 @@ def read_one_image(data_file_path, place):
         name_len = struct.unpack('i', f.read(4))[0]
         f.seek(name_len, 1)
         img_len = struct.unpack('i', f.read(4))[0]
-        img = cv2.imdecode(numpy.asarray(bytearray(f.read(img_len)), dtype="uint8"), cv2.IMREAD_COLOR)
+        img_bgr = cv2.imdecode(numpy.asarray(bytearray(f.read(img_len)), dtype="uint8"), cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return img
 
 
