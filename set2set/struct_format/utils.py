@@ -34,7 +34,7 @@ def get_part_name(part_prefix, cur_part_idx):
     return part_name
 
 
-def load_list_to_pid(list_file, prefix):
+def load_list_to_pid(list_file, data_folder, prefix, path_tail_len=2):
     pid_index = collections.defaultdict(list)
     with open(list_file) as f:
         lines = f.readlines()
@@ -48,7 +48,11 @@ def load_list_to_pid(list_file, prefix):
             for i in xrange(num_imgs):
                 part_name = groups[2 * i]
                 within_idx = int(groups[2 * i + 1])
-                pid_index[label].append((part_name, within_idx))
+                path_parts = os.path.normcase(part_name).split('/')[-path_tail_len:]
+                path_tail = os.path.join(*path_parts)
+                data_file = os.path.join(data_folder, path_tail)
+                if os.path.isfile(data_file):
+                    pid_index[label].append((part_name, within_idx))
     return pid_index
 
 
@@ -132,7 +136,7 @@ class MultiFileCrops(object):
 
     def load_index_files(self, list_files):
         for list_file in list_files:
-            single_index = load_list_to_pid(list_file, self.prefix)
+            single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
             self.pid_index.update(single_index)
 
     def load_fixed_count_images_of_one_pid(self, pid, count, path_tail_len=2):
@@ -153,7 +157,7 @@ class MultiFileCrops(object):
                 i+=1
             except:
                 print "failed to read one image from path {}".format(data_file)
-                
+
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
@@ -166,7 +170,6 @@ if __name__ == "__main__":
     ap.add_argument("index_file_folder", type=str, help="path to input folder index files")
     args = ap.parse_args()
 
-    import glob
     index_files = glob.glob(os.path.join(args.index_file_folder, "*.list"))
     # pid_index = load_list_to_pid(index_files[3], prefix=0)
     mfc = MultiFileCrops(args.index_file_folder, prefix=0)
