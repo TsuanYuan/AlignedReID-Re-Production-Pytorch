@@ -58,7 +58,7 @@ def get_id_data_set(global_data):
 
     # remove self link
     for track_id in same_time_tracks:
-        same_time_tracks[track_id].remove(track_id)
+        same_time_tracks[track_id].discard(track_id)
 
     return tracklet_data
 
