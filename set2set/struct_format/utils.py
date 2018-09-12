@@ -52,7 +52,7 @@ def load_list_to_pid(list_file, data_folder, prefix, path_tail_len=2):
                 path_tail = os.path.join(*path_parts)
                 data_file = os.path.join(data_folder, path_tail)
                 if os.path.isfile(data_file):
-                    pid_index[label].append((part_name, within_idx))
+                    pid_index[label].append((data_file, within_idx))
     return pid_index
 
 
@@ -147,10 +147,10 @@ class MultiFileCrops(object):
         i = pos
         while i<pos + count:
             k = i%len(self.pid_index[pid])
-            data_file_name, place = self.pid_index[pid][k]
-            path_parts = os.path.normcase(data_file_name).split('/')[-path_tail_len:]
-            path_tail = os.path.join(*path_parts)
-            data_file = os.path.join(self.data_folder, path_tail)
+            data_file, place = self.pid_index[pid][k]
+            # path_parts = os.path.normcase(data_file_name).split('/')[-path_tail_len:]
+            # path_tail = os.path.join(*path_parts)
+            # data_file = os.path.join(self.data_folder, path_tail)
             try:
                 one_image = read_one_image(data_file, place)
                 images.append(one_image)
