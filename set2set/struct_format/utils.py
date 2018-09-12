@@ -11,22 +11,25 @@ import os
 import cv2
 import struct
 import numpy
-
+import glob
 
 class SingleFileCrops(object):
-    def __init__(self, index_file):
-        self.index = SingleFileCrops.load_index(index_file)
+    def __init__(self, index_folder, index_ext='.pickl'):
+        index_files = glob.glob(os.path.join(index_folder, '*'+index_ext))
+        self.data_folder = index_folder
+        self.index = {}
+        self.load_index_files(index_files)
         self.pid_index = SingleFileCrops.convert_to_pid_index(self.index)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
 
+
     def load_index_files(self, index_files):
-        self.index = {}
         for index_file in index_files:
             single_index = SingleFileCrops.load_index(index_file)
             self.index.update(single_index)
 
-    def load_fixed_count_images_of_one_pid(self, pid, data_folder, count):
+    def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
         if pos + count > len(self.pid_index[pid]):
@@ -34,7 +37,7 @@ class SingleFileCrops(object):
         for i in range(pos, pos + count):
             k = i%len(self.pid_index[pid])
             data_file_name, place = self.pid_index[pid][k]
-            data_file = os.path.join(data_folder, data_file_name)
+            data_file = os.path.join(self.data_folder, data_file_name)
             one_image = SingleFileCrops.read_one_image(data_file, place)
             images.append(one_image)
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
@@ -84,10 +87,13 @@ class SingleFileCrops(object):
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("index_file", type=str, help="path to input folder sets")
+    ap.add_argument("index_file_folder", type=str, help="path to input folder index files")
     args = ap.parse_args()
 
-    index = SingleFileCrops.load_index(args.index_file)
-    pid_index = SingleFileCrops.convert_to_pid_index(index)
-    data_folder = os.path.split(args.index_file)[0]
-    images = SingleFileCrops.load_images_of_one_pid(pid_index, -1, data_folder)
+    import glob
+    index_files = glob.glob(os.path.join(args.index_file_folder, "*.pickl"))
+    sfc = SingleFileCrops(index_files)
+    # index = SingleFileCrops.load_index(args.index_file)
+    # pid_index = SingleFileCrops.convert_to_pid_index(index)
+    # data_folder = os.path.split(args.index_file)[0]
+    # images = SingleFileCrops.load_images_of_one_pid(pid_index, -1, data_folder)
