@@ -245,7 +245,7 @@ def main(data_folder, model_folder, sample_size, batch_size,
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
-                if (epoch+1) %(max(1,num_epochs/8))==0:
+                if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)
     print('model saved to {0}'.format(model_file))

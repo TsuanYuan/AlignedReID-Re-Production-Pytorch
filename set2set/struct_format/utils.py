@@ -56,6 +56,23 @@ def load_list_to_pid(list_file, data_folder, prefix, path_tail_len=2):
     return pid_index
 
 
+def load_list_of_unknown_tracks(list_file):
+    # assume format of each row "ch03_2018089123232-00023231 data_path file_offset"
+    video_track_index = collections.defaultdict(list)
+    with open(list_file) as f:
+        lines = f.readlines()
+        for line in lines:
+            video_track = line.split()[0]
+            groups = line.strip().split()[1:]
+            num_imgs = len(groups) / 2
+            for i in xrange(num_imgs):
+                data_file = groups[2 * i]
+                within_idx = int(groups[2 * i + 1])
+                if os.path.isfile(data_file):
+                    video_track_index[video_track].append((data_file, within_idx))
+        return video_track_index
+
+
 def convert_to_pid_index(tracklet_index):
     pid_index = collections.defaultdict(list)
     for crop_name in tracklet_index:
@@ -163,6 +180,29 @@ class MultiFileCrops(object):
 
     def get_pid_list(self):
         return self.pid_list
+
+
+class NoPidFileCrops(object):
+    def __init__(self, index_file):
+        self.tracklet_index = {}
+        self.pid_index = {}
+        self.load_index_file(index_file)
+        self.pid_pos = collections.defaultdict(int)
+        self.pid_list = self.pid_index.keys()
+
+    def load_index_file(self, index_file):
+        self.pid_index = load_list_of_unknown_tracks(index_file)
+
+    def load_fixed_count_images_of_one_pid(self, pid, count):
+        random.shuffle(self.pid_index[pid])
+        images = []
+        for i in range(count):
+            k = i%len(self.pid_index[pid])
+            data_file, place = self.pid_index[pid][k]
+            one_image = read_one_image(data_file, place)
+            images.append(one_image)
+        return images
+
 
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
