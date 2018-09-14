@@ -280,4 +280,4 @@ if __name__ == '__main__':
         args.data_folder = os.path.split(args.index_file)[0]
     main(args.data_folder, args.index_file, args.model_folder, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
-         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi)
+         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss)
