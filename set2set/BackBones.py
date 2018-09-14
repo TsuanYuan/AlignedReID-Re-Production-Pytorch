@@ -14,18 +14,19 @@ model_urls = {
 }
 
 
-def conv3x3(in_planes, out_planes, stride=1):
+def conv3x3(in_planes, out_planes, stride=1, dilation=1):
   """3x3 convolution with padding"""
+  # original padding is 1; original dilation is 1
   return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                   padding=1, bias=False)
+                   padding=dilation, bias=False, dilation=dilation)
 
 
 class BasicBlock(nn.Module):
   expansion = 1
 
-  def __init__(self, inplanes, planes, stride=1, downsample=None):
+  def __init__(self, inplanes, planes, stride=1, downsample=None, dilation=1):
     super(BasicBlock, self).__init__()
-    self.conv1 = conv3x3(inplanes, planes, stride)
+    self.conv1 = conv3x3(inplanes, planes, stride, dilation)
     self.bn1 = nn.BatchNorm2d(planes)
     self.relu = nn.ReLU(inplace=True)
     self.conv2 = conv3x3(planes, planes)
@@ -55,12 +56,12 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
   expansion = 4
 
-  def __init__(self, inplanes, planes, stride=1, downsample=None):
+  def __init__(self, inplanes, planes, stride=1, downsample=None, dilation=1):
     super(Bottleneck, self).__init__()
     self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
     self.bn1 = nn.BatchNorm2d(planes)
-    self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                           padding=1, bias=False)
+    # original padding is 1; original dilation is 1
+    self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=dilation, bias=False, dilation=dilation)
     self.bn2 = nn.BatchNorm2d(planes)
     self.conv3 = nn.Conv2d(planes, planes * 4, kernel_size=1, bias=False)
     self.bn3 = nn.BatchNorm2d(planes * 4)
