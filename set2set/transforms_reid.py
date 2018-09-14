@@ -11,6 +11,7 @@ import random
 import torch
 from PIL import Image
 from torchvision.transforms import functional as F
+import scipy.ndimage
 
 
 class Rescale_Image(object):
@@ -31,6 +32,7 @@ class Rescale_Image(object):
         new_h, new_w = int(new_h), int(new_w)
         img = transform.resize(image, (new_h, new_w), mode='constant', preserve_range=True)
         return img
+
 
 class Rescale(object):
     """Rescale the image in a sample to a given size.
@@ -120,7 +122,6 @@ class RandomCrop(object):
         return images_cropped #{'images': images_cropped, 'person_id': person_id}
 
 
-
 class PixelNormalizeImage(object):
     """normalize pixel value to [-1, 1] by substract 128 then divid by 255.
 """
@@ -170,6 +171,44 @@ class ToTensor(object):
         return torch.from_numpy(numpy.array(images_transposed)).float()
                 #{'images': images_transposed,
                # 'person_id': torch.from_numpy(person_id)}
+
+class RandomBlockMask(object):
+    """
+    create random blocks to mask out regions on a crop
+    """
+    def __init__(self, num_blocks):
+        self.num_blocks = num_blocks # size assumed as a tuple (w,h)
+
+    @staticmethod
+    def rand_mask_im(im, mask_size_max, prng=numpy.random):
+        """Crop `im` to `new_size`: [new_w, new_h]."""
+        mask_size_w = prng.randint(mask_size_max / 2, mask_size_max)
+        mask_size_h = prng.randint(mask_size_max / 2, mask_size_max)
+        h_start = prng.randint(0, im.shape[0] - mask_size_h)
+        w_start = prng.randint(0, im.shape[1] - mask_size_w)
+        random_rgb = [prng.randint(0, 256), prng.randint(0, 256), prng.randint(0, 256)]
+        im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 0] = random_rgb[0]
+        im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 1] = random_rgb[1]
+        im[h_start: h_start + mask_size_h, w_start: w_start + mask_size_w, 2] = random_rgb[2]
+
+        return im
+
+    def __call__(self, imgs):
+        """
+        Args:
+            imgs (PIL Image): list of Images to be flipped.
+
+        Returns:
+            PIL Images: Randomly cropped and resize image list.
+        """
+        blocked_images = []
+        for img in imgs:
+            blocked_image = img
+            for k in range(12):
+                blocked_image = RandomBlockMask.rand_mask_im(blocked_image, blocked_image.shape[1]/4)
+            blocked_images.append(blocked_image)
+        return blocked_images
+
 
 class RandomResizedCrop(object):
     """Crop the given PIL Image to random size and aspect ratio.
