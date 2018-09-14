@@ -370,7 +370,7 @@ class PairLoss(nn.Module):
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
 
     @staticmethod
-    def pair_example_mining(dist_mat, labels):
+    def pair_example_mining(dist_mat, labels, neg_pos_ratio=8):
         assert len(dist_mat.size()) == 2
         assert dist_mat.size(0) == dist_mat.size(1)
         N = dist_mat.size(0)
@@ -383,7 +383,9 @@ class PairLoss(nn.Module):
         # `dist_an` means distance(anchor, negative)
         # both `dist_an` and `relative_n_inds` with shape [N, 1]
         dist_n = dist_mat[is_neg].contiguous().view(1, -1)
-
+        nperm = torch.randperm(dist_n.size())
+        idx = nperm[:dist_p.size()*neg_pos_ratio]
+        dist_n = dist_n[idx]
         return dist_n ,dist_p
 
     @staticmethod
