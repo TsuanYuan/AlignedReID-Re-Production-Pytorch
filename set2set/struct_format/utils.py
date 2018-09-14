@@ -140,23 +140,22 @@ class SingleFileCrops(object):
         return self.pid_list
 
 class MultiFileCrops(object):
-    def __init__(self, data_folder, prefix, index_ext='.list'):
-        self.prefix = prefix
-        index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
+    def __init__(self, data_folder, list_file):
+        self.prefix = 0
+        #index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
         self.data_folder = data_folder
         self.tracklet_index = {}
         self.pid_index = {}
-        self.load_index_files(index_files)
+        self.load_index_files(list_file)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
 
 
-    def load_index_files(self, list_files):
-        for list_file in list_files:
-            single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
-            self.pid_index.update(single_index)
+    def load_index_files(self, list_file):
+        single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
+        self.pid_index.update(single_index)
 
-    def load_fixed_count_images_of_one_pid(self, pid, count, path_tail_len=2):
+    def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
         if pos + count > len(self.pid_index[pid]):
@@ -165,9 +164,6 @@ class MultiFileCrops(object):
         while i<pos + count:
             k = i%len(self.pid_index[pid])
             data_file, place = self.pid_index[pid][k]
-            # path_parts = os.path.normcase(data_file_name).split('/')[-path_tail_len:]
-            # path_tail = os.path.join(*path_parts)
-            # data_file = os.path.join(self.data_folder, path_tail)
             try:
                 one_image = read_one_image(data_file, place)
                 images.append(one_image)
@@ -184,25 +180,26 @@ class MultiFileCrops(object):
 
 class NoPidFileCrops(object):
     def __init__(self, index_file):
-        self.tracklet_index = {}
-        self.pid_index = {}
+        self.track_index = {}
         self.load_index_file(index_file)
         self.pid_pos = collections.defaultdict(int)
-        self.pid_list = self.pid_index.keys()
+        self.track_list = self.track_index.keys()
 
     def load_index_file(self, index_file):
-        self.pid_index = load_list_of_unknown_tracks(index_file)
+        self.track_index = load_list_of_unknown_tracks(index_file)
 
-    def load_fixed_count_images_of_one_pid(self, pid, count):
-        random.shuffle(self.pid_index[pid])
+    def load_fixed_count_images_of_one_pid(self, track_id, count):
+        random.shuffle(self.track_index[track_id])
         images = []
         for i in range(count):
-            k = i%len(self.pid_index[pid])
-            data_file, place = self.pid_index[pid][k]
+            k = i%len(self.track_index[track_id])
+            data_file, place = self.track_index[track_id][k]
             one_image = read_one_image(data_file, place)
             images.append(one_image)
         return images
 
+    def get_track_list(self):
+        return self.track_list
 
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
