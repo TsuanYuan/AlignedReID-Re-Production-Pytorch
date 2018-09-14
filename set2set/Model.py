@@ -320,22 +320,13 @@ class PCBModel(nn.Module):
 
 class MGNModel(nn.Module):
     def __init__(self,
-                 num_classes=(1,), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+                 num_classes=2, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
         super(MGNModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
             planes = 2048
         else:
             raise RuntimeError("unknown base model!")
-
-        # self.parts_model = parts_model
-        # if num_classes is not None:
-        #     self.fc_list = nn.ModuleList()
-        #     for i, num_class in enumerate(num_classes):
-        #         fc = nn.Linear(local_conv_out_channels, num_class)
-        #         init.normal_(fc.weight, std=0.001)
-        #         init.constant_(fc.bias, 0)
-        #         self.fc_list.append(fc)
 
         self.global_final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
         self.global_final_bn = nn.BatchNorm2d(local_conv_out_channels)
@@ -361,14 +352,13 @@ class MGNModel(nn.Module):
                 nn.ReLU(inplace=True)
             ))
 
-
         self.fc_list = nn.ModuleList()
         for _ in range(self.level2_strips+self.level3_strips):
-            fc = nn.Linear(local_conv_out_channels, 2)
+            fc = nn.Linear(local_conv_out_channels, num_classes)
             init.normal_(fc.weight, std=0.001)
             init.constant_(fc.bias, 0)
             self.fc_list.append(fc)
-        fc = nn.Linear(local_conv_out_channels, 2)
+        fc = nn.Linear(local_conv_out_channels, num_classes)
         init.normal_(fc.weight, std=0.001)
         init.constant_(fc.bias, 0)
         self.fc_list.append(fc)

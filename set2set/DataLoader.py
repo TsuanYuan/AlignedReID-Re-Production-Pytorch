@@ -59,11 +59,8 @@ class ReIDSingleFileCropsDataset(Dataset):
         sample = {'images': ims, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
-        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
-
+        sample['person_id'] = torch.from_numpy(numpy.array([set_id]))
         return sample
-
-
 
 class ReIDAppearanceDataset(Dataset):
     """ReID dataset."""

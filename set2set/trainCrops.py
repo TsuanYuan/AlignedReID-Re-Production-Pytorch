@@ -145,8 +145,8 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 def main(data_folder, index_file, model_folder, sample_size, batch_size,
-         num_epochs=200, gpu_ids=None, margin=0.1, base_model='resnet18', loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, threshold=0.1, with_roi=False):
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                                   transforms_reid.Rescale((256, 128)),
@@ -157,6 +157,7 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop((256, 128)),
+                                              transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
@@ -198,8 +199,8 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
     min_lr = 1e-9
     if loss_name == 'ranking':
         loss_function = losses.GlobalLoss(margin=margin)#losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
-    elif loss_name == 'class_th':
-        loss_function = losses.WeightedAverageThLoss(th=threshold)
+    elif loss_name == 'classification':
+        loss_function = losses.MultiClassLoss(num_classes)
     else:
         raise Exception('unknown loss name')
 

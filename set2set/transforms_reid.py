@@ -204,7 +204,7 @@ class RandomBlockMask(object):
         blocked_images = []
         for img in imgs:
             blocked_image = img
-            for k in range(12):
+            for k in range(self.num_blocks):
                 blocked_image = RandomBlockMask.rand_mask_im(blocked_image, blocked_image.shape[1]/4)
             blocked_images.append(blocked_image)
         return blocked_images

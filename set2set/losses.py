@@ -386,11 +386,10 @@ class MultiClassLoss(nn.Module):
         self.num_classes = num_classes
         self.id_criterion = nn.CrossEntropyLoss()
     def forward(self, pids, logits):
-        #probs = F.softmax(logits, dim=1)
-        #log_probs = F.log_softmax(logits, dim=1)
         id_loss = self.id_criterion(logits, pids)
 
         return id_loss
+
 
 class WeightedAverageThLoss(nn.Module):
     """Weighted avearge loss with a threshold, all pos < th-pos_margin, all neg > th+pos_margin
