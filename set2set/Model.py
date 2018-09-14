@@ -318,8 +318,6 @@ class PCBModel(nn.Module):
     return feat, logits
 
 
-
-
 class MGNModel(nn.Module):
     def __init__(self,
                  num_classes=(1,), base_model='resnet50', local_conv_out_channels=128, parts_model=False):
