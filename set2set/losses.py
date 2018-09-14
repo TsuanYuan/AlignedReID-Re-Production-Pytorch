@@ -14,7 +14,7 @@ import torch.nn.functional as F
 Shorthands for loss:
 - SetLoss: loss with weighted average of all features
 """
-__all__ = ['WeightedAverageLoss']
+__all__ = ['TripletLoss', 'PairLoss','MultiClassLoss']
 
 def batch_euclidean_dist(x, y):
   """
@@ -62,7 +62,7 @@ def euclidean_distances(x, y=None):
     return dist
 
 
-def pair_loss_func(feature, pids, margin, sub_sample_neg=10):
+def pair_loss_func_ex(feature, pids, margin, sub_sample_neg=10):
     N = pids.size()[0]  # number of weighted features
     is_pos = pids.expand(N, N).eq(pids.expand(N, N).t())
     diag_one = torch.diag(torch.ones_like(torch.sum(is_pos, 1).byte()))
@@ -251,7 +251,7 @@ def weighted_seq_loss_func(feature, weight, pids, seq_size, margin, th=-1.0):
     summed_feature_normalize = functional.normalize(summed_feature, p=2, dim=1)  # normalized after weighted sum
     pid_expand = pids.expand(feature_size[0], num_feature_per_id).contiguous().view(-1)  # unfold to [n*m]
     if th < 0:
-        return pair_loss_func(summed_feature_normalize, pid_expand, margin)
+        return pair_loss_func_ex(summed_feature_normalize, pid_expand, margin)
     else:
         return fixed_th_loss_func(summed_feature_normalize, pid_expand, th, th/2, th)
 
@@ -263,7 +263,7 @@ def element_loss_func(feature, pids, margin, ranking_loss, th=-1.0):
 
 
 
-class TripletLoss(object):
+class RankingLoss(object):
   """Modified from Tong Xiao's open-reid (https://github.com/Cysu/open-reid).
   Related Triplet Loss theory can be found in paper 'In Defense of the Triplet
   Loss for Person Re-Identification'."""
@@ -340,43 +340,70 @@ class WeightedAverageSeqThLoss(nn.Module):
 
         return element_loss[0]+seq_loss[0], element_loss[1], element_loss[2]
 
-class GlobalLoss(nn.Module):
+class TripletLoss(nn.Module):
     """Weighted avearge loss.
        assume the last element of the feature is a weight vector
        """
 
     def __init__(self, margin):
-        super(GlobalLoss, self).__init__()
+        super(TripletLoss, self).__init__()
         self.margin = margin
-        self.triple_loss = TripletLoss(margin=margin)
+        self.loss_func = RankingLoss(margin=margin)
 
     def forward(self, feature, pids, logits):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
-        element_loss, max_same_d, min_diff_d = global_loss(self.triple_loss, feature_expand, pids_expand)
+        element_loss, max_same_d, min_diff_d = global_loss(self.loss_func, feature_expand, pids_expand)
         # mc_loss = self.id_loss(pids_expand, logits)
         return element_loss, max_same_d, min_diff_d
 
 
-class WeightedAverageLoss(nn.Module):
+class PairLoss(nn.Module):
     """Weighted avearge loss.
     assume the last element of the feature is a weight vector
     """
 
-    def __init__(self, margin, num_classes):
-        super(WeightedAverageLoss, self).__init__()
+    def __init__(self, margin):
+        super(PairLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=margin)
-        self.id_loss = MultiClassLoss(num_classes=num_classes)
-        self.triple_loss = TripletLoss()
+
+    @staticmethod
+    def pair_example_mining(dist_mat, labels):
+        assert len(dist_mat.size()) == 2
+        assert dist_mat.size(0) == dist_mat.size(1)
+        N = dist_mat.size(0)
+        # shape [N, N]
+        is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
+        is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
+        # `dist_ap` means distance(anchor, positive)
+        # both `dist_ap` and `relative_p_inds` with shape [N, 1]
+        dist_p = dist_mat[is_pos].contiguous().view(-1, 1)
+        # `dist_an` means distance(anchor, negative)
+        # both `dist_an` and `relative_n_inds` with shape [N, 1]
+        dist_n = dist_mat[is_neg].contiguous().view(1, -1)
+
+        return dist_n ,dist_p
+
+    @staticmethod
+    def pair_loss_func(feature, labels, ranking_loss):
+        dist_mat = euclidean_distances(feature)
+        dist_n, dist_p = PairLoss.pair_example_mining(
+            dist_mat, labels)
+        dist_np = (dist_n - dist_p).view(-1)
+        n = dist_np.size()[0]
+        all_zero = torch.zeros(n)
+        all_one = torch.ones(n)
+        loss = ranking_loss(dist_np, all_zero, all_one)
+        return loss, torch.mean(dist_p), torch.mean(dist_n)
 
     def forward(self, feature, pids, logits):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
-        element_loss, max_same_d, min_diff_d = element_loss_func(feature_expand, pids_expand, self.margin, self.ranking_loss)
-        #mc_loss = self.id_loss(pids_expand, logits)
+        element_loss, max_same_d, min_diff_d = PairLoss.pair_loss_func(feature_expand, pids_expand, self.ranking_loss)
+
         return element_loss, element_loss, max_same_d, min_diff_d
 
 

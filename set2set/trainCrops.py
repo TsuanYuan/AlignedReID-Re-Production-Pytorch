@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceSet2SetDataset, ReIDSingleFileCropsDataset
+from DataLoader import ReIDSingleFileCropsDataset
 import argparse
 import os
 import datetime
@@ -193,14 +193,13 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
         model_p = DataParallel(model, device_ids=gpu_ids)
     else:
         model_p = model
-    decay_at_epochs = {50:1, 100:2, 200:3}
+
     start_decay = 50
-    staircase_decay_multiply_factor = 0.1
     min_lr = 1e-9
-    if loss_name == 'ranking':
-        loss_function = losses.GlobalLoss(margin=margin)#losses.WeightedAverageLoss(margin=margin, num_classes=num_classes)
-    elif loss_name == 'classification':
-        loss_function = losses.MultiClassLoss(num_classes)
+    if loss_name == 'triplet':
+        loss_function = losses.TripletLoss(margin=margin)
+    elif loss_name == 'pair':
+        loss_function = losses.PairLoss(margin=margin)
     else:
         raise Exception('unknown loss name')
 
@@ -216,7 +215,7 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
                     epoch + 1,
                     num_epochs,
                     start_decay, min_lr)
-                #adjust_lr_staircase(optimizer, base_lr, epoch + 1, decay_at_epochs, staircase_decay_multiply_factor)
+
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             # import debug_tool
@@ -231,15 +230,13 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
                     person_ids = person_ids.cuda()
                     features, logits = model_p(Variable(images.cuda(async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
-                features, logits = model(Variable(images)) #model(Variable(images), Variable(w_h_ratios))
+                features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
             loss,dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            #average_meter.update(loss.data.cpu().numpy(), person_ids.cpu().size(0))
             sum_loss+=loss.data.cpu().numpy()
-            # sum_tri_loss += tri_loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
             if i_batch==len(dataloader)-1:
                 log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
@@ -266,7 +263,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet50', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
-    parser.add_argument('--loss', type=str, default='ranking', help="loss to use")
+    parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
