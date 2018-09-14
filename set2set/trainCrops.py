@@ -272,9 +272,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print('training_parameters:')
-    print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={0}, batch_size={1},  margin={2}, original_ar={3}, with_roi={4}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.original_ar), str(args.with_roi)))
+    print('  index_file={0}'.format(args.index_file))
+    print('  sample_size={}, batch_size={},  margin={}, loss={}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss)))
     torch.backends.cudnn.benchmark = False
     if len(args.data_folder) == 0:
         args.data_folder = os.path.split(args.index_file)[0]
