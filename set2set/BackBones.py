@@ -93,7 +93,8 @@ class Bottleneck(nn.Module):
 
 class ResNet(nn.Module):
 
-  def __init__(self, block, layers):
+  def __init__(self, block, layers, last_conv_stride=2, last_conv_dilation=1):
+
     self.inplanes = 64
     super(ResNet, self).__init__()
     self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
@@ -104,7 +105,7 @@ class ResNet(nn.Module):
     self.layer1 = self._make_layer(block, 64, layers[0])
     self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
     self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-    self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+    self.layer4 = self._make_layer(block, 512, layers[3], stride=last_conv_stride, dilation=last_conv_dilation)
 
     for m in self.modules():
       if isinstance(m, nn.Conv2d):
@@ -114,7 +115,7 @@ class ResNet(nn.Module):
         m.weight.data.fill_(1)
         m.bias.data.zero_()
 
-  def _make_layer(self, block, planes, blocks, stride=1):
+  def _make_layer(self, block, planes, blocks, stride=1, dilation=1):
     downsample = None
     if stride != 1 or self.inplanes != planes * block.expansion:
       downsample = nn.Sequential(
@@ -124,7 +125,7 @@ class ResNet(nn.Module):
       )
 
     layers = []
-    layers.append(block(self.inplanes, planes, stride, downsample))
+    layers.append(block(self.inplanes, planes, stride, downsample, dilation))
     self.inplanes = planes * block.expansion
     for i in range(1, blocks):
       layers.append(block(self.inplanes, planes))
@@ -153,35 +154,37 @@ def remove_fc(state_dict):
   return state_dict
 
 
-def resnet18(pretrained=False,device=-1):
+def resnet18(pretrained=False, **kwargs):
   """Constructs a ResNet-18 model.
-
   Args:
       pretrained (bool): If True, returns a model pre-trained on ImageNet
   """
-  model = ResNet(BasicBlock, [2, 2, 2, 2])
+  model = ResNet(BasicBlock, [2, 2, 2, 2], **kwargs)
   if pretrained:
-    if device >= 0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage.cuda(device))))
-    else:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'], map_location=lambda storage, loc: storage)))
+    model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet18'])))
   return model
 
 
-def resnet34(pretrained=False, device=-1):
+def resnet34(pretrained=False, **kwargs):
   """Constructs a ResNet-34 model.
-
   Args:
       pretrained (bool): If True, returns a model pre-trained on ImageNet
   """
-  model = ResNet(BasicBlock, [3, 4, 6, 3])
+  model = ResNet(BasicBlock, [3, 4, 6, 3], **kwargs)
   if pretrained:
-    if device>=0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], map_location=lambda storage, loc: storage.cuda(device))))
-    else:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'], map_location = lambda storage, loc: storage)))
+    model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet34'])))
   return model
 
+
+def resnet50(pretrained=False, **kwargs):
+  """Constructs a ResNet-50 model.
+  Args:
+      pretrained (bool): If True, returns a model pre-trained on ImageNet
+  """
+  model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
+  if pretrained:
+    model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'])))
+  return model
 
 def resnet50_with_layers(pretrained=False):
   """Constructs a ResNet-50 model, with layer4 exposed.
@@ -248,19 +251,6 @@ class ResNetWithLayers(ResNet):
 
     return x, x3, x2
 
-def resnet50(pretrained=False, device=-1):
-  """Constructs a ResNet-50 model.
-
-  Args:
-      pretrained (bool): If True, returns a model pre-trained on ImageNet
-  """
-  model = ResNet(Bottleneck, [3, 4, 6, 3])
-  if pretrained:
-    if device >= 0:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'], map_location=lambda storage, loc: storage.cuda(device))))
-    else:
-      model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'], map_location=lambda storage, loc: storage)))
-  return model
 
 
 def resnet101(pretrained=False):
