@@ -12,6 +12,22 @@ import multiprocessing
 import pickle
 from load_model import AppearanceModelForward
 import compute_feature_alignedReid
+from struct_format import utils
+
+def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sample_size, pid_flag):
+    if pid_flag:
+        file_loader = utils.MultiFileCrops(data_folder, list_file)
+        id_list = file_loader.get_pid_list()
+    else:
+        file_loader = utils.NoPidFileCrops(list_file)
+        id_list = file_loader.get_track_list()
+
+    model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
+    discriptors = []
+    for id in id_list:
+        images = file_loader.load_fixed_count_images_of_one_pid(id, sample_size)
+        descriptor_batch = model.compute_features_on_batch(numpy.array(images))
+        discriptors.append(descriptor_batch)
 
 
 def get_pid_descriptors(pid_folder, model_path, ext, sample_size, device_id=0):
@@ -66,10 +82,10 @@ def compare_one_video_folder(video_folder, model, pid_descriptor_list, pid_descr
     pid_descriptor_array = numpy.vstack(pid_descriptor_list)
     #pid_descriptor_array = [numpy.concatenate((pid_descriptor_array )) for pid_array in pid_descriptor_list]
 
-    track_descritpors = compute_feature_alignedReid.get_descriptors(video_folder, model, force_compute=False, ext=ext)
-    for track_id_str in track_descritpors:
+    track_descritptors = compute_feature_alignedReid.get_descriptors(video_folder, model, force_compute=False, ext=ext)
+    for track_id_str in track_descritptors:
         descriptors = []
-        for descriptor_item in track_descritpors[track_id_str]:
+        for descriptor_item in track_descritptors[track_id_str]:
             descriptors.append(descriptor_item['descriptor'])
         if len(descriptors) == 0:
             continue
