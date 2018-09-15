@@ -146,7 +146,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(data_folder, index_file, model_folder, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='pickle'):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='list'):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                                   transforms_reid.Rescale((256, 128)),
@@ -168,6 +168,7 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
                                                 sample_size=sample_size, index_format=index_format)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
+    print "index format is {}".format(index_format)
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                             shuffle=True, num_workers=8)
 
@@ -255,7 +256,7 @@ if __name__ == '__main__':
     parser.add_argument('index_file', type=str, help="index of binary dataset original folder")
     parser.add_argument('model_folder', type=str, help="folder to save the model")
     parser.add_argument('--data_folder', type=str, help="dataset original folder with subfolders of person id crops", default='')
-    parser.add_argument('--index_format', type=str, default='pickle', help="format of index file")
+    parser.add_argument('--index_format', type=str, default='list', help="format of index file")
 
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
