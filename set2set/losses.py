@@ -382,11 +382,14 @@ class PairLoss(nn.Module):
         dist_p = dist_mat[is_pos].contiguous().view(-1, 1)
         # `dist_an` means distance(anchor, negative)
         # both `dist_an` and `relative_n_inds` with shape [N, 1]
-        dist_n = dist_mat[is_neg].contiguous().view(1, -1)
-        n_num = dist_n.view(-1).size()[0]
+        dist_n = dist_mat[is_neg].contiguous()
+        n_num = dist_n.size()[0]
+        p_num = dist_p.size()[0]
         nperm = torch.randperm(n_num)
         idx = nperm[:int(round(n_num*neg_pos_ratio))]
         dist_n = dist_n[:,idx]
+        dist_n = torch.sort(dist_n)[:p_num]
+        dist_n = dist_n.contiguous.view(1, -1)
         return dist_n ,dist_p
 
     @staticmethod
