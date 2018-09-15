@@ -116,7 +116,6 @@ class SingleFileCrops(object):
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
 
-
     def load_index_files(self, index_files):
         for index_file in index_files:
             single_index = load_index(index_file)
@@ -127,13 +126,18 @@ class SingleFileCrops(object):
         images = []
         if pos + count > len(self.pid_index[pid]):
             random.shuffle(self.pid_index[pid])
-        for i in range(pos, pos + count):
-            k = i%len(self.pid_index[pid])
-            data_file_name, place = self.pid_index[pid][k]
-            data_file = os.path.join(self.data_folder, data_file_name)
-            one_image = read_one_image(data_file, place)
-            images.append(one_image)
-        self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
+        i = pos
+        while i < pos + count:
+            k = i % len(self.pid_index[pid])
+            data_file, place = self.pid_index[pid][k]
+            try:
+                one_image = read_one_image(data_file, place)
+                images.append(one_image)
+                i += 1
+            except:
+                print "failed to read one image from path {}".format(data_file)
+
+        self.pid_pos[pid] = (pos + count) % len(self.pid_index[pid])
         return images
 
     def get_pid_list(self):

@@ -32,7 +32,7 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 class ReIDSingleFileCropsDataset(Dataset):
     """ReID data set with single file crops format"""
     def __init__(self, data_folder, index_file, transform=None, sample_size=8, desired_size=(256, 128),
-                 index_ext='.list'):
+                 index_format='pickl'):
         """
         Args:
             root_dir (string): Directory with all the index files and binary data files.
@@ -40,7 +40,12 @@ class ReIDSingleFileCropsDataset(Dataset):
                 on a sample.
         """
         self.root_dir = data_folder
-        self.single_file_data = MultiFileCrops(data_folder, index_file)
+        if index_format=='pickle':
+            self.single_file_data = SingleFileCrops(data_folder)
+        elif index_format=='list':
+            self.single_file_data = MultiFileCrops(data_folder, index_file)
+        else:
+            raise Exception('unknonw binary data index format {}'.format(index_format))
         self.person_ids = self.single_file_data.get_pid_list()
         self.sample_size = sample_size
         self.transform = transform
