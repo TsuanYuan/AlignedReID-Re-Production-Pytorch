@@ -146,7 +146,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(data_folder, index_file, model_folder, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='pickle'):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                                   transforms_reid.Rescale((256, 128)),
@@ -165,7 +165,7 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
     # reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
     #                                             sample_size=sample_size, with_roi=with_roi)
     reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
-                                                sample_size=sample_size)
+                                                sample_size=sample_size, index_format=index_format)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
@@ -255,6 +255,8 @@ if __name__ == '__main__':
     parser.add_argument('index_file', type=str, help="index of binary dataset original folder")
     parser.add_argument('model_folder', type=str, help="folder to save the model")
     parser.add_argument('--data_folder', type=str, help="dataset original folder with subfolders of person id crops", default='')
+    parser.add_argument('--index_format', type=str, default='pickle', help="format of index file")
+
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
@@ -280,4 +282,4 @@ if __name__ == '__main__':
         args.data_folder = os.path.split(args.index_file)[0]
     main(args.data_folder, args.index_file, args.model_folder, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
-         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss)
+         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss, index_format=args.index_format)

@@ -32,7 +32,7 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
 class ReIDSingleFileCropsDataset(Dataset):
     """ReID data set with single file crops format"""
     def __init__(self, data_folder, index_file, transform=None, sample_size=8, desired_size=(256, 128),
-                 index_format='pickl'):
+                 index_format='pickle'):
         """
         Args:
             root_dir (string): Directory with all the index files and binary data files.
