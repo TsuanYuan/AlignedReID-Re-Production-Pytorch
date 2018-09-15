@@ -181,12 +181,15 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
     # else:
     #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-
+    model_file = os.path.join(model_folder, 'model.ckpt')
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
     else:
-        print('model folder {0} already exist, will overwrite it.'.format(model_folder))
-    model_file = os.path.join(model_folder, 'model.ckpt')
+        if args.resume and os.path.isfile(model_file):
+            load_ckpt([model], model_file)
+        else:
+            print('model file {0} already exist, will overwrite it.'.format(model_file))
+
     print('model path is {0}'.format(model_file))
     if args.resume and os.path.isfile(model_file):
         load_ckpt([model], model_file)

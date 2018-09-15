@@ -48,9 +48,12 @@ def load_list_to_pid(list_file, data_folder, prefix, path_tail_len=2):
             for i in xrange(num_imgs):
                 part_name = groups[2 * i]
                 within_idx = int(groups[2 * i + 1])
-                path_parts = os.path.normcase(part_name).split('/')[-path_tail_len:]
-                path_tail = os.path.join(*path_parts)
-                data_file = os.path.join(data_folder, path_tail)
+                if len(data_folder) > 0:
+                    path_parts = os.path.normcase(part_name).split('/')[-path_tail_len:]
+                    path_tail = os.path.join(*path_parts)
+                    data_file = os.path.join(data_folder, path_tail)
+                else:
+                    data_file = part_name
                 if os.path.isfile(data_file):
                     pid_index[label].append((data_file, within_idx))
     return pid_index
@@ -153,7 +156,6 @@ class MultiFileCrops(object):
         self.load_index_files(list_file)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
-
 
     def load_index_files(self, list_file):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
