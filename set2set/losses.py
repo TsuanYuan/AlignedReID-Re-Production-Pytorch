@@ -383,9 +383,10 @@ class PairLoss(nn.Module):
         # `dist_an` means distance(anchor, negative)
         # both `dist_an` and `relative_n_inds` with shape [N, 1]
         dist_n = dist_mat[is_neg].contiguous().view(1, -1)
-        nperm = torch.randperm(dist_n.size())
-        idx = nperm[:dist_p.size()*neg_pos_ratio]
-        dist_n = dist_n[idx]
+        n_num = dist_n.view(-1).size()[0]
+        nperm = torch.randperm(n_num)
+        idx = nperm[:int(round(n_num*neg_pos_ratio))]
+        dist_n = dist_n[:,idx]
         return dist_n ,dist_p
 
     @staticmethod
@@ -393,7 +394,7 @@ class PairLoss(nn.Module):
         dist_mat = euclidean_distances(feature)
         dist_n, dist_p = PairLoss.pair_example_mining(
             dist_mat, labels)
-        dist_np = (dist_n - dist_p).view(-1)
+        dist_np = (dist_n.cpu() - dist_p.cpu()).view(-1)
         n = dist_np.size()[0]
         all_zero = torch.zeros(n)
         all_one = torch.ones(n)
@@ -406,7 +407,7 @@ class PairLoss(nn.Module):
         feature_expand = feature.view(feature_size[0]*feature_size[1], -1)
         element_loss, max_same_d, min_diff_d = PairLoss.pair_loss_func(feature_expand, pids_expand, self.ranking_loss)
 
-        return element_loss, element_loss, max_same_d, min_diff_d
+        return element_loss, max_same_d, min_diff_d
 
 
 class MultiClassLoss(nn.Module):
