@@ -708,7 +708,7 @@ def main():
       threads.append(thread)
 
   # avoid learning rate goes too low
-  min_lr = 1e-7
+  min_lr = 1e-8
   print('min lr bounded at {0}'.format(str(min_lr)))
   start_ep = resume_ep if cfg.resume else 0
   for ep in range(start_ep, cfg.total_epochs):
