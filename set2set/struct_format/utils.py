@@ -108,6 +108,24 @@ def load_images_of_one_pid(pid_index, pid, data_folder):
             # cv2.waitKey()
     return images
 
+def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
+    color = [0, 0, 0] # zero padding
+    aspect_ratio = desired_size[0]/float(desired_size[1])
+    current_ar = im.shape[0]/float(im.shape[1])
+    if current_ar > aspect_ratio: # current height is too high, pad width
+      delta_w = int(round(im.shape[0]/aspect_ratio - im.shape[1]))
+      left, right = delta_w / 2, delta_w - (delta_w / 2)
+      new_im = cv2.copyMakeBorder(im, 0, 0, left, right, cv2.BORDER_CONSTANT,
+                                  value=color)
+    else: # current width is too wide, pad height
+      delta_h = int(round(im.shape[1]*aspect_ratio - im.shape[0]))
+      if head_top:
+        top, bottom = 0, delta_h
+      else:
+        top, bottom = delta_h/2, delta_h - (delta_h / 2)
+      new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
+                                  value=color)
+    return new_im
 
 class SingleFileCrops(object):
     def __init__(self, index_folder, index_ext='.pickl'):
@@ -175,7 +193,9 @@ class MultiFileCrops(object):
             data_file, place = self.pid_index[pid][k]
             try:
                 one_image = read_one_image(data_file, place)
-                images.append(one_image)
+                im = crop_pad_fixed_aspect_ratio(one_image)
+                im = cv2.resize(im, (128, 256))
+                images.append(im)
                 i+=1
             except:
                 print "failed to read one image from path {}".format(data_file)
