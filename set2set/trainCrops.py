@@ -97,6 +97,7 @@ def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
         return
 
     ind = decay_at_epochs[ep]
+    g = None
     for g in optimizer.param_groups:
         g['lr'] = base_lr * factor ** ind
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
@@ -127,7 +128,7 @@ def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep, min_lr):
 
     if ep < start_decay_at_ep:
         return
-
+    g = None
     for g in optimizer.param_groups:
         g['lr'] = max((base_lr * (0.001 ** (float(ep + 1 - start_decay_at_ep)
                                             / (total_ep + 1 - start_decay_at_ep)))), min_lr)
@@ -144,7 +145,8 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def main(data_folder, index_file, model_folder, sample_size, batch_size,
+
+def main(data_folder, index_file, model_file, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='list'):
     if with_roi:
@@ -181,18 +183,16 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
     # else:
     #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    model_file = os.path.join(model_folder, 'model.ckpt')
+    model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)
-    else:
-        if args.resume and os.path.isfile(model_file):
+    print('model path is {0}'.format(model_file))
+    if os.path.isfile(model_file):
+        if args.resume:
             load_ckpt([model], model_file)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
-    print('model path is {0}'.format(model_file))
-    if args.resume and os.path.isfile(model_file):
-        load_ckpt([model], model_file)
     if len(gpu_ids) > 0:
         model_p = DataParallel(model, device_ids=gpu_ids)
     else:
@@ -209,7 +209,6 @@ def main(data_folder, index_file, model_folder, sample_size, batch_size,
 
     for epoch in range(num_epochs):
         sum_loss = 0
-        sum_tri_loss = 0
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
@@ -257,7 +256,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
 
     parser.add_argument('index_file', type=str, help="index of binary dataset original folder")
-    parser.add_argument('model_folder', type=str, help="folder to save the model")
+    parser.add_argument('model_file', type=str, help="the model file")
     parser.add_argument('--data_folder', type=str, help="dataset original folder with subfolders of person id crops", default='')
     parser.add_argument('--index_format', type=str, default='list', help="format of index file")
 
@@ -284,6 +283,6 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
     if len(args.data_folder) == 0:
         args.data_folder = os.path.split(args.index_file)[0]
-    main(args.data_folder, args.index_file, args.model_folder, args.sample_size, args.batch_size,
+    main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
          optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss, index_format=args.index_format)
