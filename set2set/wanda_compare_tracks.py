@@ -3,12 +3,12 @@ compare pid tracklets with unknown id tracklets
 Quan Yuan
 2018-09-04
 """
-import cv2
-import os, glob
-import argparse, logging
+
+import os
+import argparse
 import numpy
 import time
-import multiprocessing
+import json
 import pickle
 from load_model import AppearanceModelForward
 import compute_feature_alignedReid
@@ -23,11 +23,11 @@ def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sam
         id_list = file_loader.get_track_list()
 
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
-    descriptors = []
+    descriptors = {}
     for k,id in enumerate(id_list):
         images = file_loader.load_fixed_count_images_of_one_pid(id, sample_size)
         descriptor_batch = model.compute_features_on_batch(numpy.array(images))
-        descriptors.append(descriptor_batch)
+        descriptors[id] = descriptor_batch
         if (k+1)%100 == 0:
             print "finished computing descriptor of pid/track_id {} out of {}".format(str(k), str(len(id_list)))
 
@@ -174,10 +174,13 @@ if __name__ == '__main__':
                         help='the ext to appearance descriptor file')
 
     parser.add_argument('--pid_data_folder', type=str, default='',
-                        help='actual folder of data')
+                        help='actual folder of pid data')
+
+    parser.add_argument('--pid_id_matching_file', type=str, default='',
+                        help='conversion between classifier id to pid')
 
     parser.add_argument('--tracklet_data_folder', type=str, default='',
-                        help='actual folder of data')
+                        help='actual folder of track data')
 
     parser.add_argument('--device_id', type=int, default=0, required=False,
                         help='the gpu id')
@@ -216,4 +219,26 @@ if __name__ == '__main__':
     else:
         pid_descriptors = get_descriptors_in_binary(args.model_path, args.pid_path, args.pid_data_folder, args.device_id,
                                                     args.sample_size, pid_flag=True)
-        video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder, )
+        video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder,
+                                                            args.device_id, args.sample_size, pid_flag=False)
+        with open(args.pid_id_matching_file, 'rb') as fp:
+            pid_id_matching = json.load(fp)
+        id_pid_matching = {v: '%08d'%int(k) for k, v in pid_id_matching.iteritems()}
+        vt_descriptors = numpy.array([v for k,v in video_track_descriptors.iteritems()])
+        vt_keys = [k for k,v in video_track_descriptors.iteritems()]
+        track_match_results = {}
+        for id in pid_descriptors:
+            pid_dist = distance(numpy.array(pid_descriptors[id]), vt_descriptors, sample_size=args.sample_size)
+            sort_ids = numpy.argsort(pid_dist)
+            top_ids = sort_ids[:100]
+            matching_names = vt_keys[top_ids]
+            #track_path = os.path.join(video_folder, track_id_str)
+            pid = id_pid_matching[id]
+            if pid not in track_match_results:
+                track_match_results[pid] = {}
+            track_match_results[pid]['tracks'] = matching_names
+            track_match_results[pid]['scores'] = 1-pid_dist[top_ids]
+            output_file = os.path.join(args.output_folder, str(pid) + '.match')
+            with open(output_file, 'wb') as fp:
+                pickle.dump(track_match_results, fp, protocol=pickle.HIGHEST_PROTOCOL)
+            print "pid matching results are dumped to {0}".format(output_file)
