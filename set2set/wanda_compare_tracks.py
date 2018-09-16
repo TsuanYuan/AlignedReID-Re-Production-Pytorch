@@ -14,7 +14,7 @@ from load_model import AppearanceModelForward
 import compute_feature_alignedReid
 from struct_format import utils
 
-def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sample_size, pid_flag):
+def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sample_size, pid_flag, batch_max=128):
     if pid_flag:
         file_loader = utils.MultiFileCrops(data_folder, list_file)
         id_list = file_loader.get_pid_list()
@@ -24,10 +24,20 @@ def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sam
 
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
     descriptors = {}
+    images_batch = []
+    descriptor_batch = []
+    ids_batch = []
     for k,id in enumerate(id_list):
         images = file_loader.load_fixed_count_images_of_one_pid(id, sample_size)
-        descriptor_batch = model.compute_features_on_batch(numpy.array(images))
-        descriptors[id] = descriptor_batch
+        images_batch = images_batch + images
+        ids_batch.append(id)
+        if len(images_batch) >= batch_max or k == len(id_list)-1:
+            if len(images_batch) > 0:
+                descriptor_batch = model.compute_features_on_batch(numpy.array(images_batch))
+            for j, kid in enumerate(ids_batch):
+                descriptors[k] = descriptor_batch[j*sample_size:(j+1)*sample_size,:]
+            descriptor_batch = []
+            ids_batch = []
         if (k+1)%100 == 0:
             print "finished computing descriptor of pid/track_id {} out of {}".format(str(k), str(len(id_list)))
 
@@ -218,9 +228,9 @@ if __name__ == '__main__':
                            num_gpus=8)
     else:
         pid_descriptors = get_descriptors_in_binary(args.model_path, args.pid_path, args.pid_data_folder, args.device_id,
-                                                    args.sample_size, pid_flag=True)
+                                                    sample_size=8, pid_flag=True)
         video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder,
-                                                            args.device_id, args.sample_size, pid_flag=False)
+                                                            args.device_id, sample_size=4, pid_flag=False)
         with open(args.pid_id_matching_file, 'rb') as fp:
             pid_id_matching = json.load(fp)
         id_pid_matching = {v: '%08d'%int(k) for k, v in pid_id_matching.iteritems()}

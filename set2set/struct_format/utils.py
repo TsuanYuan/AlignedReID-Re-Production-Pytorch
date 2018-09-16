@@ -185,7 +185,7 @@ class MultiFileCrops(object):
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
-        if pos + count > len(self.pid_index[pid]):
+        if pos==0 or pos + count > len(self.pid_index[pid]):
             random.shuffle(self.pid_index[pid])
         i = pos
         while i<pos + count:

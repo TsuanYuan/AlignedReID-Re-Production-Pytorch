@@ -68,7 +68,6 @@ def get_descriptors(top_folder,model, force_compute=False, ext='dsc',
             descriptor_files = []
             batch_full = False
         for i, crop_file in enumerate(crop_files):
-
             descriptor_file = crop_file[:-4]+'.'+ext
             descriptor_files.append(descriptor_file)
             if os.path.isfile(descriptor_file) and (not force_compute):
