@@ -227,13 +227,29 @@ if __name__ == '__main__':
                            args.device_id, args.sample_size, start_index=args.start_video_index, num_to_run=args.num_videos,
                            num_gpus=8)
     else:
-        pid_descriptors = get_descriptors_in_binary(args.model_path, args.pid_path, args.pid_data_folder, args.device_id,
-                                                    sample_size=8, pid_flag=True)
-        video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder,
-                                                            args.device_id, sample_size=4, pid_flag=False)
         with open(args.pid_id_matching_file, 'rb') as fp:
             pid_id_matching = json.load(fp)
         id_pid_matching = {v: '%08d'%int(k) for k, v in pid_id_matching.iteritems()}
+
+        pid_desc_file = os.path.join(args.output_folder, args.ext+'_pid_descriptors.pkl')
+        if os.path.isfile(pid_desc_file):
+            with open(pid_desc_file, 'rb') as fp:
+                pid_descriptors=pickle.load(fp)
+        else:
+            pid_descriptors = get_descriptors_in_binary(args.model_path, args.pid_path, args.pid_data_folder, args.device_id,
+                                                    sample_size=8, pid_flag=True)
+            with open(pid_desc_file, 'wb') as fp:
+                pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        vt_desc_file = os.path.join(args.output_folder, args.ext+'_vt_descriptors.pkl')
+        if os.path.isfile(vt_desc_file):
+            with open(vt_desc_file, 'rb') as fp:
+                video_track_descriptors=pickle.load(fp)
+        else:
+            video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder,
+                                                            args.device_id, sample_size=4, pid_flag=False)
+            with open(vt_desc_file, 'wb') as fp:
+                pickle.dump(video_track_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
         vt_descriptors = numpy.array([v for k,v in video_track_descriptors.iteritems()])
         vt_keys = [k for k,v in video_track_descriptors.iteritems()]
         track_match_results = {}
