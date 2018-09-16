@@ -92,7 +92,7 @@ class ReIDAppearanceDataset(Dataset):
                     self.person_id_im_paths[person_id] = jpgs
                 else:
                     skip_count+=1
-        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(id_sample_size)))
+        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(crops_per_id)))
 
         self.transform = transform
         self.crop_per_id = crops_per_id
