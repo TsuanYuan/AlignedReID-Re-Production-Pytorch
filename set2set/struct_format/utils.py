@@ -156,6 +156,9 @@ class MultiFileCrops(object):
         self.load_index_files(list_file)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
+        with open('/tmp/index.pkl', 'wb') as fp:
+            pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
+            print 'saved pid_index to /tmp/index.pkl'
 
     def load_index_files(self, list_file):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)

@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDSingleFileCropsDataset
+from DataLoader import ReIDSingleFileCropsDataset, ReIDAppearanceDataset
 import argparse
 import os
 import datetime
@@ -163,10 +163,11 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-
-    # reid_dataset = ReIDAppearanceSet2SetDataset(data_folder,transform=composed_transforms,
-    #                                             sample_size=sample_size, with_roi=with_roi)
-    reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
+    if len(args.index_file) == 0:
+        reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+                                                crops_per_id=sample_size)
+    else:
+        reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
                                                 sample_size=sample_size, index_format=index_format)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))

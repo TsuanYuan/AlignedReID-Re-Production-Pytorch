@@ -23,12 +23,15 @@ def get_descriptors_in_binary(model_path, list_file, data_folder, device_id, sam
         id_list = file_loader.get_track_list()
 
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
-    discriptors = []
-    for id in id_list:
+    descriptors = []
+    for k,id in enumerate(id_list):
         images = file_loader.load_fixed_count_images_of_one_pid(id, sample_size)
         descriptor_batch = model.compute_features_on_batch(numpy.array(images))
-        discriptors.append(descriptor_batch)
+        descriptors.append(descriptor_batch)
+        if (k+1)%100 == 0:
+            print "finished computing descriptor of pid/track_id {} out of {}".format(str(k), str(len(id_list)))
 
+    return descriptors
 
 def get_pid_descriptors(pid_folder, model_path, ext, sample_size, device_id=0):
     model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
@@ -155,10 +158,10 @@ def compare_unknown_tracks(folder, model_path, output_folder, ext, pid_descripto
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('pid_folder', type=str,
+    parser.add_argument('pid_path', type=str,
                         help='the path to the crops')
 
-    parser.add_argument('tracklet_folder', type=str,
+    parser.add_argument('tracklet_path', type=str,
                         help='the path to parent folder of video + tracklet folders')
 
     parser.add_argument('model_path', type=str,
@@ -169,6 +172,12 @@ if __name__ == '__main__':
 
     parser.add_argument('ext', type=str,
                         help='the ext to appearance descriptor file')
+
+    parser.add_argument('--pid_data_folder', type=str, default='',
+                        help='actual folder of data')
+
+    parser.add_argument('--tracklet_data_folder', type=str, default='',
+                        help='actual folder of data')
 
     parser.add_argument('--device_id', type=int, default=0, required=False,
                         help='the gpu id')
@@ -182,18 +191,29 @@ if __name__ == '__main__':
     parser.add_argument('--sample_size', type=int, default=16,
                         help='the num of crops to sample per id')
 
+    parser.add_argument('--folder_format', action='store_true', default=False,
+                        help='whether to load pid and tracks from folder format')
+
     args = parser.parse_args()
     start_time = time.time()
     if not os.path.isdir(args.output_folder):
         os.makedirs(args.output_folder)
-    pid_file = os.path.join(args.output_folder, 'pids'+'_'+args.ext+'.pkl')
-    if os.path.isfile(pid_file):
-        with open(pid_file, 'rb') as fp:
-            pid_descriptors = pickle.load(fp)
-    else:
-        pid_descriptors = get_pid_descriptors(args.pid_folder, args.model_path, args.ext, args.sample_size, device_id=args.device_id)
-        with open(pid_file, 'wb') as fp:
-            pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
-    compare_unknown_tracks(args.tracklet_folder,args.model_path, args.output_folder, args.ext, pid_descriptors,
+
+    if args.folder_format:
+        pid_file = os.path.join(args.output_folder, 'pids'+'_'+args.ext+'.pkl')
+        if os.path.isfile(pid_file):
+            with open(pid_file, 'rb') as fp:
+                pid_descriptors = pickle.load(fp)
+        else:
+            pid_descriptors = get_pid_descriptors(args.pid_path, args.model_path, args.ext, args.sample_size, device_id=args.device_id)
+            with open(pid_file, 'wb') as fp:
+                pickle.dump(pid_descriptors, fp, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+        compare_unknown_tracks(args.tracklet_path,args.model_path, args.output_folder, args.ext, pid_descriptors,
                            args.device_id, args.sample_size, start_index=args.start_video_index, num_to_run=args.num_videos,
                            num_gpus=8)
+    else:
+        pid_descriptors = get_descriptors_in_binary(args.model_path, args.pid_path, args.pid_data_folder, args.device_id,
+                                                    args.sample_size, pid_flag=True)
+        video_track_descriptors = get_descriptors_in_binary(args.model_path, args.tracklet_path, args.tracklet_data_folder, )

@@ -70,7 +70,7 @@ class ReIDSingleFileCropsDataset(Dataset):
 class ReIDAppearanceDataset(Dataset):
     """ReID dataset."""
 
-    def __init__(self, root_dir, transform=None, id_sample_size=64, crops_per_id=8, with_roi=True,
+    def __init__(self, root_dir, transform=None, crops_per_id=8, with_roi=False,
                  original_ar=False):
         """
         Args:
@@ -95,7 +95,6 @@ class ReIDAppearanceDataset(Dataset):
         print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(id_sample_size)))
 
         self.transform = transform
-        self.id_sample_size = id_sample_size
         self.crop_per_id = crops_per_id
         self.original_ar = original_ar # whether to use fixed aspect ratio
         self.with_roi = with_roi
