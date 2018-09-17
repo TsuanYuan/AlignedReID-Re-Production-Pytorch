@@ -75,6 +75,29 @@ def load_list_of_unknown_tracks(list_file):
                     video_track_index[video_track].append((data_file, within_idx))
         return video_track_index
 
+def load_list_of_unknown_tracks_split(list_file, start_line, final_line, sample_size):
+    # assume format of each row "ch03_2018089123232-00023231 data_path file_offset"
+    video_track_index = collections.defaultdict(list)
+    line_count = 0
+    with open(list_file) as f:
+        for line in f:
+            if line_count>final_line:
+                break
+            elif line_count < start_line:
+                continue
+            else:
+                video_track = line.split()[0]
+                groups = line.strip().split()[1:]
+                num_imgs = len(groups) / 2
+                sample_ids = range(num_imgs)
+                random.shuffle(sample_ids)
+                for i in sample_ids[:sample_size]:
+                    data_file = groups[2 * i]
+                    within_idx = int(groups[2 * i + 1])
+                    if os.path.isfile(data_file):
+                        video_track_index[video_track].append((data_file, within_idx))
+    return video_track_index
+
 
 def convert_to_pid_index(tracklet_index):
     pid_index = collections.defaultdict(list)
@@ -229,6 +252,11 @@ class NoPidFileCrops(object):
 
     def get_track_list(self):
         return self.track_list
+
+    def save_index_file(self, output_file):
+        with open(output_file, 'wb') as fp:
+            pickle.dump(self.track_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
+            print 'saved pid_index to {}'.format(output_file)
 
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
