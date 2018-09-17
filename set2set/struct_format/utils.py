@@ -84,6 +84,7 @@ def load_list_of_unknown_tracks_split(list_file, start_line, final_line, sample_
             if line_count>final_line:
                 break
             elif line_count < start_line:
+                line_count += 1
                 continue
             else:
                 video_track = line.split()[0]
