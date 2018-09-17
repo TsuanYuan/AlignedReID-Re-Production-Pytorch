@@ -95,8 +95,7 @@ def load_list_of_unknown_tracks_split(list_file, start_line, final_line, sample_
                 for i in sample_ids[:sample_size]:
                     data_file = groups[2 * i]
                     within_idx = int(groups[2 * i + 1])
-                    if os.path.isfile(data_file):
-                        video_track_index[video_track].append((data_file, within_idx))
+                    video_track_index[video_track].append((data_file, within_idx))
             line_count+=1
     return video_track_index
 

@@ -26,6 +26,9 @@ def get_descriptors_in_split(model_path, split_data, data_folder, device_id, bat
         for p in line:
             file_name, offset = p
             data_file = os.path.join(data_folder,file_name)
+            if not os.path.isfile(data_file):
+                print 'fail to load data file {}'.format(data_file)
+                continue
             image = utils.read_one_image(data_file, offset)
             image = utils.crop_pad_fixed_aspect_ratio(image)
             image = cv2.resize(image, (128, 256))
