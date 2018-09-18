@@ -17,7 +17,6 @@ class OnlineAppearanceModel(object):
         """
         self.num_feature_per_pid = num_feature_per_pid
         self.pid_appearances = collections.defaultdict(list)
-        self.top_count = int(round(num_feature_per_pid*top_ratio))
         self.top_ratio = top_ratio
 
     @staticmethod
@@ -66,7 +65,8 @@ class OnlineAppearanceModel(object):
         for pid in self.pid_appearances:
             pid_features = numpy.array(self.pid_appearances[pid])
             dist = numpy.squeeze(1-numpy.dot(new_feature.reshape((1, feature_len)), pid_features.transpose()))
-            pid_dists[pid] = numpy.sort(dist)[int(round(self.top_ratio*dist.size))]
+            pick_id = max(1, min(dist.size-1, int(round(self.top_ratio*dist.size))))
+            pid_dists[pid] = numpy.sort(dist)[pick_id]
 
         dist_array = numpy.array([v for k, v in pid_dists.iteritems()])
         soft_max_scores = self.softmax(1-dist_array)
