@@ -9,7 +9,16 @@ import os
 import glob
 
 class OnlineAppearanceModel(object):
+    """
+    online nearest neighbor matching of a feature vector to pid features
+    example:
+    model = OnlineAppearanceModel(num_feature_per_pid=16, top_ratio=0.1)
+    for pid in pids:
+        features = pid_features[pid]
+        model.add_features_of_pid(features, pid)
+    soft_max_scores, pid_dists = model.compute_class_probabilities(test_feature)
 
+    """
     def __init__(self, num_feature_per_pid=16, top_ratio=0.1):
         """
         :param num_feature_per_pid: num of features to sample of each pid
