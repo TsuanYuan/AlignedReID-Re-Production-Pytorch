@@ -16,11 +16,15 @@ def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     n_single = single_set_descriptor.shape[0]
     n_s = n_single/sample_size
     dm = dm.reshape((n_single, n_sets, sample_size))
-    dm = numpy.moveaxis(dm, 0, -1).reshape((n_sets, sample_size*n_single))
-    dm1 = numpy.median(dm, axis=1)
-    dm2 = dm1.reshape((n_s, sample_size))
-    d = numpy.median(dm2, axis=1)
+    dm1 = numpy.squeeze(numpy.median(dm, axis=2))
+    dm2 = dm1.reshape((n_s, sample_size, n_sets))
+    d = numpy.squeeze(numpy.median(dm2, axis=1))
     return d
+    # dm = numpy.moveaxis(dm, 0, -1).reshape((n_sets, sample_size*n_single))
+    # dm1 = numpy.median(dm, axis=0)
+    # dm2 = dm1.reshape((n_s, sample_size))
+    # d = numpy.median(dm2, axis=1)
+    # return d
 
 
 def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_range=(0,100), sample_size=8):
