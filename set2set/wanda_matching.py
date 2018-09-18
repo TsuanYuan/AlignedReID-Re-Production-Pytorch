@@ -50,7 +50,7 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
             vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
             vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             vt_keys = numpy.array([k for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
-            cid_dist = distance(numpy.array(cid_desc_n).reshape((-1, vt_descriptors.shape[2])), vt_descriptors, sample_size=sample_size)
+            cid_dist = distance(numpy.array(cid_desc_n).reshape((-1, vt_descriptors.shape[1])), vt_descriptors, sample_size=sample_size)
             for k in range(cid_dist.shape[0]):
                 sort_ids = numpy.argsort(cid_dist[k,:])
                 top_ids = sort_ids[:100]
