@@ -14,9 +14,12 @@ def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     n_multi = multi_set_descriptors.shape[0]
     n_sets = n_multi/sample_size
     n_single = single_set_descriptor.shape[0]
+    n_s = n_single/sample_size
     dm = dm.reshape((n_single, n_sets, sample_size))
     dm = numpy.moveaxis(dm, 0, -1).reshape((n_sets, sample_size*n_single))
-    d = numpy.median(dm, axis=1)
+    dm1 = numpy.median(dm, axis=1)
+    dm2 = dm1.reshape((n_s, sample_size))
+    d = numpy.median(dm2, axis=1)
     return d
 
 
@@ -43,7 +46,7 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
             vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
             vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             vt_keys = numpy.array([k for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
-            cid_dist = distance(numpy.array(cid_desc_n), vt_descriptors, sample_size=sample_size)
+            cid_dist = distance(numpy.array(cid_desc_n).reshape((-1, vt_descriptors.shape[2])), vt_descriptors, sample_size=sample_size)
             for k in range(cid_dist.shape[0]):
                 sort_ids = numpy.argsort(cid_dist[k,:])
                 top_ids = sort_ids[:100]
