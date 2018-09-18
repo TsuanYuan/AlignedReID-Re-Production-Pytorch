@@ -31,6 +31,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
         with open(cid_desc_file,'rb') as fp:
             cid_desc = pickle.load(fp)
         cids = cid_desc.keys()
+        if len(cids) == 0:
+            continue
         #for cid in cids[cid_range[0]:cid_range[1]]:
         cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
         dist_100 = collections.defaultdict(default_factory=numpy.array([]))
@@ -53,11 +55,11 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
                 pid = cid_pid_matching[cids[k]]
                 name_100[pid] = matching_names[top_ids]
                 dist_100[pid] = top_dist[top_ids]
-
+        for pid in name_100:
             if pid not in pid_top_matches:
                 pid_top_matches[pid] = {}
-            pid_top_matches[pid]['tracks'] = name_100
-            pid_top_matches[pid]['scores'] = 1 - dist_100
+            pid_top_matches[pid]['tracks'] = name_100[pid]
+            pid_top_matches[pid]['scores'] = 1 - dist_100[pid]
         if len(pid_top_matches) == 0:
             continue
         output_file = os.path.join(output_folder, os.path.splitext(os.path.basename(cid_desc_file))[0]+'_'+str(cid_range[0]) + '.match')
