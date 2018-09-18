@@ -726,7 +726,7 @@ if __name__ == "__main__":
     parser.add_argument('--single_folder', action='store_true', default=False,
                         help='process only current folder')
 
-    parser.add_argument('--skip_fc', action='store_true', default=False,
+    parser.add_argument('--skip_fc', action='store_true', default=True,
                         help='skip the fc layers')
 
     parser.add_argument('--local_feature', action='store_true', default=False,

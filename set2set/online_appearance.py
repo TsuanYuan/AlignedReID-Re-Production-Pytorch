@@ -12,7 +12,8 @@ class OnlineAppearanceModel(object):
 
     def __init__(self, num_feature_per_pid=16, top_ratio=0.1):
         """
-        :param num_feature_per_pid: max num of features to keep for each pid
+        :param num_feature_per_pid: num of features to sample of each pid
+        :param top_ratio: k-th of sorted crop-wise distances as a set distance, k=num_feature_per_pid^2*top_ratio
         """
         self.num_feature_per_pid = num_feature_per_pid
         self.pid_appearances = collections.defaultdict(default_factory=list)
@@ -22,15 +23,15 @@ class OnlineAppearanceModel(object):
     def sample_sparse_features(features, num):
         """
         :param features: the input list of features
-        :param num: num of features remains
+        :param num: num of features in the sparse set
         :return: sparse set of features
         """
         feature_array = numpy.array(features)
         dist_m = 1- numpy.dot(feature_array, feature_array.transpose())
         # sort the distance and pick those with large distance to others
-        mean_dist_to_others = numpy.mean(dist_m, axis=1)  # still include 0 dist to itself, but anyway
+        mean_dist_to_others = numpy.mean(dist_m, axis=1)  # still includes 0 dist to itself, but anyway
         sorted_ids = numpy.argsort(mean_dist_to_others)
-        max_dist_ids = sorted_ids[-num:]
+        max_dist_ids = sorted_ids[-num:]   # items with largest distances to others
         sampled_features = features[max_dist_ids]
         return sampled_features
 
@@ -93,6 +94,7 @@ if __name__ == "__main__":
             sub_folder_full = os.path.join(args.data_folder, sub_folder)
             feature_files = glob.glob(os.path.join(sub_folder_full, '*.'+args.ext))
             features = [numpy.fromfile(f, dtype=numpy.float32) for f in feature_files]
+            # adding features to the pid to construct a pid class for nearest neighbor search
             model.add_features_of_pid(features[:-1], pid)
             test_feature[pid] = features[-1]
 
