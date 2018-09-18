@@ -90,6 +90,9 @@ def load_list_of_unknown_tracks_split(list_file, start_line, final_line, sample_
                 video_track = line.split()[0]
                 groups = line.strip().split()[1:]
                 num_imgs = len(groups) / 2
+                if num_imgs < sample_size:
+                    line_count += 1
+                    continue
                 sample_ids = range(num_imgs)
                 random.shuffle(sample_ids)
                 for i in sample_ids[:sample_size]:
