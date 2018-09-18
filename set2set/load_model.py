@@ -16,7 +16,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
 from aligned_reid.model.Model import MGNModel, SwitchClassHeadModel
 
-
 def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
