@@ -4,6 +4,7 @@ import pickle
 import numpy
 import json
 import argparse
+import collections
 
 def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     # cosine
@@ -30,27 +31,29 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
         with open(cid_desc_file,'rb') as fp:
             cid_desc = pickle.load(fp)
         cids = cid_desc.keys()
-        for cid in cids[cid_range[0]:cid_range[1]]:
-            cid_desc_one = cid_desc[cid]
-            dist_100 = numpy.array([])
-            name_100 = numpy.array([])
-            for track_desc_file in track_desc_files:
-                with open(track_desc_file, 'rb') as fp:
-                    track_desc = pickle.load(fp)
-                vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
-                vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
-                vt_keys = numpy.array([k for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
-                cid_dist = distance(numpy.array(cid_desc_one), vt_descriptors, sample_size=sample_size)
-                sort_ids = numpy.argsort(cid_dist)
+        #for cid in cids[cid_range[0]:cid_range[1]]:
+        cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
+        dist_100 = collections.defaultdict(default_factory=numpy.array([]))
+        name_100 = collections.defaultdict(default_factory=numpy.array([]))
+        for track_desc_file in track_desc_files:
+            with open(track_desc_file, 'rb') as fp:
+                track_desc = pickle.load(fp)
+            vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
+            vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
+            vt_keys = numpy.array([k for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
+            cid_dist = distance(numpy.array(cid_desc_n), vt_descriptors, sample_size=sample_size)
+            for k in range(cid_dist.shape[0]):
+                sort_ids = numpy.argsort(cid_dist[k,:])
                 top_ids = sort_ids[:100]
                 # merge with existing top 100 and pick 100 out of 200
                 matching_names = numpy.concatenate((vt_keys[top_ids], name_100))
-                top_dist = numpy.concatenate((cid_dist[top_ids], dist_100))
+                top_dist = numpy.concatenate((cid_dist[k,top_ids], dist_100))
                 sort_ids = numpy.argsort(top_dist)
                 top_ids = sort_ids[:100]
-                name_100 = matching_names[top_ids]
-                dist_100 = top_dist[top_ids]
-            pid = cid_pid_matching[id]
+                pid = cid_pid_matching[cids[k]]
+                name_100[pid] = matching_names[top_ids]
+                dist_100[pid] = top_dist[top_ids]
+
             if pid not in pid_top_matches:
                 pid_top_matches[pid] = {}
             pid_top_matches[pid]['tracks'] = name_100
