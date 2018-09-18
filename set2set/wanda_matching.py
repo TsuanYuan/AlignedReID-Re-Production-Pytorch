@@ -37,8 +37,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
             for track_desc_file in track_desc_files:
                 with open(track_desc_file, 'rb') as fp:
                     track_desc = pickle.load(fp)
-                vt_descriptors = numpy.array([v for k, v in track_desc.iteritems()])
-                vt_keys = [k for k, v in track_desc.iteritems()]
+                vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
+                vt_keys = [k for k, v in track_desc.iteritems() if v.shape[0]==sample_size]
                 cid_dist = distance(numpy.array(cid_desc_one), vt_descriptors, sample_size=sample_size)
                 sort_ids = numpy.argsort(cid_dist)
                 top_ids = sort_ids[:100]
