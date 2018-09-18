@@ -26,11 +26,11 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
         pid_cid_matching = json.load(fp)
     cid_pid_matching = {v: '%08d' % int(k) for k, v in pid_cid_matching.iteritems()}
     pid_top_matches = {}
-    for cid_desc_file in cid_desc_files[cid_range[0]:cid_range[1]]:
+    for cid_desc_file in cid_desc_files:
         with open(cid_desc_file,'rb') as fp:
             cid_desc = pickle.load(fp)
         cids = cid_desc.keys()
-        for cid in cids:
+        for cid in cids[cid_range[0]:cid_range[1]]:
             cid_desc_one = cid_desc[cid]
             dist_100 = numpy.array([])
             name_100 = numpy.array([])
@@ -57,7 +57,7 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
             pid_top_matches[pid]['scores'] = 1 - dist_100
         if len(pid_top_matches) == 0:
             continue
-        output_file = os.path.join(output_folder, str(cid_range[0]) + '.match')
+        output_file = os.path.join(output_folder, os.path.splitext(os.path.basename(cid_desc_file))[0]+'_'+str(cid_range[0]) + '.match')
         with open(output_file, 'wb') as fp:
             pickle.dump(pid_top_matches, fp, protocol=pickle.HIGHEST_PROTOCOL)
         print "pid matching results are dumped to {0}".format(output_file)
