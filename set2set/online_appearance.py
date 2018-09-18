@@ -97,7 +97,18 @@ if __name__ == "__main__":
             # adding features to the pid to construct a pid class for nearest neighbor search
             model.add_features_of_pid(features[:-1], pid)
             test_feature[pid] = features[-1]
-
+    top1, top5 = 0, 0
     for pid in test_feature:
         soft_max_score, pid_dist = model.compute_class_probabilities(test_feature[pid])
-        pid_list = pid_dist[pid]
+        pid_list = numpy.array(pid_dist.keys())
+        dist_list = numpy.array(pid_dist.values())
+        sort_ids = numpy.argsort(dist_list)
+        if pid_list[sort_ids[0]] == pid:
+            top1+=1
+        if pid in pid_list[sort_ids[0]].tolist():
+            top5+=1
+    n = len(test_feature)
+    top1/=float(n)
+    top5/=float(n)
+
+    print "top 1 = {}, top 5 ={} on {} ids".format(str(top1), str(top5), str(n))
