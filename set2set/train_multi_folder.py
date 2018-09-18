@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDSingleFileCropsDataset, ReIDAppearanceDataset
+from DataLoader import ReIDAppearanceDataset
 import argparse
 import os
 import datetime
@@ -148,7 +148,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(index_file, model_file, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
@@ -164,8 +164,8 @@ def main(index_file, model_file, sample_size, batch_size,
     reid_datasets = []
     for data_folder in data_folders:
         if os.path.isdir(data_folder):
-            reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
-                                                sample_size=sample_size, index_format=index_format)
+            reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+                                                crops_per_id=sample_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             print "A total of {} classes are in the data set".format(str(num_classes))
@@ -178,8 +178,6 @@ def main(index_file, model_file, sample_size, batch_size,
     model = Model.MGNModel()
     if len(gpu_ids)>=0:
         model = model.cuda()
-    # else:
-    #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
@@ -259,7 +257,6 @@ if __name__ == '__main__':
 
     parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
-    parser.add_argument('--index_format', type=str, default='list', help="format of index file")
 
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
@@ -285,4 +282,4 @@ if __name__ == '__main__':
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format)
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
