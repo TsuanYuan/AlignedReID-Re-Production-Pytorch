@@ -16,8 +16,9 @@ class OnlineAppearanceModel(object):
         :param top_ratio: k-th of sorted crop-wise distances as a set distance, k=num_feature_per_pid^2*top_ratio
         """
         self.num_feature_per_pid = num_feature_per_pid
-        self.pid_appearances = collections.defaultdict(default_factory=list)
-        self.top_count = round(num_feature_per_pid*top_ratio)
+        self.pid_appearances = collections.defaultdict(list)
+        self.top_count = int(round(num_feature_per_pid*top_ratio))
+        self.top_ratio = top_ratio
 
     @staticmethod
     def sample_sparse_features(features, num):
@@ -32,8 +33,8 @@ class OnlineAppearanceModel(object):
         mean_dist_to_others = numpy.mean(dist_m, axis=1)  # still includes 0 dist to itself, but anyway
         sorted_ids = numpy.argsort(mean_dist_to_others)
         max_dist_ids = sorted_ids[-num:]   # items with largest distances to others
-        sampled_features = features[max_dist_ids]
-        return sampled_features
+        sampled_features = feature_array[max_dist_ids,:]
+        return sampled_features.tolist()
 
     def add_features_of_pid(self, features, pid):
         """
@@ -63,9 +64,9 @@ class OnlineAppearanceModel(object):
         feature_len = len(numpy.squeeze(new_feature))
         pid_dists = {}
         for pid in self.pid_appearances:
-            pid_features = self.pid_appearances[pid]
-            dist = 1-numpy.dot(new_feature.reshape((1, feature_len)), pid_features.transpose())
-            pid_dists[pid] = numpy.sort(dist)[self.top_count]
+            pid_features = numpy.array(self.pid_appearances[pid])
+            dist = numpy.squeeze(1-numpy.dot(new_feature.reshape((1, feature_len)), pid_features.transpose()))
+            pid_dists[pid] = numpy.sort(dist)[int(round(self.top_ratio*dist.size))]
 
         dist_array = numpy.array([v for k, v in pid_dists.iteritems()])
         soft_max_scores = self.softmax(1-dist_array)
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     ap.add_argument("data_folder", type=str, help="path to input folder of tracklets")
     ap.add_argument("ext", type=str, help="extension to load feature")
     ap.add_argument("--count_per_id", type=int, help="count of training pids", default=16)
-    ap.add_argument("--top_ratio", type=int, help="count of testing pids", default=0.1)
+    ap.add_argument("--top_ratio", type=float, help="count of testing pids", default=0.1)
     args = ap.parse_args()
 
     print "count per ID = {}, top k distance ratio = {}".format(str(args.count_per_id), str(args.top_ratio))
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         sort_ids = numpy.argsort(dist_list)
         if pid_list[sort_ids[0]] == pid:
             top1+=1
-        if pid in pid_list[sort_ids[0]].tolist():
+        if pid in pid_list[sort_ids[0:5]].tolist():
             top5+=1
     n = len(test_feature)
     top1/=float(n)
