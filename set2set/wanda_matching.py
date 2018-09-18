@@ -47,6 +47,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
         for track_desc_file in track_desc_files:
             with open(track_desc_file, 'rb') as fp:
                 track_desc = pickle.load(fp)
+            if len(track_desc) == 0:
+                continue
             vt_descriptors = numpy.array([v for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
             vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             vt_keys = numpy.array([k for k, v in track_desc.iteritems() if v.shape[0]==sample_size])
@@ -68,7 +70,7 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
                 name_100[pid] = matching_names[top_ids]
                 dist_100[pid] = top_dist[top_ids]
         for pid in name_100:
-            if not pid.digit():
+            if not pid.isdigit():
                 continue
             if pid not in pid_top_matches:
                 pid_top_matches[pid] = {}
