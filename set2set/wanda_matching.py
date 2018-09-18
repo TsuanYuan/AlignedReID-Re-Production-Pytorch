@@ -56,8 +56,12 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
                 top_ids = sort_ids[:100]
                 pid = cid_pid_matching[int(cids[k])]
                 # merge with existing top 100 and pick 100 out of 200
-                matching_names = numpy.concatenate((vt_keys[top_ids], numpy.array(name_100[pid])))
-                top_dist = numpy.concatenate((cid_dist[k,top_ids], numpy.array(dist_100[pid])))
+                if pid in name_100:
+                    matching_names = numpy.concatenate((vt_keys[top_ids], numpy.array(name_100[pid])))
+                    top_dist = numpy.concatenate((cid_dist[k,top_ids], numpy.array(dist_100[pid])))
+                else:
+                    matching_names = vt_keys[top_ids]
+                    top_dist = cid_dist[k,top_ids]
                 sort_ids = numpy.argsort(top_dist)
                 top_ids = sort_ids[:100]
 
