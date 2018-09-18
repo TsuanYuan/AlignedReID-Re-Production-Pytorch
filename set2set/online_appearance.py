@@ -99,4 +99,3 @@ if __name__ == "__main__":
     for pid in test_feature:
         soft_max_score, pid_dist = model.compute_class_probabilities(test_feature[pid])
         pid_list = pid_dist[pid]
-        

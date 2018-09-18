@@ -54,6 +54,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
                 pid_top_matches[pid] = {}
             pid_top_matches[pid]['tracks'] = name_100
             pid_top_matches[pid]['scores'] = 1 - dist_100
+        if len(pid_top_matches) == 0:
+            continue
         output_file = os.path.join(output_folder, str(cid_range[0]) + '.match')
         with open(output_file, 'wb') as fp:
             pickle.dump(pid_top_matches, fp, protocol=pickle.HIGHEST_PROTOCOL)
