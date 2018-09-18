@@ -42,8 +42,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
             continue
         #for cid in cids[cid_range[0]:cid_range[1]]:
         cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
-        dist_100 = collections.defaultdict(default_factory=numpy.array([]))
-        name_100 = collections.defaultdict(default_factory=numpy.array([]))
+        dist_100 = collections.defaultdict(default_factory=list)
+        name_100 = collections.defaultdict(default_factory=list)
         for track_desc_file in track_desc_files:
             with open(track_desc_file, 'rb') as fp:
                 track_desc = pickle.load(fp)
@@ -56,8 +56,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
                 top_ids = sort_ids[:100]
                 pid = cid_pid_matching[int(cids[k])]
                 # merge with existing top 100 and pick 100 out of 200
-                matching_names = numpy.concatenate((vt_keys[top_ids], name_100[pid]))
-                top_dist = numpy.concatenate((cid_dist[k,top_ids], dist_100[pid]))
+                matching_names = numpy.concatenate((vt_keys[top_ids], numpy.array(name_100[pid])))
+                top_dist = numpy.concatenate((cid_dist[k,top_ids], numpy.array(dist_100[pid])))
                 sort_ids = numpy.argsort(top_dist)
                 top_ids = sort_ids[:100]
 
