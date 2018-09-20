@@ -205,12 +205,12 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
         # reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
         #                                         crops_per_id=sample_size)
         #kwargs = {'num_workers': 8, 'pin_memory': True} if len(args.gpu_ids)>0 else {}
-    reid_dataset = \
-            kyle_folder.AibeeDatasetPartsFolder(index_file, args.data_folder,
-                                                transform=reid_transforms.ReidTransform())
+    #reid_dataset = \
+    #        kyle_folder.AibeeDatasetPartsFolder(index_file, args.data_folder,
+    #                                            transform=reid_transforms.ReidTransform())
     #else:
-     #   reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
-     #                                           sample_size=sample_size, index_format=index_format)
+    reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
+                                               sample_size=sample_size, index_format=index_format)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
