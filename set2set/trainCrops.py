@@ -16,6 +16,7 @@ import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 import kyle_folder
+
 from kyle import reid_transforms
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
