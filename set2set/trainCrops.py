@@ -15,7 +15,7 @@ import transforms_reid, Model
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
-
+import kyle_folder
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
   """Save state_dict's of modules/optimizers to file.
@@ -200,8 +200,12 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
         raise Exception('unknown loss name')
 
     if len(args.index_file) == 0:
-        reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
-                                                crops_per_id=sample_size)
+        # reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+        #                                         crops_per_id=sample_size)
+        #kwargs = {'num_workers': 8, 'pin_memory': True} if len(args.gpu_ids)>0 else {}
+        reid_dataset = \
+            kyle_folder.AibeeDatasetPartsFolder(args.train_list,
+                                                transform=composed_transforms)
     else:
         reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
                                                 sample_size=sample_size, index_format=index_format)
