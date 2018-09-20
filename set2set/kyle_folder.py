@@ -91,7 +91,7 @@ def load_cls_pid_map(cls_pid_map_file):
     return classes, class_to_idx
 
 
-def make_parts_dataset(filelist):
+def make_parts_dataset(filelist, data_folder):
     part_infos_map = {}
     assert os.path.exists(filelist)
     f = open(filelist)
@@ -111,7 +111,7 @@ def make_parts_dataset(filelist):
         for i in xrange(num_imgs):
             part_file = groups[2 * i + 1]
             within_idx = int(groups[2 * i + 2])
-            images.append([[part_file, within_idx], cls_id])
+            images.append([[os.path.join(data_folder, part_file), within_idx], cls_id])
 
     print('we got ' + str(len(images)) + ' images')
     return images, class_to_idx, classes
@@ -156,8 +156,8 @@ class AibeeDatasetPartsFolder(data.Dataset):
         samples (list): List of (sample path, class_index) tuples
     """
 
-    def __init__(self, filelist, transform=None):
-        samples, class_to_idx, classes = make_parts_dataset(filelist)
+    def __init__(self, filelist, data_folder, transform=None):
+        samples, class_to_idx, classes = make_parts_dataset(filelist, data_folder)
         if len(samples) == 0:
             raise(RuntimeError("Found 0 files in filelist of: " + filelist + "\n"))
 
