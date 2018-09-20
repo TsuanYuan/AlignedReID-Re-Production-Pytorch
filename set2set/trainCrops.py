@@ -163,17 +163,8 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-    if len(args.index_file) == 0:
-        reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
-                                                crops_per_id=sample_size)
-    else:
-        reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
-                                                sample_size=sample_size, index_format=index_format)
-    num_classes = len(reid_dataset)
-    print "A total of {} classes are in the data set".format(str(num_classes))
+
     print "index format is {}".format(index_format)
-    dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
-                            shuffle=True, num_workers=8)
 
     if not torch.cuda.is_available():
         gpu_ids = None
@@ -207,6 +198,17 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
         loss_function = losses.PairLoss(margin=margin)
     else:
         raise Exception('unknown loss name')
+
+    if len(args.index_file) == 0:
+        reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+                                                crops_per_id=sample_size)
+    else:
+        reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
+                                                sample_size=sample_size, index_format=index_format)
+    num_classes = len(reid_dataset)
+    print "A total of {} classes are in the data set".format(str(num_classes))
+    dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
+                                             shuffle=True, num_workers=8)
 
     for epoch in range(num_epochs):
         sum_loss = 0
