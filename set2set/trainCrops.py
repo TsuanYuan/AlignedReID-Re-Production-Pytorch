@@ -226,7 +226,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             #images_5d = torch.rand(images_5d.size)
             # import debug_tool
-            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
+            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', name_tag=str(epoch)+'_'+str(i_batch)+'_')
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
