@@ -134,8 +134,8 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
     global_feat = normalize(global_feat, axis=-1)
   # shape [N, N]
   dist_mat = euclidean_dist(global_feat, global_feat)
-  dist_ap, dist_an, p_inds, n_inds = hard_negative_mining(
-    dist_mat, labels, return_inds=True)
+  dist_ap, dist_an = hard_negative_mining(
+    dist_mat, labels, return_inds=False)
   #dist_np, labels_np = pair_example_mining(dist_mat, labels)
 
   loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
@@ -228,7 +228,7 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
 
     return dist_ap, dist_an
 
-def hard_negative_mining(dist_mat, labels, return_inds=False):
+def hard_negative_mining(dist_mat, labels, return_inds=False, top_ratio=0.25):
     """For each anchor, find the hardest positive and negative sample.
     Args:
     dist_mat: pytorch Variable, pair wise distance between samples, shape [N, N]
@@ -255,8 +255,13 @@ def hard_negative_mining(dist_mat, labels, return_inds=False):
 
     # `dist_ap` means distance(anchor, positive)
     # both `dist_ap` and `relative_p_inds` with shape [N, 1]
-    dist_ap, relative_p_inds = torch.median(
-    dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
+
+    # pick the top x percentile for the postives to avoid small portion of ground truth noise that the same id with different people
+    dist_ap_sort, relative_p_inds = torch.sort(
+    dist_mat[is_pos].contiguous().view(N, -1), dim=1, descending=True)
+    top_idx = max(2, int(round(N*top_ratio)))
+    dist_ap = torch.squeeze(dist_ap_sort[:, top_idx])
+    
     # `dist_an` means distance(anchor, negative)
     # both `dist_an` and `relative_n_inds` with shape [N, 1]
     dist_an, relative_n_inds = torch.min(
