@@ -224,6 +224,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
 
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
+            #images_5d = torch.rand(images_5d.size)
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
