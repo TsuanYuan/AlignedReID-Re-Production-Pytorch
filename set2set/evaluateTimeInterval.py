@@ -225,20 +225,20 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
             num_planes = 2048
             fields = line.rstrip('\n').rstrip(' ').split(' ')
             model_path, ext = fields[0], fields[1]
-            folder_only, _ = os.path.split(model_path)
-            folder_name = os.path.basename(os.path.normpath(folder_only))
+            _, file_name = os.path.split(model_path)
+            #folder_name = os.path.basename(os.path.normpath(folder_only))
             #file_only = os.path.basename(model_path)
-            if folder_name.find('parts') >= 0:
+            if file_name.find('parts') >= 0:
                 parts = True
-            if folder_name.find('resnet34') >= 0 or folder_name.find('res34') >= 0:
+            if file_name.find('resnet34') >= 0 or file_name.find('res34') >= 0:
                 base_name = 'resnet34'
                 num_planes = 512
 
-            if folder_name.find('attn') >= 0:
+            if file_name.find('attn') >= 0:
                 model_name = 'attn'
-            elif folder_name.find('mgn') >= 0:
+            elif file_name.find('mgn') >= 0:
                 model_name = 'mgn'
-            elif folder_name.find('upper') >= 0:
+            elif file_name.find('upper') >= 0:
                 model_name = 'upper'
             else:
                 model_name = ''
