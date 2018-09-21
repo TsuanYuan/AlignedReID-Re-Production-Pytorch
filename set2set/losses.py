@@ -259,7 +259,8 @@ def hard_negative_mining(dist_mat, labels, return_inds=False, top_ratio=0.25):
     # pick the top x percentile for the postives to avoid small portion of ground truth noise that the same id with different people
     dist_ap_sort, relative_p_inds = torch.sort(
     dist_mat[is_pos].contiguous().view(N, -1), dim=1, descending=True)
-    top_idx = max(2, int(round(N*top_ratio)))
+    n_per_class = dist_ap_sort.size()[1]
+    top_idx = max(2, int(round(n_per_class*top_ratio)))
     dist_ap = torch.squeeze(dist_ap_sort[:, top_idx])
     
     # `dist_an` means distance(anchor, negative)
