@@ -193,7 +193,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     start_decay = 50
     min_lr = 1e-9
     if loss_name == 'triplet':
-        loss_function = losses.TripletLoss(margin=margin)
+        loss_function = losses.TripletLossK(margin=margin)
     elif loss_name == 'pair':
         loss_function = losses.PairLoss(margin=margin)
     else:

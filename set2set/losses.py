@@ -268,7 +268,7 @@ def hard_negative_mining(dist_mat, labels, return_inds=False, top_ratio=0.25):
     dist_an, relative_n_inds = torch.min(
     dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
     # shape [N]
-    dist_ap = dist_ap.squeeze(1)
+    #dist_ap = dist_ap.squeeze(1)
     dist_an = dist_an.squeeze(1)
 
     if return_inds:
