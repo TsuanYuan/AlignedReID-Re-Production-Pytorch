@@ -13,7 +13,7 @@ import sklearn.metrics.pairwise
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
-import aligned_reid.model.Model
+import Model
 from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
@@ -159,26 +159,23 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     TVTs, TMOs, relative_device_ids = aligned_reid.utils.utils.set_devices_for_ml(sys_device_ids)
 
     if len(model_name) ==0:
-        models = [aligned_reid.model.Model.Model(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
+        models = [Model.SwitchClassHeadModel(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
                                                  final_conv_out_channels=num_planes, base_model=base_name, with_final_conv=with_final_conv,
                                                  parts_model=parts_model)
                   for _ in range(num_models)]
-    elif model_name == 'attn':
-        models = [
-            aligned_reid.model.Model.AttentionModel(local_conv_out_channels=local_conv_out_channels,
-                                              base_model=base_name, parts_model=parts_model)
-            for _ in range(num_models)]
     elif model_name == 'mgn':
         models = [
-            aligned_reid.model.Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
+           Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
                                             base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
-    elif model_name == 'upper':
+    elif model_name == 'senet':
         models = [
-            aligned_reid.model.Model.UpperModel()
+            Model.SEModel()
             for _ in range(num_models)]
-    model_ws = [DataParallel(models[i], device_ids=relative_device_ids[0]) for i in range(num_models)]
+    else:
+        raise Exception('unknown model type {}'.format(model_name))
 
+    model_ws = [DataParallel(models[i], device_ids=relative_device_ids[0]) for i in range(num_models)]
     optimizers = [None for m in models]
     model_opt = models + optimizers
     aligned_reid.utils.utils.load_ckpt(model_opt, model_weight_file, verbose=False, skip_fc=skip_fc)
@@ -234,12 +231,15 @@ def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_
                 base_name = 'resnet34'
                 num_planes = 512
 
+
             if file_name.find('attn') >= 0:
                 model_name = 'attn'
             elif file_name.find('mgn') >= 0:
                 model_name = 'mgn'
             elif file_name.find('upper') >= 0:
                 model_name = 'upper'
+            elif file_name.find('senet') >= 0:
+                model_name = 'senet'
             else:
                 model_name = ''
             print 'model name is {0}'.format(model_name)
