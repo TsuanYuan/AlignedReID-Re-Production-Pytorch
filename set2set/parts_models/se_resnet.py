@@ -1,5 +1,6 @@
 import torch.nn as nn
-from torchvision.models import ResNet
+#from torchvision.models import ResNet
+from BackBones import ResNet
 from se_module import SELayer
 import torch.utils.model_zoo as model_zoo
 
@@ -117,7 +118,7 @@ def se_resnet34(num_classes):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(SEBasicBlock, [3, 4, 6, 3], num_classes=num_classes)
+    model = ResNet(SEBasicBlock, [3, 4, 6, 3])
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     return model
 
@@ -128,10 +129,10 @@ def se_resnet50(pretrained=False, num_classes=None):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(SEBottleneck, [3, 4, 6, 3], num_classes=num_classes)
+    model = ResNet(SEBottleneck, [3, 4, 6, 3])
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     if pretrained:
-        model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'])))
+        model.load_state_dict(remove_fc(model_zoo.load_url(model_urls['resnet50'])), strict=False)
 
     return model
 
@@ -142,7 +143,7 @@ def se_resnet101(num_classes):
     Args:
         pretrained (bool): If True, returns a model pre-trained on ImageNet
     """
-    model = ResNet(SEBottleneck, [3, 4, 23, 3], num_classes=num_classes)
+    model = ResNet(SEBottleneck, [3, 4, 23, 3])
     model.avgpool = nn.AdaptiveAvgPool2d(1)
     return model
 
