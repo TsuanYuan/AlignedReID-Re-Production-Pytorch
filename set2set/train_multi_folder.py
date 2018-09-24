@@ -199,7 +199,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     start_decay = 50
     min_lr = 1e-9
     if loss_name == 'triplet':
-        loss_function = losses.TripletLoss(margin=margin)
+        loss_function = losses.TripletLossK(margin=margin)
     elif loss_name == 'pair':
         loss_function = losses.PairLoss(margin=margin)
     else:
@@ -267,19 +267,19 @@ if __name__ == '__main__':
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
-    parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
+    parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
-    parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
+    parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
-    parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")
-    parser.add_argument('--original_ar', action='store_true', default=False, help="whether use original aspect ratio")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss)))
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
+                   str(args.lr)))
+
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
