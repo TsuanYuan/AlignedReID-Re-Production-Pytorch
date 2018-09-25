@@ -223,7 +223,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             try:
                 sample_batched = next(it)
             except:
-                dataloader_iterators[set_id] = iter(data_folders[set_id])
+                dataloader_iterators[set_id] = iter(dataloaders[set_id])
                 sample_batched = next(dataloader_iterators[set_id])
             # stair case adjust learning rate
             if i_batch ==0:
