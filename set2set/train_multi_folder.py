@@ -220,7 +220,11 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         while i_batch < num_iters_per_epoch: #i_batch, sample_batched in enumerate(dataloader):
             set_id = i_batch % n_set
             it = dataloader_iterators[set_id]
-            sample_batched = next(it)
+            try:
+                sample_batched = next(it)
+            except:
+                it = dataloader_iterators[set_id]
+                sample_batched = next(it)
             # stair case adjust learning rate
             if i_batch ==0:
                 adjust_lr_exp(
