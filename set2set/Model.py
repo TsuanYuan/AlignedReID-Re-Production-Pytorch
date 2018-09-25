@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-import numpy
+import numpy as np
 from torch.autograd import Variable
 from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
 from torchvision.models import inception_v3
@@ -190,6 +190,83 @@ class SwitchClassHeadModel(nn.Module):
 
         return outputs
 
+class PoseReIDModel(nn.Module):
+    def __init__(
+            self,
+            last_conv_stride=1,
+            last_conv_dilation=1,
+            num_parts=5,
+            local_conv_out_channels=256,
+            num_classes=0
+    ):
+        super(PoseReIDModel, self).__init__()
+
+        self.base = resnet50(
+            pretrained=True,
+            last_conv_stride=last_conv_stride,
+            last_conv_dilation=last_conv_dilation)
+        self.num_parts = num_parts
+        self.planes = 2048
+        self.local_conv_list = nn.ModuleList()
+        for _ in range(num_parts):
+            self.local_conv_list.append(nn.Sequential(
+                nn.Conv2d(2048, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True)
+            ))
+
+        if num_classes > 0:
+            self.fc_list = nn.ModuleList()
+            for _ in range(num_parts):
+                fc = nn.Linear(local_conv_out_channels, num_classes)
+                init.normal(fc.weight, std=0.001)
+                init.constant(fc.bias, 0)
+                self.fc_list.append(fc)
+
+        self.merge_layer = nn.Sequential(
+                nn.Conv2d(self.planes+local_conv_out_channels*num_parts, self.planes, 1),
+                nn.BatchNorm2d(self.planes),
+                nn.ReLU(inplace=True))
+
+
+    def forward(self, x, poses):
+        """
+        Returns:
+          local_feat_list: each member with shape [N, c]
+          logits_list: each member with shape [N, num_classes]
+        """
+        # shape [N, C, H, W]
+        feat = self.base(x)
+        assert feat.size(2) % self.num_stripes == 0
+        stripe_h = int(feat.size(2) / self.num_stripes)
+        local_feat_list = []
+        logits_list = []
+        for i in range(self.num_stripes):
+            # shape [N, C, 1, 1]
+            local_feat = F.avg_pool2d(
+                feat[:, :, i * stripe_h: (i + 1) * stripe_h, :],
+                (stripe_h, feat.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.local_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat)
+            if hasattr(self, 'fc_list'):
+                logits_list.append(self.fc_list[i](local_feat))
+
+        logits = None
+        for i, logit_rows in enumerate(logits_list):
+            if i == 0:
+                logits = logit_rows
+            else:
+                logits += logit_rows
+        condensed_feat = torch.cat(local_feat_list, dim=1)
+        if len(condensed_feat.size()) == 1:  # in case of single feature
+            condensed_feat = condensed_feat.unsqueeze(0)
+        feat = F.normalize(condensed_feat, p=2, dim=1)
+        return feat, logits
+
+
 class SEModel(nn.Module):
     def __init__(self,
                  num_classes=None, base_model='resnet50'):
@@ -353,6 +430,9 @@ class MGNModel(nn.Module):
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
             planes = 2048
+        elif base_model == 'resnet50se':
+            self.base = se_resnet.se_resnet50_with_layers(pretrained=True)
+            planes = 2048
         else:
             raise RuntimeError("unknown base model!")
 
@@ -409,7 +489,7 @@ class MGNModel(nn.Module):
         for i in range(self.level2_strips):
             # shape [N, C, 1, 1]
             stripe_start = int(round(stripe_s2 * i))
-            stripe_end = int(min(numpy.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
+            stripe_end = int(min(np.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
             sh = stripe_end - stripe_start
             local_feat = F.max_pool2d(
                 feat_l2[:, :, stripe_start: stripe_end, :], (sh, feat_l2.size(-1)))
@@ -426,7 +506,7 @@ class MGNModel(nn.Module):
         for i in range(self.level3_strips):
             # shape [N, C, 1, 1]
             stripe_start = int(round(stripe_s3 * i))
-            stripe_end = int(min(numpy.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
+            stripe_end = int(min(np.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
             sh = stripe_end - stripe_start
             local_feat = F.max_pool2d(
                 feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))

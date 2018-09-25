@@ -177,7 +177,9 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     if model_type == 'mgn':
         model = Model.MGNModel()
     elif model_type == 'se':
-        model = Model.SEModel()
+        model = Model.SEModel(base_model='resnet50se')
+    else:
+        raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
