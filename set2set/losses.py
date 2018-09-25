@@ -134,7 +134,7 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
     global_feat = normalize(global_feat, axis=-1)
   # shape [N, N]
   dist_mat = euclidean_dist(global_feat, global_feat)
-  dist_ap, dist_an = hard_negative_mining(
+  dist_ap, dist_an = hard_example_mining(
     dist_mat, labels, return_inds=False)
   #dist_np, labels_np = pair_example_mining(dist_mat, labels)
 
