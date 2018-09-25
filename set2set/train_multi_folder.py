@@ -9,6 +9,7 @@ from DataLoader import ReIDAppearanceDataset
 import argparse
 import os
 import datetime
+import collections
 
 from torchvision import transforms
 import transforms_reid, Model
@@ -178,6 +179,9 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         model = Model.MGNModel()
     elif model_type == 'se':
         model = Model.SEModel()
+    else:
+        raise Exception('unknown model type')
+
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
@@ -206,12 +210,17 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         raise Exception('unknown loss name')
 
     n_set = len(reid_datasets)
+    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
+                                             shuffle=True, num_workers=8) for set_id in range(n_set)]
+    dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
+    num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
         sum_loss = 0
         set_id = epoch%n_set
-        dataloader = torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
-                                                 shuffle=True, num_workers=8)
-        for i_batch, sample_batched in enumerate(dataloader):
+        it = dataloader_iterators[set_id]
+        i_batch = 0
+        while i_batch < num_iters_per_epoch: #i_batch, sample_batched in enumerate(dataloader):
+            sample_batched = next(it)
             # stair case adjust learning rate
             if i_batch ==0:
                 adjust_lr_exp(
@@ -243,7 +252,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
-            if i_batch==len(dataloader)-1:
+            if i_batch==num_iters_per_epoch-1:
                 log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
@@ -251,6 +260,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)
+            i_batch += 1
     print('model saved to {0}'.format(model_file))
 
 
