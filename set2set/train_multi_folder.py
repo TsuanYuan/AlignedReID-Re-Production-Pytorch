@@ -216,10 +216,10 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
         sum_loss = 0
-        set_id = epoch%n_set
-        it = dataloader_iterators[set_id]
         i_batch = 0
         while i_batch < num_iters_per_epoch: #i_batch, sample_batched in enumerate(dataloader):
+            set_id = i_batch % n_set
+            it = dataloader_iterators[set_id]
             sample_batched = next(it)
             # stair case adjust learning rate
             if i_batch ==0:
