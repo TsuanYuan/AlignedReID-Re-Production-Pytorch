@@ -319,7 +319,8 @@ def encode_folder(person_folder, model, frame_interval, ext, force_compute):
         else:
             im_bgr = cv2.imread(crop_file)
             im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-            #box = np.array([0, 0, im.shape[1], im.shape[0]])
+            im = crop_pad_fixed_aspect_ratio(im)
+            im = cv2.resize(im, (128, 256))
             descriptor = model.compute_features_on_batch([im])
             #descriptor = encoder(im, [box])
             if isinstance(descriptor, types.TupleType):
