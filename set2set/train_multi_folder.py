@@ -181,8 +181,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         #model = Model.SEModel()
     else:
         raise Exception('unknown model type {}'.format(model_type))
-    if len(gpu_ids)>=0:
-        model = model.cuda(device=gpu_ids[0])
+    # if len(gpu_ids)>=0:
+    #     model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
