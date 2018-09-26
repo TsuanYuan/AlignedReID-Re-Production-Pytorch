@@ -38,7 +38,7 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
     modules_optims: A list, which members are either torch.nn.optimizer
@@ -47,7 +47,10 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc
     load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
       to cpu type.
   """
-  map_location = (lambda storage, loc: storage) if load_to_cpu else None
+  if load_to_cpu:
+    map_location = (lambda storage, loc: storage)
+  else:
+    map_location = (lambda storage, loc: 'cuda:{}'.format(str(gpu_id)))
   ckpt = torch.load(ckpt_file, map_location=map_location)
   if skip_fc:
     print('skip fc layers when loading the model!')
@@ -181,8 +184,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         #model = Model.SEModel()
     else:
         raise Exception('unknown model type {}'.format(model_type))
-    # if len(gpu_ids)>=0:
-    #     model = model.cuda(device=gpu_ids[0])
+    if len(gpu_ids)>=0:
+        model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
