@@ -14,7 +14,7 @@ from torch.nn.parallel import DataParallel
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 
-from aligned_reid.model.Model import MGNModel, SwitchClassHeadModel
+from Model import MGNModel, SwitchClassHeadModel
 
 def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
@@ -53,13 +53,13 @@ class AppearanceModelForward(object):
 
         model_name = os.path.basename(model_path)
         parts_model = False
-        mgn_model = False
         if model_name.find('parts') >= 0:
             parts_model = True
         if model_name.find('mgn') >= 0:
-            mgn_model = True
-        if mgn_model:
-            model = MGNModel()
+            if model_name.find('semgn') >= 0:
+                model = MGNModel(base_model='resnet50se')
+            else:
+                model = MGNModel()
         else:
             model = SwitchClassHeadModel(parts_model=parts_model)
 

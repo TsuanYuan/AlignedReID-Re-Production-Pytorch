@@ -20,6 +20,7 @@ import torch
 import numpy
 import shutil
 import json
+from load_model import AppearanceModelForward
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -212,43 +213,43 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
     return encoder
 
 
-def load_experts(experts_file, sys_device_ids, skip_fc, local_feature_flag, num_classes=1442):
-    expert_models_feature_funcs, exts = [], []
+def load_experts(experts_file, device_id):
+    models, exts = [], []
 
     with open(experts_file, 'r') as fp:
         for line in fp:
-            parts = False
-            base_name = 'resnet50'
-            num_planes = 2048
+            # parts = False
+            # base_name = 'resnet50'
+            # num_planes = 2048
             fields = line.rstrip('\n').rstrip(' ').split(' ')
             model_path, ext = fields[0], fields[1]
-            _, file_name = os.path.split(model_path)
-            #folder_name = os.path.basename(os.path.normpath(folder_only))
-            #file_only = os.path.basename(model_path)
-            if file_name.find('parts') >= 0:
-                parts = True
-            if file_name.find('resnet34') >= 0 or file_name.find('res34') >= 0:
-                base_name = 'resnet34'
-                num_planes = 512
+            # _, file_name = os.path.split(model_path)
+            # if file_name.find('parts') >= 0:
+            #     parts = True
+            # if file_name.find('resnet34') >= 0 or file_name.find('res34') >= 0:
+            #     base_name = 'resnet34'
+            #     num_planes = 512
 
 
-            if file_name.find('attn') >= 0:
-                model_name = 'attn'
-            elif file_name.find('mgn') >= 0:
-                model_name = 'mgn'
-            elif file_name.find('upper') >= 0:
-                model_name = 'upper'
-            elif file_name.find('senet') >= 0:
-                model_name = 'senet'
-            else:
-                model_name = ''
-            print 'model name is {0}'.format(model_name)
-            encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
-                                num_classes=num_classes, num_planes=num_planes, base_name=base_name,
-                                parts_model=parts, local_feature_flag=local_feature_flag, skip_fc=skip_fc, model_name=model_name)
-            expert_models_feature_funcs.append(encoder)
+            # if file_name.find('attn') >= 0:
+            #     model_name = 'attn'
+            # elif file_name.find('mgn') >= 0:
+            #     model_name = 'mgn'
+            # elif file_name.find('upper') >= 0:
+            #     model_name = 'upper'
+            # elif file_name.find('senet') >= 0:
+            #     model_name = 'senet'
+            # else:
+            #     model_name = ''
+            # print 'model name is {0}'.format(model_name)
+            model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
+            models.append(model)
+            # encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
+            #                     num_classes=num_classes, num_planes=num_planes, base_name=base_name,
+            #                     parts_model=parts, local_feature_flag=local_feature_flag, skip_fc=skip_fc, model_name=model_name)
+            # expert_models_feature_funcs.append(encoder)
             exts.append(ext)
-    return expert_models_feature_funcs, exts
+    return models, exts
 
 def decode_raw_image_name(im_path):
     # get camera id, person id, frame index
@@ -304,13 +305,10 @@ def get_crop_files_at_interval(crop_files, frame_interval):
             crop_files_with_interval = crop_files
     return crop_files_with_interval
 
-def encode_folder(person_folder, encoder, frame_interval, ext, force_compute):
+def encode_folder(person_folder, model, frame_interval, ext, force_compute):
     p = person_folder
     # print 'descriptor computing in {0}'.format(p)
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
-    interval = frame_interval # max(len(crop_files) / sample_size, 1)
-
-    #crop_files = [crop_file for i, crop_file in enumerate(crop_files) if i % interval == 0]
     crop_files_with_interval = get_crop_files_at_interval(crop_files, frame_interval)
     descriptors = []
     for i, crop_file in enumerate(crop_files_with_interval):
@@ -321,8 +319,10 @@ def encode_folder(person_folder, encoder, frame_interval, ext, force_compute):
         else:
             im_bgr = cv2.imread(crop_file)
             im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-            box = np.array([0, 0, im.shape[1], im.shape[0]])
-            descriptor = encoder(im, [box])
+            im = crop_pad_fixed_aspect_ratio(im)
+            im = cv2.resize(im, (128, 256))
+            descriptor = model.compute_features_on_batch([im])
+            #descriptor = encoder(im, [box])
             if isinstance(descriptor, types.TupleType):
                 descriptor = descriptor[0]
             #descriptor.tofile(descriptor_file)
@@ -342,12 +342,12 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, encoders, exts, frame_interval, force_compute):
+def load_descriptor_list(person_folder, models, exts, frame_interval, force_compute):
     descriptors_for_encoders = []#[None]*len(exts)
     crop_files = []
     k = 0
-    for encoder, ext in zip(encoders,exts):
-        descriptors_for_encoders_t, crop_files = encode_folder(person_folder, encoder, frame_interval, ext, force_compute)
+    for model, ext in zip(models,exts):
+        descriptors_for_encoders_t, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute)
         if len(crop_files)>0:
             descriptors_for_encoders.append(descriptors_for_encoders_t)    
 
@@ -645,7 +645,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     print 'output tough image map to {0}'.format(output_tough_image_file)
     print 'difficult pairs were dumped to {0}'.format(output_folder)
 
-def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_folder, ignore_ids):
+def process(data_folder,frame_interval, model_list, exts, force_compute, dump_folder, ignore_ids):
 
     sub_folders = os.listdir(data_folder)
     feature_list, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -653,7 +653,7 @@ def process(data_folder,frame_interval, encoder_list, exts, force_compute, dump_
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
             person_id = int(sub_folder)
-            descriptors, crop_files = load_descriptor_list(os.path.join(data_folder,sub_folder),encoder_list, exts, frame_interval, force_compute)
+            descriptors, crop_files = load_descriptor_list(os.path.join(data_folder,sub_folder),model_list, exts, frame_interval, force_compute)
             #person_id_seqs = [person_id]*len(descriptors)
             if len(descriptors) > 1:
                 feature_list.append(descriptors)
@@ -726,11 +726,11 @@ if __name__ == "__main__":
     parser.add_argument('--single_folder', action='store_true', default=False,
                         help='process only current folder')
 
-    parser.add_argument('--skip_fc', action='store_true', default=True,
-                        help='skip the fc layers')
-
-    parser.add_argument('--local_feature', action='store_true', default=False,
-                        help='use local feature to compare')
+    # parser.add_argument('--skip_fc', action='store_true', default=True,
+    #                     help='skip the fc layers')
+    #
+    # parser.add_argument('--local_feature', action='store_true', default=False,
+    #                     help='use local feature to compare')
 
     parser.add_argument('--head_top', action='store_true', default=False,
                         help='crop attach at top')
@@ -740,8 +740,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
-    sys_device_ids = ((args.device_id,),)
-    experts, exts = load_experts(args.experts_file, sys_device_ids, args.skip_fc, args.local_feature)
+    #sys_device_ids = ((args.device_id,),)
+    experts, exts = load_experts(args.experts_file, args.device_id)
     import time
     HEAD_TOP = args.head_top
     if HEAD_TOP:
