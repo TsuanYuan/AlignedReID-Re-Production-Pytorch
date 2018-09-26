@@ -197,7 +197,8 @@ class PoseReIDModel(nn.Module):
             last_conv_dilation=1,
             num_parts=5,
             local_conv_out_channels=256,
-            num_classes=0
+            num_classes=0,
+            pose_ids = None
     ):
         super(PoseReIDModel, self).__init__()
 
@@ -207,6 +208,7 @@ class PoseReIDModel(nn.Module):
             last_conv_dilation=last_conv_dilation)
         self.num_parts = num_parts
         self.planes = 2048
+
         self.local_conv_list = nn.ModuleList()
         for _ in range(num_parts):
             self.local_conv_list.append(nn.Sequential(
@@ -216,55 +218,97 @@ class PoseReIDModel(nn.Module):
             ))
 
         if num_classes > 0:
+            # fc for softmax loss
             self.fc_list = nn.ModuleList()
             for _ in range(num_parts):
                 fc = nn.Linear(local_conv_out_channels, num_classes)
                 init.normal(fc.weight, std=0.001)
                 init.constant(fc.bias, 0)
                 self.fc_list.append(fc)
+            # fc on full body
+            fc = nn.Linear(self.planes, num_classes)
+            init.normal(fc.weight, std=0.001)
+            init.constant(fc.bias, 0)
+            self.fc_list.append(fc)
 
         self.merge_layer = nn.Sequential(
                 nn.Conv2d(self.planes+local_conv_out_channels*num_parts, self.planes, 1),
                 nn.BatchNorm2d(self.planes),
                 nn.ReLU(inplace=True))
 
+        self.pose_ids = pose_ids
+
+    def pool_region(self, x, normalized_boxes):
+        """
+        :param x: NCHW feature
+        :param boxes: normalized boxes [left, top, w, h] within [0, 1]
+        :return: pooled feature
+        """
+        feature_shape = x.size()
+        roi_masks, roi_areas = self.compute_roi_masks(normalized_boxes, feature_shape)
+        masked_feat = x * Variable(roi_masks)
+        feature_sum = torch.sum(torch.sum(masked_feat, 3),2)
+        roi_areas = roi_areas.unsqueeze(1)
+        feature_average = feature_sum/Variable(roi_areas.expand((feature_shape[0], feature_shape[1])))
+        condensed_feat = torch.squeeze(feature_average)
+        return condensed_feat
+
+    def compute_roi_masks(self, normalized_boxes, feat_size):
+        n = feat_size[0]
+        if torch.has_cudnn:
+            roi_masks = torch.zeros(feat_size).cuda(device=normalized_boxes.get_device())
+            roi_areas = torch.zeros(n).cuda(device=normalized_boxes.get_device())
+        else:
+            roi_masks = torch.zeros(feat_size)
+            roi_areas = torch.zeros(n)
+
+        for i in range(n):
+            xs, xe, ys, ye = self.compute_roi(feat_size[3], feat_size[2], normalized_boxes[i])
+            if xs+xe+xs+ye > 0:
+                roi_masks[i, :, ys:ye, xs:xe] = 1
+                roi_areas[i] = (ye-ys)*(xe-xs)
+        return roi_masks, roi_areas
+
+    def compute_roi(self, box, f_w, f_h):
+        # x y of boxes
+        if box[2] == 0 or box[3] == 0:
+            return 0, 0, 0, 0
+        else:
+            xs = max(0, (f_w*box[0]).round())
+            xe = min(f_w-1, (f_w*(box[0]+box[2])).round())
+            ys = max(0, (f_h*box[1]).round())
+            ye = min(f_h-1, (f_h*(box[1]+box[3])).round())
+        return xs, xe, ys, ye
 
     def forward(self, x, poses):
         """
-        Returns:
-          local_feat_list: each member with shape [N, c]
-          logits_list: each member with shape [N, num_classes]
+        :param x: input batch of images N 3 H W
+        :param poses: input batch of N 17 4
+        :return:
         """
         # shape [N, C, H, W]
-        feat = self.base(x)
-        assert feat.size(2) % self.num_stripes == 0
-        stripe_h = int(feat.size(2) / self.num_stripes)
-        local_feat_list = []
-        logits_list = []
-        for i in range(self.num_stripes):
-            # shape [N, C, 1, 1]
-            local_feat = F.avg_pool2d(
-                feat[:, :, i * stripe_h: (i + 1) * stripe_h, :],
-                (stripe_h, feat.size(-1)))
-            # shape [N, c, 1, 1]
-            local_feat = self.local_conv_list[i](local_feat)
-            # shape [N, c]
-            local_feat = local_feat.view(local_feat.size(0), -1)
-            local_feat_list.append(local_feat)
-            if hasattr(self, 'fc_list'):
-                logits_list.append(self.fc_list[i](local_feat))
+        feature_map = self.base(x)
+        normalized_boxes = torch.zeros((x.size()[0], 4)).cuda(x.get_device())
+        part_feat_list = []
+        for pose_id in self.pose_ids:
+            normalized_boxes[:, 0] = torch.squeeze(poses[:, pose_id, 0]) - 0.25
+            normalized_boxes[:, 1] = torch.squeeze(poses[:, pose_id, 1]) - 0.25
+            normalized_boxes[:, 2] = 0.5
+            normalized_boxes[:, 3] = 0.5
+            normalized_boxes[normalized_boxes<0] = 0
+            normalized_boxes[normalized_boxes>0.75] = 0.75
+            normalized_boxes = normalized_boxes * torch.squeeze(poses[:,pose_id, 2])
+            part_feature = self.pool_region(feature_map, normalized_boxes)
+            part_feat_list.append(part_feature)
 
-        logits = None
-        for i, logit_rows in enumerate(logits_list):
-            if i == 0:
-                logits = logit_rows
-            else:
-                logits += logit_rows
-        condensed_feat = torch.cat(local_feat_list, dim=1)
+        global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
+        part_feat_list.append(global_feat)
+        condensed_feat = torch.cat(part_feat_list, dim=1)
         if len(condensed_feat.size()) == 1:  # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
-        feat = F.normalize(condensed_feat, p=2, dim=1)
-        return feat, logits
+        final_feature = self.merge_layer(condensed_feat)
+        feat = F.normalize(final_feature, p=2, dim=1)
+        return feat
 
 
 class SEModel(nn.Module):
@@ -304,7 +348,6 @@ class SEModel(nn.Module):
             return feat,logits
 
         return feat, None
-
 
 
 class BinaryModel(nn.Module):
