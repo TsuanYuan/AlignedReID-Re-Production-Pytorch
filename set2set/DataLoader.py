@@ -9,7 +9,8 @@ import random
 from torch.utils.data import Dataset
 import json
 from struct_format.utils import SingleFileCrops, MultiFileCrops
-
+import pickle
+from parts_models import utils as parts_utils
 
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
     color = [0, 0, 0]  # zero padding
@@ -82,6 +83,122 @@ class ReIDSingleFileCropsDataset(Dataset):
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([set_id]))
         return sample
+
+
+class ReIDKeypointsDataset(Dataset):
+    """ReID dataset."""
+
+    def __init__(self, root_dir, transform=None, crops_per_id=8, normalized_shape=(128, 256)):
+        """
+        Args:
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        ## folder structure, root_folder->person_id_folders->image_crops
+        self.root_dir = root_dir
+        subfolders = os.listdir(root_dir)
+        self.person_id_im_paths = {}
+        self.person_id_keypoints = {}
+        skip_count = 0
+        for item in subfolders:
+            path = os.path.join(root_dir, item)
+            keypoints_pkl = os.path.join(root_dir, item, 'keypoints.pkl')
+            if not os.path.isfile(keypoints_pkl):
+                skip_count += 1
+                continue
+            with open(keypoints_pkl, 'rb') as fp:
+                keypoints = pickle.load(fp)
+            if os.path.isdir(path) and item.isdigit():
+                person_id = int(item)
+                jpgs = glob.glob(os.path.join(path, '*.jpg'))
+                kps = [keypoints[os.path.split(jpg)[1]]  for jpg in jpgs]
+                # debug
+                # n = 0
+                # for jpg, kp in zip(jpgs, kps):
+                #     im = cv2.imread(jpg)
+                #     parts_utils.visualize_keypoints_on_im(im, kp, '{}'.format(str(n)))
+                #     n+=1
+                selected_kps, sids = self.keypoints_quality_selection(kps)
+                # normalize kps to padded crop
+                if len(jpgs) >= crops_per_id:
+                    self.person_id_im_paths[person_id] = numpy.array(jpgs)[sids]
+                    self.person_id_keypoints[person_id] = numpy.array(selected_kps)
+                else:
+                    skip_count += 1
+        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}, or without keypoints.pkl'.format(str(skip_count),
+                                                                                                     str(len(
+                                                                                                         subfolders)),
+                                                                                                     str(crops_per_id)))
+
+        self.transform = transform
+        self.crop_per_id = crops_per_id
+
+    def keypoints_quality_selection(self, kps):
+        selected_ids = []
+        selected_kp = []
+        for i, kp in enumerate(kps):
+            # if len(kp) == 1:
+            #     if len(kp[0].shape) == 2: # (17, 4)
+            #         selected_kp.append(kp[0])
+            #         selected_ids.append(i)
+            #     else:
+            #         raise Exception('wrong shape of keypoints')
+
+            if len(kp) >= 1:
+                mean_visible = numpy.array([numpy.mean(x, axis=0)[3] for x in kp])
+                area_ratio = numpy.array([numpy.prod(numpy.max(x, axis=0)[0:2]-numpy.min(x, axis=0)[0:2]) for x in kp])
+                quality_scores = mean_visible*10+area_ratio
+                best_ids = numpy.where(quality_scores>0.75)[0]
+                if len(best_ids) > 1 or len(best_ids) ==0:
+                    continue
+                else:
+                    selected_kp.append(kp[best_ids[0]])
+                    selected_ids.append(i)
+
+        return selected_kp, numpy.array(selected_ids)
+
+    def __len__(self):
+        return len(self.person_id_im_paths)
+
+    def adjust_keypoints_to_normalized_shape(self, keypoints, w_h_ratio, normalized_ratio=0.5):
+        kp = numpy.copy(keypoints)
+        if w_h_ratio < normalized_ratio:
+            kp[:, 0] = (keypoints[:, 0] - 0.5)*w_h_ratio/normalized_ratio+0.5
+        else:
+            kp[:, 1] = (keypoints[:, 1] - 0.5) * normalized_ratio/w_h_ratio + 0.5
+
+        return kp
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.person_id_im_paths.keys()[set_id]
+        im_paths = self.person_id_im_paths[person_id]
+        keypoints = self.person_id_keypoints[person_id]
+        permute_ids = numpy.random.permutation(range(len(keypoints)))[:min(self.crop_per_id, len(im_paths))]
+
+        im_paths_sample = im_paths[permute_ids]
+        keypoints_sample = keypoints[permute_ids]
+        ims = []
+        kps = []
+        for im_path, kp in zip(im_paths_sample, keypoints_sample):
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            kp = self.adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
+            ims.append(im)
+            kps.append(kp)
+
+        sample = {'images': ims}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        # debug
+        for im, kp in zip(sample['images'], kps):
+            parts_utils.visualize_keypoints_on_im(im.astype(numpy.uint8), [kp], 'sample')
+
+        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        sample['keypoints'] = torch.from_numpy(numpy.array(kps))
+
+        return sample
+
 
 class ReIDAppearanceDataset(Dataset):
     """ReID dataset."""

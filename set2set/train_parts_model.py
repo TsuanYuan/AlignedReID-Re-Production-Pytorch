@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset
+from DataLoader import ReIDAppearanceDataset, ReIDKeypointsDataset
 import argparse
 import os
 import datetime
@@ -38,7 +38,7 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=True, skip_fc=False):
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
     modules_optims: A list, which members are either torch.nn.optimizer
@@ -47,10 +47,7 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=Tr
     load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
       to cpu type.
   """
-  if load_to_cpu:
-    map_location = (lambda storage, loc: storage)
-  else:
-    map_location = (lambda storage, loc: 'cuda:{}'.format(str(gpu_id)))
+  map_location = (lambda storage, loc: storage) if load_to_cpu else None
   ckpt = torch.load(ckpt_file, map_location=map_location)
   if skip_fc:
     print('skip fc layers when loading the model!')
@@ -153,12 +150,12 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
 
-    composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256, 128)),
-                                              transforms_reid.RandomBlockMask(8),
-                                              transforms_reid.PixelNormalize(),
-                                              transforms_reid.ToTensor(),
+    composed_transforms = transforms.Compose([#transforms_reid.RandomHorizontalFlip(),
+                                              transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
+                                              #transforms_reid.RandomCrop((256, 128)),
+                                              #transforms_reid.RandomBlockMask(8),
+                                              #transforms_reid.PixelNormalize(),
+                                              #transforms_reid.ToTensor(),
                                               ])
     data_folders = []
     with open(index_file) as f:
@@ -167,7 +164,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     reid_datasets = []
     for data_folder in data_folders:
         if os.path.isdir(data_folder):
-            reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+            reid_dataset = ReIDKeypointsDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
@@ -177,6 +174,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
     if not torch.cuda.is_available():
         gpu_ids = None
+    else:
+        torch.cuda.set_device(gpu_ids[0])
     if model_type == 'mgn':
         model = Model.MGNModel()
     elif model_type == 'se':
@@ -186,9 +185,6 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
-    else:
-        torch.cuda.set_device(gpu_ids[0])
-
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
@@ -245,6 +241,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
+
+
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
