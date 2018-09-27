@@ -161,7 +161,7 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
         """
         person_id_data_valid = {}
         for pid in person_id_data:
-            if len(person_id_data[pid] < crops_per_id):
+            if len(person_id_data[pid]) < crops_per_id:
                 continue
             else:
                 person_id_data_valid[pid] = person_id_data[pid]
