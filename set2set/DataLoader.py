@@ -159,8 +159,14 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.person_id_im_paths = person_id_data
-
+        person_id_data_valid = {}
+        for pid in person_id_data:
+            if len(person_id_data[pid] < crops_per_id):
+                continue
+            else:
+                person_id_data_valid[pid] = person_id_data[pid]
+        print("keep {} pids > {} in {} pids".format(str(len(person_id_data_valid)), str(crops_per_id), str(len(person_id_data))))
+        self.person_id_im_paths = person_id_data_valid
         self.transform = transform
         self.crops_per_id = crops_per_id
 
