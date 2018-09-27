@@ -65,7 +65,9 @@ class ConcatDayDataset(ConcatDataset):
     random select samples through
     """
     def __init__(self, datasets, batch_size):
-        super(ConcatDayDataset, self).__init__(datasets)
+        datasets_valid = [dataset for dataset in datasets if len(dataset) >= batch_size]
+        print("{} out of {} datasets are with at least {} pids.".format(str(len(datasets_valid)), str(len(datasets)), str(batch_size)))
+        super(ConcatDayDataset, self).__init__(datasets_valid)
         assert len(datasets) > 0, 'datasets should not be an empty iterable'
         self.batch_size = batch_size
 
@@ -141,7 +143,7 @@ def create_list_of_days_datasets(root_dir, transform=None, crops_per_id=8):
 
     for date in person_id_im_paths:
         dataset = ReIDSameDayDataset(person_id_im_paths[date], transform=transform, crops_per_id=crops_per_id)
-        print("A total of {} classes are in the data set of date {}".format(str(len(dataset)), str(date)))
+        print("Total of {} classes are in the data set of date {}".format(str(len(dataset)), str(date)))
         datasets.append(dataset)
 
     return datasets
@@ -178,10 +180,12 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-        sample = {'images': ims, 'person_id': person_id}
+        channel, date, time, pid, frame_id = decode_wcc_image_name(im_paths_sample[0])
+        sample = {'images': ims, 'person_id': person_id, 'date': date}
+
         if self.transform:
             sample['images'] = self.transform(sample['images'])
-        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
         return sample
 
 

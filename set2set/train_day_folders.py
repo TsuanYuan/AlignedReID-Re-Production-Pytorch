@@ -168,7 +168,6 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         model = Model.MGNModel()
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
-        #model = Model.SEModel()
     else:
         raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
@@ -213,13 +212,15 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                     num_epochs,
                     start_decay, min_lr)
 
-            # load batch data
-            images = torch.concat([sample['images'] for sample in sample_batched], axis=0)  # [batch_id, crop_id, 3, 256, 128]
+            # debug date
+            # for sample in sample_batched:
+            #     print "date of {}".format(sample['date'])
+            images_5d = torch.cat([sample['images'] for sample in sample_batched], dim=0)  # [batch_id, crop_id, 3, 256, 128]
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
-            person_ids = torch.concat([sample['person_id'] for sample in sample_batched], axis=0)
-            actual_size = list(images.size())
-            # images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
+            person_ids = torch.cat([sample['person_id'] for sample in sample_batched], dim=0)
+            actual_size = list(images_5d.size())
+            images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
@@ -247,9 +248,9 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
+    parser = argparse.ArgumentParser(description="training reid with day by day Dataset. Each subfolder is of one ID")
 
-    parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
+    parser.add_argument('data_folder', type=str, help="training folder, contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
 
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
@@ -267,13 +268,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print('training_parameters:')
-    print('  index_file={0}'.format(args.folder_list_file))
+    print('  data_folder={0}'.format(args.data_folder))
     print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
                    str(args.lr)))
 
     torch.backends.cudnn.benchmark = False
 
-    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
+    main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
