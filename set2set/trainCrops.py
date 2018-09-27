@@ -159,7 +159,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop((256, 128)),
-                                              transforms_reid.RandomBlockMask(8),
+                                              #transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
@@ -224,10 +224,13 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
 
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
-            #images_5d = torch.rand(images_5d.size)
-            # import debug_tool
-            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', name_tag=str(epoch)+'_'+str(i_batch)+'_')
             person_ids = sample_batched['person_id']
+            # # debug
+            # actual_size = images_5d.size()
+            # pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+            # import debug_tool
+            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', pids=pids_expand, name_tag=str(epoch)+'_'+str(i_batch)+'_')
+
             # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
