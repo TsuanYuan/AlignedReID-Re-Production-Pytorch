@@ -146,7 +146,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
+def main(index_file, model_file, sample_size, batch_size, parts_type='head',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
 
@@ -154,8 +154,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
                                               transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
                                               #transforms_reid.RandomBlockMask(8),
-                                              #transforms_reid.PixelNormalize(),
-                                              #transforms_reid.ToTensor(),
+                                              transforms_reid.PixelNormalize(),
+                                              transforms_reid.ToTensor(),
                                               ])
     data_folders = []
     with open(index_file) as f:
@@ -176,13 +176,15 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         gpu_ids = None
     else:
         torch.cuda.set_device(gpu_ids[0])
-    if model_type == 'mgn':
-        model = Model.MGNModel()
-    elif model_type == 'se':
-        model = Model.MGNModel(base_model='resnet50se')
-        #model = Model.SEModel()
+    if parts_type=='limbs':
+        pose_ids = (2,9,10,15,16)
+    elif parts_type=='head':
+        pose_ids = (0, 2, 4) # redundency for heads
     else:
-        raise Exception('unknown model type {}'.format(model_type))
+        raise Exception("unknown parts definition {}".format(parts_type))
+    print "parts type is {}".format(parts_type)
+    model = Model.PoseReIDModel(pose_ids=pose_ids)
+
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
@@ -237,23 +239,25 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
-            # import debug_tool
-            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
+            keypoints_5d = sample_batched['keypoints']
+            import debug_tool
+            debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
 
 
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
-
+            kp_size = keypoints_5d.size()
+            keypoints = keypoints_5d.view([kp_size[0]*kp_size[1],kp_size[2],kp_size[3]])
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
                     person_ids = person_ids.cuda(device=gpu_ids[0])
-                    features, logits = model_p(Variable(images.cuda(device=gpu_ids[0], async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
+                    features = model_p(Variable(images.cuda(device=gpu_ids[0], async=True)), keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
-                features, logits = model(Variable(images))
+                features = model(Variable(images), keypoints)
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
+            loss,dist_pos, dist_neg = loss_function(outputs, person_ids, None)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -289,6 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
+    parser.add_argument('--parts_type', type=str, default='head', help="parts definitions")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -299,6 +304,6 @@ if __name__ == '__main__':
 
     torch.backends.cudnn.benchmark = False
 
-    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
+    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, parts_type=args.parts_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)

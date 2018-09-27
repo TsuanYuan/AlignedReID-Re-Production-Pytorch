@@ -191,8 +191,8 @@ class ReIDKeypointsDataset(Dataset):
         if self.transform:
             sample['images'] = self.transform(sample['images'])
         # debug
-        for im, kp in zip(sample['images'], kps):
-            parts_utils.visualize_keypoints_on_im(im.astype(numpy.uint8), [kp], 'sample')
+        #for im, kp in zip(sample['images'], kps):
+        #    parts_utils.visualize_keypoints_on_im(im.astype(numpy.uint8), [kp], 'sample')
 
         sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
         sample['keypoints'] = torch.from_numpy(numpy.array(kps))

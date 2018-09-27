@@ -195,7 +195,6 @@ class PoseReIDModel(nn.Module):
             self,
             last_conv_stride=1,
             last_conv_dilation=1,
-            num_parts=5,
             local_conv_out_channels=256,
             num_classes=0,
             pose_ids = None
@@ -206,7 +205,7 @@ class PoseReIDModel(nn.Module):
             pretrained=True,
             last_conv_stride=last_conv_stride,
             last_conv_dilation=last_conv_dilation)
-        self.num_parts = num_parts
+        num_parts = len(pose_ids)
         self.planes = 2048
 
         self.local_conv_list = nn.ModuleList()
@@ -237,8 +236,9 @@ class PoseReIDModel(nn.Module):
                 nn.ReLU(inplace=True))
 
         self.pose_ids = pose_ids
+        self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
 
-    def pool_region(self, x, normalized_boxes):
+    def pool_region(self, x, normalized_boxes, local_id):
         """
         :param x: NCHW feature
         :param boxes: normalized boxes [left, top, w, h] within [0, 1]
@@ -247,10 +247,11 @@ class PoseReIDModel(nn.Module):
         feature_shape = x.size()
         roi_masks, roi_areas = self.compute_roi_masks(normalized_boxes, feature_shape)
         masked_feat = x * Variable(roi_masks)
-        feature_sum = torch.sum(torch.sum(masked_feat, 3),2)
-        roi_areas = roi_areas.unsqueeze(1)
-        feature_average = feature_sum/Variable(roi_areas.expand((feature_shape[0], feature_shape[1])))
-        condensed_feat = torch.squeeze(feature_average)
+        max_pooled_feat = F.max_pool2d(masked_feat, masked_feat.size()[2:])
+        # feature_sum = torch.sum(torch.sum(masked_feat, 3),2)
+        # roi_areas = roi_areas.unsqueeze(1)
+        # feature_average = feature_sum/Variable(roi_areas.expand((feature_shape[0], feature_shape[1]))+1e-8)
+        condensed_feat = self.local_conv_list[local_id](max_pooled_feat)
         return condensed_feat
 
     def compute_roi_masks(self, normalized_boxes, feat_size):
@@ -263,7 +264,7 @@ class PoseReIDModel(nn.Module):
             roi_areas = torch.zeros(n)
 
         for i in range(n):
-            xs, xe, ys, ye = self.compute_roi(feat_size[3], feat_size[2], normalized_boxes[i])
+            xs, xe, ys, ye = self.compute_roi(normalized_boxes[i,:], feat_size[3], feat_size[2])
             if xs+xe+xs+ye > 0:
                 roi_masks[i, :, ys:ye, xs:xe] = 1
                 roi_areas[i] = (ye-ys)*(xe-xs)
@@ -274,10 +275,10 @@ class PoseReIDModel(nn.Module):
         if box[2] == 0 or box[3] == 0:
             return 0, 0, 0, 0
         else:
-            xs = max(0, (f_w*box[0]).round())
-            xe = min(f_w-1, (f_w*(box[0]+box[2])).round())
-            ys = max(0, (f_h*box[1]).round())
-            ye = min(f_h-1, (f_h*(box[1]+box[3])).round())
+            xs = max(0, (f_w*box[0]).round().int())
+            xe = min(f_w-1, (f_w*(box[0]+box[2])).round().int())
+            ys = max(0, (f_h*box[1]).round().int())
+            ye = min(f_h-1, (f_h*(box[1]+box[3])).round().int())
         return xs, xe, ys, ye
 
     def forward(self, x, poses):
@@ -292,21 +293,26 @@ class PoseReIDModel(nn.Module):
         part_feat_list = []
         for pose_id in self.pose_ids:
             normalized_boxes[:, 0] = torch.squeeze(poses[:, pose_id, 0]) - 0.25
-            normalized_boxes[:, 1] = torch.squeeze(poses[:, pose_id, 1]) - 0.25
+            normalized_boxes[:, 1] = torch.squeeze(poses[:, pose_id, 1]) - 0.25/2
             normalized_boxes[:, 2] = 0.5
-            normalized_boxes[:, 3] = 0.5
+            normalized_boxes[:, 3] = 0.5/2
             normalized_boxes[normalized_boxes<0] = 0
             normalized_boxes[normalized_boxes>0.75] = 0.75
-            normalized_boxes = normalized_boxes * torch.squeeze(poses[:,pose_id, 2])
-            part_feature = self.pool_region(feature_map, normalized_boxes)
+            normalized_boxes[normalized_boxes[:,0] > 0.5,0] = 0.5 # x smaller than half
+            normalized_boxes[poses[:,pose_id, 2]==0,:] = 0
+            #normalized_boxes = normalized_boxes * torch.squeeze(poses[:,pose_id, 2])
+            local_id = self.pose_id_2_local_id[pose_id] # local id are [0,1,2,3,4], pose id are [2,9,10, 15,16]
+            part_feature = self.pool_region(feature_map, normalized_boxes, local_id)
             part_feat_list.append(part_feature)
 
         global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
         part_feat_list.append(global_feat)
-        condensed_feat = torch.cat(part_feat_list, dim=1)
-        if len(condensed_feat.size()) == 1:  # in case of single feature
-            condensed_feat = condensed_feat.unsqueeze(0)
-        final_feature = self.merge_layer(condensed_feat)
+
+        concat_feat = torch.cat(part_feat_list, dim=1)
+        final_feature = torch.squeeze(self.merge_layer(concat_feat))
+        if len(final_feature.size()) == 1:  # in case of single feature
+            final_feature = final_feature.unsqueeze(0)
+
         feat = F.normalize(final_feature, p=2, dim=1)
         return feat
 
