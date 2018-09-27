@@ -119,9 +119,10 @@ class ReIDKeypointsDataset(Dataset):
                 #     im = cv2.imread(jpg)
                 #     parts_utils.visualize_keypoints_on_im(im, kp, '{}'.format(str(n)))
                 #     n+=1
+
                 selected_kps, sids = self.keypoints_quality_selection(kps)
                 # normalize kps to padded crop
-                if len(jpgs_with_kps) >= crops_per_id:
+                if len(selected_kps) >= crops_per_id:
                     self.person_id_im_paths[person_id] = numpy.array(jpgs_with_kps)[sids]
                     self.person_id_keypoints[person_id] = numpy.array(selected_kps)
                 else:
