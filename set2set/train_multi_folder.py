@@ -50,7 +50,7 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=Tr
   if load_to_cpu:
     map_location = (lambda storage, loc: storage)
   else:
-    map_location = (lambda storage, loc: 'cuda:{}'.format(str(gpu_id)))
+    map_location = torch.device('cuda:{}'.format(str(gpu_id)))#(lambda storage, loc: storage.cuda(gpu_id))
   ckpt = torch.load(ckpt_file, map_location=map_location)
   if skip_fc:
     print('skip fc layers when loading the model!')
@@ -196,7 +196,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_ckpt([model], model_file)
+            load_ckpt([model], model_file, gpu_id=gpu_ids[0], skip_fc=True)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
