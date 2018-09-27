@@ -236,16 +236,12 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
                     epoch + 1,
                     num_epochs,
                     start_decay, min_lr)
-
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             keypoints_5d = sample_batched['keypoints']
-            import debug_tool
-            debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = sample_batched['person_id']
-            # w_h_ratios = sample_batched['w_h_ratios']
-
-
+            # import debug_tool
+            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
             kp_size = keypoints_5d.size()

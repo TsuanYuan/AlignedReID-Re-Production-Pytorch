@@ -101,28 +101,28 @@ class ReIDKeypointsDataset(Dataset):
         self.person_id_im_paths = {}
         self.person_id_keypoints = {}
         skip_count = 0
-        for item in subfolders:
-            path = os.path.join(root_dir, item)
-            keypoints_pkl = os.path.join(root_dir, item, 'keypoints.pkl')
+        for subfolder in subfolders:
+            pid_folder = os.path.join(root_dir, subfolder)
+            keypoints_pkl = os.path.join(root_dir, subfolder, 'keypoints.pkl')
             if not os.path.isfile(keypoints_pkl):
                 skip_count += 1
                 continue
             with open(keypoints_pkl, 'rb') as fp:
                 keypoints = pickle.load(fp)
-            if os.path.isdir(path) and item.isdigit():
-                person_id = int(item)
-                jpgs = glob.glob(os.path.join(path, '*.jpg'))
-                kps = [keypoints[os.path.split(jpg)[1]]  for jpg in jpgs]
-                # debug
+            if os.path.isdir(pid_folder) and subfolder.isdigit():
+                person_id = int(subfolder)
+                jpgs_with_kps = [os.path.join(pid_folder, p) for p in keypoints.keys()]
+                kps = [keypoints[os.path.split(jpg)[1]]  for jpg in jpgs_with_kps]
+                # debug, turn off transforms
                 # n = 0
-                # for jpg, kp in zip(jpgs, kps):
+                # for jpg, kp in zip(jpgs_with_kps, kps):
                 #     im = cv2.imread(jpg)
                 #     parts_utils.visualize_keypoints_on_im(im, kp, '{}'.format(str(n)))
                 #     n+=1
                 selected_kps, sids = self.keypoints_quality_selection(kps)
                 # normalize kps to padded crop
-                if len(jpgs) >= crops_per_id:
-                    self.person_id_im_paths[person_id] = numpy.array(jpgs)[sids]
+                if len(jpgs_with_kps) >= crops_per_id:
+                    self.person_id_im_paths[person_id] = numpy.array(jpgs_with_kps)[sids]
                     self.person_id_keypoints[person_id] = numpy.array(selected_kps)
                 else:
                     skip_count += 1
