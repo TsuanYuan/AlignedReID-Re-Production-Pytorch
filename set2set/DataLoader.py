@@ -5,8 +5,10 @@ import torch
 from skimage import io
 import cv2
 import numpy
+import bisect
 import random
-from torch.utils.data import Dataset
+import collections
+from torch.utils.data import Dataset,ConcatDataset
 import json
 from struct_format.utils import SingleFileCrops, MultiFileCrops
 import pickle
@@ -46,6 +48,43 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     return new_im
 
 
+def decode_wcc_image_name(image_name):
+    # decode ch00002_20180816102633_00005504_00052119.jpg
+    image_base, _ = os.path.splitext(image_name)
+    parts = image_base.split('_')
+    channel = parts[0]
+    date = parts[1][:8]
+    time = parts[1][8:]
+    pid = parts[2]
+    frame_id = parts[3]
+    return channel, date, time, pid, frame_id
+
+
+class ConcatDayDataset(ConcatDataset):
+    """
+    random select samples through
+    """
+    def __init__(self, datasets, batch_size):
+        super(ConcatDayDataset, self).__init__(datasets)
+        assert len(datasets) > 0, 'datasets should not be an empty iterable'
+        self.batch_size = batch_size
+
+    @staticmethod
+    def item_sum(sequence):
+        r = []
+        for e in sequence:
+            l = len(e)
+            r.append(l)
+        return r
+
+    def __getitem__(self, idx):
+        dataset_idx = idx%len(self.datasets)
+
+        sample_indices = random.sample(range(len(self.datasets[dataset_idx])), self.batch_size)
+        batch = [self.datasets[dataset_idx][sample_idx] for sample_idx in sample_indices]
+        return batch
+
+
 class ReIDSingleFileCropsDataset(Dataset):
     """ReID data set with single file crops format"""
     def __init__(self, data_folder, index_file, transform=None, sample_size=8, desired_size=(256, 128),
@@ -83,6 +122,68 @@ class ReIDSingleFileCropsDataset(Dataset):
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([set_id]))
         return sample
+
+def create_list_of_days_datasets(root_dir, transform=None, crops_per_id=8):
+    datasets = []
+    sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]
+    person_id_im_paths = {}
+    skip_count = 0
+    for sub_folder in sub_folders:
+        jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
+        if len(jpgs) >= crops_per_id:
+            for jpg_file in jpgs:
+                channel, date, time, pid, frame_id = decode_wcc_image_name(os.path.basename(jpg_file))
+                if date not in person_id_im_paths:
+                    person_id_im_paths[date] = collections.defaultdict(list)
+                person_id_im_paths[date][pid].append(jpg_file)
+        else:
+            skip_count += 1
+
+    for date in person_id_im_paths:
+        dataset = ReIDSameDayDataset(person_id_im_paths[date], transform=transform, crops_per_id=crops_per_id)
+        print("A total of {} classes are in the data set of date {}".format(str(len(dataset)), str(date)))
+        datasets.append(dataset)
+
+    return datasets
+
+
+class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
+    """ReID dataset each batch coming from the same day."""
+
+    def __init__(self, person_id_data, transform=None, crops_per_id=8):
+        """
+        Args:
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.person_id_im_paths = person_id_data
+
+        self.transform = transform
+        self.crops_per_id = crops_per_id
+
+
+    def __len__(self):
+        return len(self.person_id_im_paths)
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.person_id_im_paths.keys()[set_id]
+        im_paths = self.person_id_im_paths[person_id]
+        random.shuffle(im_paths)
+        im_paths_sample = im_paths[0:min(self.crops_per_id, len(im_paths))]
+        ims = []
+        for im_path in im_paths_sample:
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            ims.append(im)
+            # import scipy.misc
+            # scipy.misc.imsave('/tmp/new_im.jpg', im)
+        sample = {'images': ims, 'person_id': person_id}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        return sample
+
 
 
 class ReIDKeypointsDataset(Dataset):
