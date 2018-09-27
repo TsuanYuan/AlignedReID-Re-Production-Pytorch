@@ -182,7 +182,9 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
         im_paths_sample = im_paths[0:min(self.crops_per_id, len(im_paths))]
         ims = []
         for im_path in im_paths_sample:
-            im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path))
+            im_bgr = cv2.imread(im_path)
+            im_rgb = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(im_rgb)
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
