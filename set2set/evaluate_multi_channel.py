@@ -12,6 +12,7 @@ import numpy
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from evaluate import feature_compute, metric_compute, misc
 from evaluate.metric_compute import Same_Pair_Requirements
+import time
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -42,7 +43,11 @@ def process(data_folder, model_list, exts, force_compute, dump_folder, ignore_id
     same_pair_dist, same_pair_files = metric_compute.compute_same_pair_dist(features_per_person, crops_file_list, same_dist_requirements)
     diff_pair_dist, diff_pair_files = metric_compute.compute_diff_pair_dist(features_per_person, crops_file_list)
     # dump difficult files
-    misc.dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder)
+    data_tag = os.path.basename(os.path.normpath(data_folder))
+    time_tag = str(time.time())
+    model_tag = os.path.basename(model_list[0])
+    dump_folder_with_tag = os.path.join(dump_folder, data_tag+'_'+model_tag + '_'+time_tag)
+    misc.dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder_with_tag)
     # report true postives at different false positives
     same_pair_dist = numpy.array(same_pair_dist)
     diff_pair_dist = numpy.array(diff_pair_dist)
@@ -85,7 +90,7 @@ if __name__ == "__main__":
     parser.add_argument('experts_file', type=str,
                         help='the file of list of expert model paths')
 
-    parser.add_argument('--frame_interval', type=int, default=16,
+    parser.add_argument('--frame_interval', type=int, default=-1,
                         help='the num of samples from each ID')
 
     parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
@@ -105,12 +110,6 @@ if __name__ == "__main__":
 
     parser.add_argument('--must_same_camera', action='store_true', default=False,
                         help='crop attach at top')
-
-    parser.add_argument('--head_top', action='store_true', default=False,
-                        help='crop attach at top')
-
-    parser.add_argument('--ignore_ids', nargs='+',  type=int,default=[],
-                        help='ids to ignore in evaluation')
 
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)

@@ -132,7 +132,6 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     canvas = plot_error_spatial(canvas, numpy.array(diff_all_files))
     output_tough_image_file = os.path.join(output_folder,'spatial.jpg')
 
-
     if os.path.isdir(output_folder):
         print 'remove existing {0} for difficult pairs output'.format(output_folder)
         shutil.rmtree(output_folder)
