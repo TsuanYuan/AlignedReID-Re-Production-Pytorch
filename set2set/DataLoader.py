@@ -64,12 +64,19 @@ class ConcatDayDataset(ConcatDataset):
     """
     random select samples through
     """
-    def __init__(self, datasets, batch_size):
+    def __init__(self, datasets, batch_size, data_size_factor=4):
+        """
+        :param datasets: list of ReIDSameDayDataset objects
+        :param batch_size: num of ids per batch
+        :param data_size_factor: as the total number of pids are huge, each epoch will iterate len(datasets)*data_size_factor iterations.
+        Not necessarily all pids
+        """
         datasets_valid = [dataset for dataset in datasets if len(dataset) >= batch_size]
         print("{} out of {} datasets are with at least {} pids.".format(str(len(datasets_valid)), str(len(datasets)), str(batch_size)))
         super(ConcatDayDataset, self).__init__(datasets_valid)
         assert len(datasets) > 0, 'datasets should not be an empty iterable'
         self.batch_size = batch_size
+        self.data_size_factor = data_size_factor
 
     @staticmethod
     def item_sum(sequence):
@@ -78,6 +85,9 @@ class ConcatDayDataset(ConcatDataset):
             l = len(e)
             r.append(l)
         return r
+
+    def __len__(self):
+        return len(self.datasets)*self.data_size_factor
 
     def __getitem__(self, idx):
         dataset_idx = idx%len(self.datasets)
