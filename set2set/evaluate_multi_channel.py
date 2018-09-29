@@ -115,17 +115,20 @@ if __name__ == "__main__":
                         help='process multiple subfolders')
 
     parser.add_argument('--must_different_days', action='store_true', default=False,
-                        help='crop attach at top')
+                        help='same pair must be at different days')
 
     parser.add_argument('--must_same_camera', action='store_true', default=False,
-                        help='crop attach at top')
+                        help='same pair must be at same cameras')
+
+    parser.add_argument('--must_diff_camera', action='store_true', default=False,
+                        help='same pair must be at different cameras')
 
     args = parser.parse_args()
     print 'frame interval={0}'.format(args.frame_interval)
-
     import time
 
-    same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera)
+    same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days,
+                                                    must_same_camera=args.must_same_camera, must_diff_camera=args.must_diff_camera)
     model = feature_compute.AppearanceModelForward(args.model_path, single_device=args.device_id)
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))

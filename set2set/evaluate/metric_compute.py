@@ -10,7 +10,7 @@ from feature_compute import decode_wcc_image_name
 import sklearn.metrics.pairwise as pairwise
 import sklearn.metrics
 
-Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_camera'])
+Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_camera', 'must_diff_camera'])
 
 def make_string_matrix_from_arr(string_arr, k):
     return numpy.tile(string_arr.reshape((string_arr.size, 1)), [1, k])
@@ -45,17 +45,24 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
         same_camera = string_distance_array(camera_ids, camera_ids)
         satisfied = numpy.logical_and(satisfied, same_camera)
 
+    if requirements.must_diff_camera:
+        same_camera = string_distance_array(camera_ids, camera_ids)
+        satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_camera))
+
     if requirements.must_different_days:
         days_same = pairwise.euclidean_distances(days.reshape((n, 1))) == 0
         satisfied = numpy.logical_and(satisfied, days_same)
 
     if requirements.frame_interval > 0:
-        # frame interval > 0 could be different days, different video_time or frame diff > frame_interval
+        # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval
+        same_camera = string_distance_array(camera_ids, camera_ids)
         days_diff = pairwise.euclidean_distances(days.reshape((n, 1))) > 0
         video_diff = pairwise.euclidean_distances(video_times.reshape((n, 1))) > 0
         frame_interval_diff = pairwise.euclidean_distances(frame_indices.reshape((n, 1))) > requirements.frame_interval
         frame_requirement = numpy.logical_or(days_diff, video_diff)
         frame_requirement = numpy.logical_or(frame_requirement, frame_interval_diff)
+        frame_requirement = numpy.logical_or(frame_requirement, numpy.logical_not(same_camera))
+
         satisfied = numpy.logical_and(satisfied, frame_requirement)
 
     satisfied_dist = features_dist[satisfied]
