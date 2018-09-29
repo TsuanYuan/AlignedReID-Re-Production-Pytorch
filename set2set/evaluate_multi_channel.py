@@ -19,14 +19,15 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements):
+def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max):
 
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list,crops_file_list = [], [], [], []
 
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
-            descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder,sub_folder),model, ext, frame_interval=-1, force_compute=force_compute)
+            descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder,sub_folder),model, ext,
+                                                                           frame_interval=-1, force_compute=force_compute, batch_max=batch_max)
             if len(descriptors) > 1:
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
@@ -70,12 +71,12 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
               .format('%.3f' % tpr5, '%.6f' % th5, '%.5f' % fpr5, data_folder, str(ext)))
     return tpr2, tpr3, tpr4, tpr5, th2, th3, th4, th4
 
-def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements):
+def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements)
+        tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -108,6 +109,9 @@ if __name__ == "__main__":
     parser.add_argument('--device_id', type=int, default=0,
                         help='device id to run model')
 
+    parser.add_argument('--batch_max', type=int, default=128,
+                        help='batch size to compute reid features')
+
     parser.add_argument('--ignore_ids', nargs='+', type=int, default=[],
                         help='ids to ignore in evaluation')
 
@@ -124,7 +128,7 @@ if __name__ == "__main__":
                         help='same pair must be at different cameras')
 
     args = parser.parse_args()
-    print 'frame interval={0}'.format(args.frame_interval)
+    print 'frame interval={}, batch_max={}, force_compute={}'.format(str(args.frame_interval), str(args.batch_max), str(args.force_compute))
     import time
 
     same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days,
@@ -135,9 +139,9 @@ if __name__ == "__main__":
     print "options are {}".format(str(same_pair_requirements))
     start_time = time.time()
     if args.multi_folder:
-        process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids, same_pair_requirements)
+        process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids, same_pair_requirements, args.batch_max)
     else:
-        process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids, same_pair_requirements)
+        process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids, same_pair_requirements, args.batch_max)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

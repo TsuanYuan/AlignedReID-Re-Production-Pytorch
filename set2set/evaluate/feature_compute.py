@@ -95,7 +95,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
     return crop_files_with_interval
 
 
-def encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=64):
+def encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=128):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     crop_files_with_interval = get_crop_files_at_interval(crop_files, frame_interval)
@@ -136,9 +136,9 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, model, ext, frame_interval, force_compute):
+def load_descriptor_list(person_folder, model, ext, frame_interval, force_compute, batch_max):
 
-    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute)
+    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=batch_max)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders, crop_files
 
