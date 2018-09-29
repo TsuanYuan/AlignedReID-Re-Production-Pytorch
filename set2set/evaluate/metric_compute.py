@@ -31,7 +31,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     camera_ids = numpy.array([decode_wcc_image_name(os.path.basename(file_name))[0] for file_name in crop_files ])
 
     # assume cosine distance
-    features_dist = (1 - numpy.dot(features, features.transpose()))/2
+    features_dist = pairwise.cosine_distances(features) #(1 - numpy.dot(features, features.transpose()))/2
 
     # boolean ids from requirements
     satisfied = numpy.ones(features_dist.shape, dtype=numpy.uint8)
@@ -118,7 +118,7 @@ def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sampl
         features_i, files_i = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, i, sub_sample_size)
         for j in range(i+1, n):
             features_j, files_j = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, j, sub_sample_size)
-            dists = pairwise.euclidean_distances(features_i, features_j).ravel()
+            dists = pairwise.cosine_distances(features_i, features_j).ravel()
             crop_files_matrix_i = make_string_matrix_from_arr(files_i, files_j.size).ravel()
             crop_files_matrix_j = make_string_matrix_from_arr(files_j, files_i.size).transpose().ravel()
             if dists_all is None:
