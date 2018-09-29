@@ -95,27 +95,36 @@ def get_crop_files_at_interval(crop_files, frame_interval):
     return crop_files_with_interval
 
 
-def encode_folder(person_folder, model, frame_interval, ext, force_compute):
+def encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=64):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     crop_files_with_interval = get_crop_files_at_interval(crop_files, frame_interval)
-    descriptors = []
+    files_from_files = []
+    files_from_gpus = []
+    descriptors_from_files = []
+    descriptors_from_gpus = []
+    ims = []
+
     for i, crop_file in enumerate(crop_files_with_interval):
         descriptor_file = crop_file[:-4] + '.' + ext
+
         if os.path.isfile(descriptor_file) and (not force_compute):
             descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
+            descriptors_from_files.append(descriptor.reshape((descriptor.size, 1)))
+            files_from_files.append(crop_file)
         else:
             im_bgr = cv2.imread(crop_file)
             im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
             im = crop_pad_fixed_aspect_ratio(im)
             im = cv2.resize(im, (128, 256))
-            descriptor = model.compute_features_on_batch([im])
-            if isinstance(descriptor, types.TupleType):
-                descriptor = descriptor[0]
-        descriptor = numpy.squeeze(descriptor)
-        descriptors.append(descriptor)
+            ims.append(im)
+            files_from_gpus.append(crop_file)
+        if len(ims) == batch_max or i == len(crop_files_with_interval)-1:
+            descriptor_batch = model.compute_features_on_batch(ims)
+            descriptors_from_gpus.append(descriptor_batch)
+            ims = []
 
-    return descriptors, crop_files_with_interval
+    return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
 
 
 def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
