@@ -91,6 +91,17 @@ def compute_same_pair_dist(features_per_person, crop_files, requirements):
     return dists_all, file_pairs_all
 
 
+def sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, j, sub_sample_size):
+    if j in features_dict:
+        features_j = features_dict[j]
+        files_j = files_dict[j]
+    else:
+        sub_ids = numpy.round(numpy.linspace(0, features_per_person[j].shape[0] - 1, sub_sample_size)).astype(int)
+        features_j = features_per_person[j][sub_ids, :]
+        files_j = numpy.array(crop_files_per_person[j])[sub_ids]
+    return features_j, files_j
+
+
 def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sample_size=16):
     """
     :param features_per_person: list of features, each item is an array of features from the same person.
@@ -101,14 +112,12 @@ def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sampl
     dists_all = None
     file_pairs_all = []
     n = len(features_per_person)
+    files_dict = {}
+    features_dict = {}
     for i in range(n):
-        sub_ids = numpy.round(numpy.linspace(0, features_per_person[i].shape[0]-1, sub_sample_size)).astype(int)
-        features_i = features_per_person[i][sub_ids,:]
-        files_i = numpy.array(crop_files_per_person[i])[sub_ids]
+        features_i, files_i = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, i, sub_sample_size)
         for j in range(i+1, n):
-            sub_ids = numpy.round(numpy.linspace(0, features_per_person[j].shape[0]-1, sub_sample_size)).astype(int)
-            features_j = features_per_person[j][sub_ids,:]
-            files_j = numpy.array(crop_files_per_person[j])[sub_ids]
+            features_j, files_j = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, j, sub_sample_size)
             dists = pairwise.euclidean_distances(features_i, features_j).ravel()
             crop_files_matrix_i = make_string_matrix_from_arr(files_i, files_j.size).ravel()
             crop_files_matrix_j = make_string_matrix_from_arr(files_j, files_i.size).transpose().ravel()
