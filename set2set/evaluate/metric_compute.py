@@ -91,20 +91,27 @@ def compute_same_pair_dist(features_per_person, crop_files, requirements):
     return dists_all, file_pairs_all
 
 
-def compute_diff_pair_dist(features_per_person, crop_files_per_person):
+def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sample_size=16):
     """
     :param features_per_person: list of features, each item is an array of features from the same person.
     :param crop_files_per_person: list of arrays of corresponding file path of each feature
+    :param sub_sample_size: number of samples per person to compute negative pairs
     :return: distances between diff pairs
     """
     dists_all = None
     file_pairs_all = []
     n = len(features_per_person)
     for i in range(n):
+        sub_ids = numpy.round(numpy.linspace(0, features_per_person[i].shape[0]-1, sub_sample_size)).astype(int)
+        features_i = features_per_person[i][sub_ids,:]
+        files_i = numpy.array(crop_files_per_person[i])[sub_ids]
         for j in range(i+1, n):
-            dists = pairwise.euclidean_distances(features_per_person[i], features_per_person[j]).ravel()
-            crop_files_matrix_i = make_string_matrix_from_arr(numpy.array(crop_files_per_person[i]), crop_files_per_person[j].size).ravel()
-            crop_files_matrix_j = make_string_matrix_from_arr(numpy.array(crop_files_per_person[j]), crop_files_per_person[i].size).transpose().ravel()
+            sub_ids = numpy.round(numpy.linspace(0, features_per_person[j].shape[0]-1, sub_sample_size)).astype(int)
+            features_j = features_per_person[j][sub_ids,:]
+            files_j = numpy.array(crop_files_per_person[j])[sub_ids]
+            dists = pairwise.euclidean_distances(features_i, features_j).ravel()
+            crop_files_matrix_i = make_string_matrix_from_arr(files_i, files_j.size).ravel()
+            crop_files_matrix_j = make_string_matrix_from_arr(files_j, files_i.size).transpose().ravel()
             if dists_all is None:
                 dists_all = dists
             else:
