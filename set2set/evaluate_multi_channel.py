@@ -43,9 +43,11 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
         else:
             crops_file_list[i] = numpy.array(crop_files)
             features_per_person[i] = numpy.array(features_per_person[i])
-
+    print "finish feature computing"
     same_pair_dist, same_pair_files = metric_compute.compute_same_pair_dist(features_per_person, crops_file_list, same_pair_requirements)
+    print "same pair dist are done"
     diff_pair_dist, diff_pair_files = metric_compute.compute_diff_pair_dist(features_per_person, crops_file_list)
+    print "diff pair dist are done"
     # dump difficult files
     data_tag = os.path.basename(os.path.normpath(data_folder))
     time_tag = str(time.time())
