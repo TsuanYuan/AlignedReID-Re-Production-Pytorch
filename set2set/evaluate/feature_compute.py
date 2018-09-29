@@ -95,17 +95,19 @@ def get_crop_files_at_interval(crop_files, frame_interval):
     return crop_files_with_interval
 
 
-def encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=128):
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
-    crop_files_with_interval = get_crop_files_at_interval(crop_files, frame_interval)
+    if len(crop_files) == 0:
+        return numpy.array([]), []
+
     files_from_files = []
     files_from_gpus = []
     descriptors_from_files = []
     descriptors_from_gpus = []
     ims = []
 
-    for i, crop_file in enumerate(crop_files_with_interval):
+    for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
 
         if os.path.isfile(descriptor_file) and (not force_compute):
@@ -119,7 +121,7 @@ def encode_folder(person_folder, model, frame_interval, ext, force_compute, batc
             im = cv2.resize(im, (128, 256))
             ims.append(im)
             files_from_gpus.append(crop_file)
-        if len(ims) == batch_max or i == len(crop_files_with_interval)-1:
+        if len(ims) == batch_max or i == len(crop_files)-1:
             descriptor_batch = model.compute_features_on_batch(ims)
             descriptors_from_gpus.append(descriptor_batch)
             ims = []
@@ -136,9 +138,9 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, model, ext, frame_interval, force_compute, batch_max):
+def load_descriptor_list(person_folder, model, ext, force_compute, batch_max):
 
-    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute, batch_max=batch_max)
+    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute, batch_max=batch_max)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders, crop_files
 

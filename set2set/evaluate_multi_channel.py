@@ -27,7 +27,7 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
             descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder,sub_folder),model, ext,
-                                                                           frame_interval=-1, force_compute=force_compute, batch_max=batch_max)
+                                                                        force_compute=force_compute, batch_max=batch_max)
             if len(descriptors) > 1:
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
