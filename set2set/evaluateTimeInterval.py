@@ -242,7 +242,7 @@ def load_experts(experts_file, device_id):
             # else:
             #     model_name = ''
             # print 'model name is {0}'.format(model_name)
-            model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
+            model = AppearanceModelForward(model_path,single_device=device_id)
             models.append(model)
             # encoder = create_alignedReID_model_ml(model_path, sys_device_ids=sys_device_ids,
             #                     num_classes=num_classes, num_planes=num_planes, base_name=base_name,
