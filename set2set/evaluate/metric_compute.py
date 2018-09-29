@@ -45,7 +45,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
         same_camera = string_distance_array(camera_ids, camera_ids)
         satisfied = numpy.logical_and(satisfied, same_camera)
 
-    if requirements.must_same_day:
+    if requirements.must_different_days:
         days_same = pairwise.euclidean_distances(days.reshape((n, 1))) == 0
         satisfied = numpy.logical_and(satisfied, days_same)
 
@@ -53,7 +53,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
         # frame interval > 0 could be different days, different video_time or frame diff > frame_interval
         days_diff = pairwise.euclidean_distances(days.reshape((n, 1))) > 0
         video_diff = pairwise.euclidean_distances(video_times.reshape((n, 1))) > 0
-        frame_interval_diff = pairwise.euclidean_distances(frame_indices) > requirements.frame_interval
+        frame_interval_diff = pairwise.euclidean_distances(frame_indices.reshape((n, 1))) > requirements.frame_interval
         frame_requirement = numpy.logical_or(days_diff, video_diff)
         frame_requirement = numpy.logical_or(frame_requirement, frame_interval_diff)
         satisfied = numpy.logical_and(satisfied, frame_requirement)
@@ -76,10 +76,10 @@ def compute_same_pair_dist(features_per_person, crop_files, requirements):
     file_pairs_all = []
     for features, file_paths in zip(features_per_person, crop_files):
         dists, file_pairs = compute_same_pair_dist_per_person(features, file_paths, requirements)
+        file_pairs_all += file_pairs
         if dists_all is None:
             dists_all = dists
         else:
-            file_pairs_all += file_pairs
             dists_all = numpy.concatenate((dists_all, dists))
     return dists_all, file_pairs_all
 

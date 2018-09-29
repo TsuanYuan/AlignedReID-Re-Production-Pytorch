@@ -63,7 +63,7 @@ def get_crop_files_at_interval(crop_files, frame_interval):
     crop_files_with_interval = []
     sequence_crop_files = []
     for crop_file in crop_files:
-        camera_id, _, _, person_id, frame_id = decode_wcc_image_name(crop_file)
+        camera_id, _, _, person_id, frame_id = decode_wcc_image_name(os.path.basename(crop_file))
         if frame_interval < 0:
             if len(sequence_crop_files) == 0:
                 sequence_crop_files.append([crop_file])
@@ -122,20 +122,14 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
     for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
         no_ext, _ = os.path.splitext(crop_file)
         descriptor_file = no_ext + '.' + ext
-        feature_arr = numpy.concatenate(tuple(descriptors))
+        feature_arr = descriptors
         feature_arr = feature_arr / numpy.sqrt(float(len(descriptors)))
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, models, exts, frame_interval, force_compute):
-    descriptors_for_encoders = []
-    crop_files = []
-    for model, ext in zip(models,exts):
-        descriptors_for_encoders_t, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute)
-        if len(crop_files)>0:
-            descriptors_for_encoders.append(descriptors_for_encoders_t)
+def load_descriptor_list(person_folder, model, ext, frame_interval, force_compute):
 
-    descriptors_for_encoders = zip(*descriptors_for_encoders)
+    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, frame_interval, ext, force_compute)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders, crop_files
 

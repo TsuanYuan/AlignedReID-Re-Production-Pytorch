@@ -86,7 +86,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     for id in tough_same_ids:
         p = same_pair_files[id]
         d = same_pair_dist[id]
-        pid = feature_compute.decode_wcc_image_name(p[0])[3]
+        pid = feature_compute.decode_wcc_image_name(os.path.basename(p[0]))[3]
         if pid not in same_dict:
             same_dict[pid] = 1
         elif same_dict[pid] >= 3:
@@ -113,8 +113,8 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     for id in tough_diff_ids:
         p = diff_pair_files[id]
         d = diff_pair_dist[id]
-        pid0, _ = feature_compute.decode_wcc_image_name(p[0])[3]
-        pid1, _ = feature_compute.decode_wcc_image_name(p[1])[3]
+        pid0 = feature_compute.decode_wcc_image_name(os.path.basename(p[0]))[3]
+        pid1 = feature_compute.decode_wcc_image_name(os.path.basename(p[1]))[3]
         sorted_pids = tuple(sorted((pid0, pid1)))
         if sorted_pids not in diff_dict:
             diff_dict[sorted_pids] = 1
