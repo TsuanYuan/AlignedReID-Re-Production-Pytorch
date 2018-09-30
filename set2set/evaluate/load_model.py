@@ -51,7 +51,7 @@ class AppearanceModelForward(object):
     def __del__(self):
         torch.cuda.empty_cache()
 
-    def compute_features_on_batch(self, image_batch):
+    def compute_features_on_batch(self, image_batch, keypoints=None):
         patches = []
         for image in image_batch:
             patch = image / 255.0
@@ -60,12 +60,16 @@ class AppearanceModelForward(object):
             patch = patch.transpose((2, 0, 1))
             patches.append(patch)
         patches = numpy.asarray(patches)
-        global_feats = self.extract_feature(patches)
+        global_feats = self.extract_feature(patches, keypoints=keypoints)
         return global_feats
 
-    def extract_feature(self, ims):
+    def extract_feature(self, ims, keypoints=None):
         ims = Variable(torch.from_numpy(ims).float())
-        global_feat = self.model_ws(ims)[0].data.cpu().numpy()
+        if keypoints is None:
+            global_feat = self.model_ws(ims)[0].data.cpu().numpy()
+        else:
+            keypoints = Variable(torch.from_numpy(keypoints).float())
+            global_feat = self.model_ws(ims, keypoints)[0].data.cpu().numpy()
         l2_norm = numpy.sqrt((global_feat * global_feat + 1e-10).sum(axis=1))
         global_feat = global_feat / (l2_norm[:, numpy.newaxis])
         return global_feat
