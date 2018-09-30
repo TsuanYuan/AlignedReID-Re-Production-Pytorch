@@ -14,7 +14,7 @@ root_dir --> 00001
 where each of the "00xxx" is a subfolder with crops of the same person of ID=00xxx.
 To train the model:
 ```console
- python train_multi_folder.py /ssd/qyuan/data/appearance/wcc/train_folders.txt  /path/to/output/model.pth --sample_size 8 --batch_size 64 --lr 0.0001 --margin 0.3 --num_epoch 300 --optimizer adam --gpu_ids 4 5 6 7 --loss triplet
+ python set2set/train_multi_folder.py /ssd/qyuan/data/appearance/wcc/train_folders.txt  /path/to/output/model.pth --sample_size 8 --batch_size 64 --lr 0.0001 --margin 0.3 --num_epoch 300 --optimizer adam --gpu_ids 4 5 6 7 --loss triplet
 ```
 the first argument "/ssd/qyuan/data/appearance/wcc/train_folders.txt" lists training sets in rows. You only need one row if you only have one training set. Though it supports training simultaneously on multiple training sets.
 ```console
@@ -27,7 +27,7 @@ Assume your folder structure is as the above "root_dir":
 
 
 ```console
-python transform_folder.py root_dir formatted_dir --num_test 0 --num_folds 1 
+python script/dataset/transform_folder.py root_dir formatted_dir --num_test 0 --num_folds 1 
 ```
 You will get a folder "formatted_dir" as the output. Then create a txt file "train.txt" with just one row of the path to this formatted_dir
 content of "train.txt":
