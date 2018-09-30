@@ -82,7 +82,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 file_only = os.path.basename(crop_file)
                 if file_only not in keypoints:  # no keypoints detected on this crop image
                     continue
-                kp = keypoints[file_only]
+                kp = keypoints[file_only][0]
                 kps.append(kp)
             im_bgr = cv2.imread(crop_file)
             im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
