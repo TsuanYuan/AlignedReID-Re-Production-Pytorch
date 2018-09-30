@@ -69,7 +69,7 @@ class AppearanceModelForward(object):
             global_feat = self.model_ws(ims)[0].data.cpu().numpy()
         else:
             keypoints = Variable(torch.from_numpy(numpy.array(keypoints)).float())
-            global_feat = self.model_ws(ims, keypoints)[0].data.cpu().numpy()
+            global_feat = self.model_ws(ims, keypoints).data.cpu().numpy()
         l2_norm = numpy.sqrt((global_feat * global_feat + 1e-10).sum(axis=1))
         global_feat = global_feat / (l2_norm[:, numpy.newaxis])
         return global_feat
