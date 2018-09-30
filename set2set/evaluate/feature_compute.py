@@ -7,8 +7,9 @@ import glob
 import os
 import numpy
 import cv2
-import types
-from load_model import AppearanceModelForward
+import pickle
+from load_model import AppearanceModelForward, Model_Types
+
 
 def load_experts(experts_file, device_id):
     models, exts = [], []
@@ -55,57 +56,19 @@ def decode_wcc_image_name(image_name):
     return channel, int(date), int(video_time), int(pid), int(frame_id)
 
 
-def get_crop_files_at_interval(crop_files, frame_interval):
-    crop_files = sorted(crop_files)
-    current_cid = None
-    current_pid = None
-    current_fid = None
-    crop_files_with_interval = []
-    sequence_crop_files = []
-    for crop_file in crop_files:
-        camera_id, _, _, person_id, frame_id = decode_wcc_image_name(os.path.basename(crop_file))
-        if frame_interval < 0:
-            if len(sequence_crop_files) == 0:
-                sequence_crop_files.append([crop_file])
-            else:
-                sequence_crop_files[0].append(crop_file)
-        else:
-            if current_cid is None:
-                current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-                sequence_crop_files.append([])
-                sequence_crop_files[-1].append(crop_file)
-                continue
-            elif current_cid != camera_id or current_pid != person_id:
-                break
-            else:
-                frame_diff = frame_id - current_fid
-                if frame_diff >= frame_interval and frame_diff < frame_interval*1.75: # allow slight variation if not exact
-                    sequence_crop_files[-1].append(crop_file)
-                    current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-                    continue
-                elif frame_diff >= frame_interval*1.5:
-                    sequence_crop_files.append([crop_file])
-                    current_cid, current_pid, current_fid = camera_id, person_id, frame_id
-                    continue
-    longest = 0
-    for crop_files in sequence_crop_files:
-        if len(crop_files) > longest:
-            longest = len(crop_files)
-            crop_files_with_interval = crop_files
-    return crop_files_with_interval
-
-
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128):
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
         return numpy.array([]), []
 
-    files_from_files = []
-    files_from_gpus = []
-    descriptors_from_files = []
-    descriptors_from_gpus = []
-    ims = []
+    files_from_files, files_from_gpus, descriptors_from_files, descriptors_from_gpus = [], [], [], []
+    ims, kps = [], []
+    keypoints = {}
+    if load_keypoints:
+        keypoint_file = os.path.join(person_folder, 'keypoints.pkl')
+        with open(keypoint_file, 'rb') as fp:
+            keypoints = pickle.load(fp)
 
     for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
@@ -115,16 +78,27 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128):
             descriptors_from_files.append(descriptor.reshape((descriptor.size, 1)))
             files_from_files.append(crop_file)
         else:
+            if load_keypoints:
+                file_only = os.path.basename(crop_file)
+                if file_only not in keypoints:  # no keypoints detected on this crop image
+                    continue
+                kp = keypoints[file_only]
+                kps.append(kp)
             im_bgr = cv2.imread(crop_file)
             im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
             im = crop_pad_fixed_aspect_ratio(im)
             im = cv2.resize(im, (128, 256))
             ims.append(im)
+
             files_from_gpus.append(crop_file)
         if len(ims) == batch_max or i == len(crop_files)-1:
-            descriptor_batch = model.compute_features_on_batch(ims)
+            if load_keypoints and (model.get_model_type() == Model_Types.HEAD_POSE or model.get_model_type() == Model_Types.LIMB_POSE):
+                assert len(ims) == len(kps)
+                descriptor_batch = model.compute_features_on_batch(ims, kps)
+            else:
+                descriptor_batch = model.compute_features_on_batch(ims)
             descriptors_from_gpus.append(descriptor_batch)
-            ims = []
+            ims, kps = [], []
 
     return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
 
@@ -138,9 +112,9 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, model, ext, force_compute, batch_max):
+def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, load_keypoints):
 
-    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute, batch_max=batch_max)
+    descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute,
+                                                         batch_max=batch_max,load_keypoints=load_keypoints)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders, crop_files
-

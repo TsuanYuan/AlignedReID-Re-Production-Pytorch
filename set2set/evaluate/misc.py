@@ -77,10 +77,9 @@ def plot_error_spatial(canvas, tough_pair_files):
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2,
                               output_folder='/tmp/difficult/',frame_shape=(1920, 1080)):
     same_sort_ids = numpy.argsort(same_pair_dist)
-    tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
-    if len(tough_same_ids) < 8:
-        tough_num = min(max(int(round(len(same_sort_ids)*0.1)), 32), 128)
-        tough_same_ids = same_sort_ids[-tough_num:]
+    # tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
+    tough_num = min(max(int(round(len(same_sort_ids)*0.1)), 32), 128)
+    tough_same_ids = same_sort_ids[-tough_num:]
     same_select_files, same_select_dist, same_all_files = [],[],[]
     same_dict = {}
     for id in tough_same_ids:
@@ -104,10 +103,10 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     canvas = plot_error_spatial(canvas, numpy.array(same_all_files))
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
-    tough_diff_ids = [i for i in diff_sort_ids if diff_pair_dist[i] < tough_diff_th]
-    if len(tough_diff_ids) < 8:
-        tough_num = min(max(int(round(len(diff_sort_ids)*0.1)), 32), 128)
-        tough_diff_ids = diff_sort_ids[0:tough_num]
+    #tough_diff_ids = [i for i in diff_sort_ids if diff_pair_dist[i] < tough_diff_th]
+    #if len(tough_diff_ids) < 8:
+    tough_num = min(max(int(round(len(diff_sort_ids)*0.1)), 32), 128)
+    tough_diff_ids = diff_sort_ids[0:tough_num]
     diff_select_files, diff_select_dist, diff_all_files =[], [], []
     diff_dict = {}
     for id in tough_diff_ids:

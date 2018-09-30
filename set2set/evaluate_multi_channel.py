@@ -19,7 +19,7 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max):
+def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints):
 
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -27,7 +27,7 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
             descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder,sub_folder),model, ext,
-                                                                        force_compute=force_compute, batch_max=batch_max)
+                                                                        force_compute=force_compute, batch_max=batch_max,load_keypoints=load_keypoints)
             if len(descriptors) > 1:
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
@@ -73,7 +73,8 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
               .format('%.3f' % tpr5, '%.6f' % th5, '%.5f' % fpr5, data_folder, str(ext)))
     return tpr2, tpr3, tpr4, tpr5, th2, th3, th4, th4
 
-def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max):
+
+def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
@@ -129,6 +130,9 @@ if __name__ == "__main__":
     parser.add_argument('--must_diff_camera', action='store_true', default=False,
                         help='same pair must be at different cameras')
 
+    parser.add_argument('--load_keypoints', action='store_true', default=False,
+                        help='whether to load keypoints for pose model')
+
     args = parser.parse_args()
     print 'frame interval={}, batch_max={}, force_compute={}'.format(str(args.frame_interval), str(args.batch_max), str(args.force_compute))
     import time
@@ -136,14 +140,20 @@ if __name__ == "__main__":
     same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days,
                                                     must_same_camera=args.must_same_camera, must_diff_camera=args.must_diff_camera)
     model = feature_compute.AppearanceModelForward(args.model_path, single_device=args.device_id)
+
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))
-    print "options are {}".format(str(same_pair_requirements))
+    if args.load_keypoints:
+        print 'load keypoints in evaluation. Images of no keypoints will be ignored.'
+
+    print "same pairs requirements are {}".format(str(same_pair_requirements))
     start_time = time.time()
     if args.multi_folder:
-        process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids, same_pair_requirements, args.batch_max)
+        process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids,
+                    same_pair_requirements, args.batch_max, args.load_keypoints)
     else:
-        process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids, same_pair_requirements, args.batch_max)
+        process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids,
+                same_pair_requirements, args.batch_max, args.load_keypoints)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

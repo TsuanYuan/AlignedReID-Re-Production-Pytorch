@@ -31,9 +31,9 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     camera_ids = numpy.array([decode_wcc_image_name(os.path.basename(file_name))[0] for file_name in crop_files ])
 
     # assume cosine distance
-    features_dist = pairwise.cosine_distances(features) #(1 - numpy.dot(features, features.transpose()))/2
+    features_dist = pairwise.cosine_distances(features)
 
-    # boolean ids from requirements
+    # boolean matrix item ids from requirements
     satisfied = numpy.ones(features_dist.shape, dtype=numpy.uint8)
     # remove self comparison
     diag_ids = numpy.diag_indices(features_dist.shape[0])
@@ -51,7 +51,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
 
     if requirements.must_different_days:
         days_same = pairwise.euclidean_distances(days.reshape((n, 1))) == 0
-        satisfied = numpy.logical_and(satisfied, days_same)
+        satisfied = numpy.logical_and(satisfied, numpy.logical_not(days_same))
 
     if requirements.frame_interval > 0:
         # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval

@@ -11,9 +11,17 @@ import numpy
 import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
+from enum import Enum
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from Model import MGNModel, SwitchClassHeadModel
+from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel
+
+class Model_Types(Enum):
+    Base = 0
+    MGN = 1
+    PCB = 2
+    HEAD_POSE = 3
+    LIMB_POSE = 4
 
 
 class AppearanceModelForward(object):
@@ -21,8 +29,14 @@ class AppearanceModelForward(object):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(single_device)
         model_file = os.path.split(model_path)[1]
+
         if model_file.find('mgn') >= 0:
             model = MGNModel()
+            self.model_type = Model_Types.MGN
+        elif model_file.find('head_pose_parts') >= 0:
+            pose_ids = (0, 2, 4)
+            model = PoseReIDModel(pose_ids=pose_ids)
+            self.model_type = Model_Types.HEAD_POSE
         else:
             raise Exception("unknown model type!")
 
@@ -55,6 +69,9 @@ class AppearanceModelForward(object):
         l2_norm = numpy.sqrt((global_feat * global_feat + 1e-10).sum(axis=1))
         global_feat = global_feat / (l2_norm[:, numpy.newaxis])
         return global_feat
+
+    def get_model_type(self):
+        return self.model_type
 
 
 def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
