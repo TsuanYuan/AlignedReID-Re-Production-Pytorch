@@ -73,18 +73,17 @@ def plot_error_spatial(canvas, tough_pair_files):
                 cv2.rectangle(canvas, tuple(data['box'][0:2]), box_br, (0,255,0))
     return canvas
 
-def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_th=0.1, tough_same_th = 0.2,
+def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_count=64, tough_same_count=64,
                               output_folder='/tmp/difficult/',frame_shape=(1920, 1080)):
     same_sort_ids = numpy.argsort(same_pair_dist)
-    tough_same_ids = [i for i in same_sort_ids if same_pair_dist[i]>tough_same_th]
-    if len(tough_same_ids) < 8:
-        tough_num = min(max(int(round(len(same_sort_ids)*0.1)), 32), 128)
-        tough_same_ids = same_sort_ids[-tough_num:]
+
+    tough_same_ids = same_sort_ids[-tough_same_count*100:]
     same_select_files, same_select_dist, same_all_files = [],[],[]
     same_dict = {}
-    for id in tough_same_ids:
-        p = same_pair_files[id]
-        d = same_pair_dist[id]
+    valid_count = 0
+    for sid in tough_same_ids:
+        p = same_pair_files[sid]
+        d = same_pair_dist[sid]
         pid = feature_compute.decode_wcc_image_name(os.path.basename(p[0]))[3]
         if pid not in same_dict:
             same_dict[pid] = 1
@@ -93,8 +92,11 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
             continue
         else:
             same_dict[pid] += 1
+            valid_count += 1
         same_select_files.append(p)
         same_select_dist.append(d)
+        if valid_count >= tough_same_count:
+            break
 
     tough_same_pairs = numpy.array(same_select_files)
     tough_same_dist = numpy.array(same_select_dist)
@@ -103,12 +105,10 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     canvas = plot_error_spatial(canvas, numpy.array(same_all_files))
 
     diff_sort_ids = numpy.argsort(diff_pair_dist)
-    tough_diff_ids = [i for i in diff_sort_ids if diff_pair_dist[i] < tough_diff_th]
-    if len(tough_diff_ids) < 8:
-        tough_num = min(max(int(round(len(diff_sort_ids)*0.1)), 32), 128)
-        tough_diff_ids = diff_sort_ids[0:tough_num]
+    tough_diff_ids = diff_sort_ids[0:tough_diff_count*100]
     diff_select_files, diff_select_dist, diff_all_files =[], [], []
     diff_dict = {}
+    valid_count = 0
     for id in tough_diff_ids:
         p = diff_pair_files[id]
         d = diff_pair_dist[id]
@@ -122,6 +122,9 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
             continue
         else:
             diff_dict[sorted_pids] += 1
+            valid_count += 1
+        if valid_count >= tough_diff_count:
+            break
         diff_select_files.append(p)
         diff_select_dist.append(d)
 
