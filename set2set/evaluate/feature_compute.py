@@ -72,7 +72,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
 
     for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
-
+        skip_reading = False
         if os.path.isfile(descriptor_file) and (not force_compute):
             descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
             descriptors_from_files.append(descriptor.reshape((descriptor.size, 1)))
@@ -81,14 +81,16 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
             if load_keypoints:
                 file_only = os.path.basename(crop_file)
                 if file_only not in keypoints:  # no keypoints detected on this crop image
-                    continue
-                kp = keypoints[file_only][0]
-                kps.append(kp)
-            im_bgr = cv2.imread(crop_file)
-            im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-            im = crop_pad_fixed_aspect_ratio(im)
-            im = cv2.resize(im, (128, 256))
-            ims.append(im)
+                    skip_reading = True
+                else:
+                    kp = keypoints[file_only][0]
+                    kps.append(kp)
+            if not skip_reading:
+                im_bgr = cv2.imread(crop_file)
+                im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+                im = crop_pad_fixed_aspect_ratio(im)
+                im = cv2.resize(im, (128, 256))
+                ims.append(im)
 
             files_from_gpus.append(crop_file)
         if len(ims) == batch_max or i == len(crop_files)-1:
