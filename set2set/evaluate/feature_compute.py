@@ -105,8 +105,10 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 descriptor_batch = model.compute_features_on_batch(ims)
             descriptors_from_gpus.append(descriptor_batch)
             ims, kps = [], []
-
-    return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
+    if len(descriptors_from_gpus) + len(descriptors_from_files) == 0:
+        return numpy.array([]), []
+    else:
+        return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
 
 
 def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
