@@ -253,7 +253,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
             else:
                 features = model(Variable(images), keypoints)
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg = loss_function(outputs, person_ids, None)
+            loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids, None)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -264,6 +264,8 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
+                if dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
+                    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(p_pids.cpu().numpy()), str(n_pids.cpu().numpy())))
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)

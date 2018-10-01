@@ -134,12 +134,13 @@ def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
     global_feat = normalize(global_feat, axis=-1)
   # shape [N, N]
   dist_mat = euclidean_dist(global_feat, global_feat)
-  dist_ap, dist_an = hard_example_mining(
-    dist_mat, labels, return_inds=False)
+  dist_ap, dist_an,p_inds, n_inds = hard_example_mining(
+    dist_mat, labels, return_inds=True)
   #dist_np, labels_np = pair_example_mining(dist_mat, labels)
-
+  p_labels = labels[p_inds]
+  n_labels = labels[n_inds]
   loss = tri_loss(dist_ap, dist_an)#+pair_loss(dist_np, labels_np)
-  return loss, torch.mean(dist_ap), torch.mean(dist_an)
+  return loss, torch.mean(dist_ap), torch.mean(dist_an), p_labels, n_labels
   # return loss, p_inds, n_inds, dist_ap, dist_an, dist_mat
 
 def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
@@ -444,9 +445,9 @@ class TripletLossK(nn.Module):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
-        element_loss, max_same_d, min_diff_d = global_loss(self.loss_func, feature_expand, pids_expand)
+        element_loss, max_same_d, min_diff_d, p_pids, n_pids = global_loss(self.loss_func, feature_expand, pids_expand)
         # mc_loss = self.id_loss(pids_expand, logits)
-        return element_loss, max_same_d, min_diff_d
+        return element_loss, max_same_d, min_diff_d, p_pids, n_pids
 
 
 class PairLoss(nn.Module):
