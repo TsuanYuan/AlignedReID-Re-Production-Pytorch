@@ -75,9 +75,8 @@ def plot_error_spatial(canvas, tough_pair_files):
 
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_count=64, tough_same_count=64,
                               output_folder='/tmp/difficult/',frame_shape=(1920, 1080)):
-    same_sort_ids = numpy.argsort(same_pair_dist)
-
-    tough_same_ids = same_sort_ids[-tough_same_count*100:]
+    same_sort_ids = numpy.argsort(same_pair_dist)[::-1]  # descending argsort
+    tough_same_ids = same_sort_ids[0:tough_same_count*100]
     same_select_files, same_select_dist, same_all_files = [],[],[]
     same_dict = {}
     valid_count = 0
