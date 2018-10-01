@@ -9,7 +9,7 @@ import numpy
 import cv2
 import pickle
 from load_model import AppearanceModelForward, Model_Types
-
+import misc
 
 def load_experts(experts_file, device_id):
     models, exts = [], []
@@ -56,7 +56,7 @@ def decode_wcc_image_name(image_name):
     return channel, int(date), int(video_time), int(pid), int(frame_id)
 
 
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False):
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
@@ -84,7 +84,11 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                     skip_reading = True
                 else:
                     kp = keypoints[file_only][0]
-                    kps.append(kp)
+                    kp_score = misc.keypoints_quality(kp)
+                    if kp_score < keypoints_score_th:
+                        skip_reading = True
+                    else:
+                        kps.append(kp)
             if not skip_reading:
                 im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)

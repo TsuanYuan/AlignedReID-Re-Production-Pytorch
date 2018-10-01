@@ -35,6 +35,15 @@ def plot_key_points(im_rgb, xs, ys, radius=4, put_index=True):
     return im_rgb
 
 
+def keypoints_quality(normalized_keypoints):
+    mins = numpy.min(normalized_keypoints, axis=0)[0:2]
+    maxs = numpy.max(normalized_keypoints, axis=0)[0:2]
+    occupy = (maxs[1] - mins[1])*(maxs[0] - mins[0])
+    mean_score = numpy.mean(normalized_keypoints[:, 3])
+    score = mean_score*10+occupy
+    return score
+
+
 def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True):
     # json0 = os.path.splitext(file_pairs[0])[0]+'.json'
     # json1 = os.path.splitext(file_pairs[1])[0] + '.json'
