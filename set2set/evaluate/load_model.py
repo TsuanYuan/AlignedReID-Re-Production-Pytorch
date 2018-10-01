@@ -37,6 +37,10 @@ class AppearanceModelForward(object):
             pose_ids = (0, 2, 4)
             model = PoseReIDModel(pose_ids=pose_ids)
             self.model_type = Model_Types.HEAD_POSE
+        elif model_file.find('limb_pose_parts') >= 0:
+            pose_ids = (2,9,10,15,16)
+            model = PoseReIDModel(pose_ids=pose_ids)
+            self.model_type = Model_Types.LIMB_POSE
         else:
             raise Exception("unknown model type!")
 
