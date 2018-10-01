@@ -10,6 +10,7 @@ import json
 import cv2
 import shutil
 import feature_compute
+import pickle
 
 
 def get_filename_for_display(file_path):
@@ -21,40 +22,65 @@ def get_filename_for_display(file_path):
     return parts[-2]+'_'+parts[-1], folder_name
 
 
-def dump_pair_in_folder(file_pairs, pair_dist, output_path):
-    json0 = os.path.splitext(file_pairs[0])[0]+'.json'
-    json1 = os.path.splitext(file_pairs[1])[0] + '.json'
-    with open(json0, 'r') as fp:
-        d0 = json.load(fp)
-    with open(json1,'r') as fp:
-        d1 = json.load(fp)
-    box0 = d0['box'][0:4]
-    box1 = d1['box'][0:4]
-    import cv2
+def plot_key_points(im_rgb, xs, ys, radius=4, put_index=True):
+    color = (0, 255, 255)
+    count = 0
+    for x, y in zip(xs, ys):
+        cv2.circle(im_rgb, (int(x), int(y)),
+                   radius, color, thickness=2)
+        if put_index:
+            cv2.putText(im_rgb, str(count), (int(x), int(y)), cv2.FONT_HERSHEY_PLAIN,
+                        1, (255, 255, 255), 1)
+        count += 1
+    return im_rgb
 
+
+def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True):
+    # json0 = os.path.splitext(file_pairs[0])[0]+'.json'
+    # json1 = os.path.splitext(file_pairs[1])[0] + '.json'
+    # with open(json0, 'r') as fp:
+    #     d0 = json.load(fp)
+    # with open(json1,'r') as fp:
+    #     d1 = json.load(fp)
+    #box0 = d0['box'][0:4]
+    #box1 = d1['box'][0:4]
+    w = 256
+    h = 512
     im0 = cv2.imread(file_pairs[0])
     im1 = cv2.imread(file_pairs[1])
-    im0 = cv2.resize(im0, (256, 512))
-    im1 = cv2.resize(im1, (256, 512))
-    canvas = numpy.zeros((512, 512, 3), dtype=numpy.uint8)
-    canvas[:,:256,:] = im0
-    canvas[:,256:,:] = im1
+    im0 = cv2.resize(im0, (w, h))
+    im1 = cv2.resize(im1, (w, h))
+    canvas = numpy.zeros((h, h, 3), dtype=numpy.uint8)
+    canvas[:,:w,:] = im0
+    canvas[:,w:,:] = im1
 
     top_name, folder_name = get_filename_for_display(file_pairs[0])
+    if load_keypoints:
+        for ki in range(2):
+            keypoints_path = os.path.join(os.path.split(file_pairs[ki])[0], 'keypoints.pkl')
+            if os.path.isfile(keypoints_path):
+                with open(keypoints_path, 'rb') as fp:
+                    keypoints_dict = pickle.load(fp)
+                if os.path.split(file_pairs[ki])[1] in keypoints_dict:
+                    kps = keypoints_dict[os.path.split(file_pairs[ki])[1]][0]
+                    kpsx = kps[:, 0]*w+w*ki
+                    kpsy = kps[:, 1]*h
+                    canvas = plot_key_points(canvas, kpsx, kpsy, radius=4, put_index=False)
+
     cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(box0), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-                (0, 255, 0), 2)
+    #cv2.putText(canvas, str(box0), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #            (0, 255, 0), 2)
     top_name, folder_name = get_filename_for_display(file_pairs[1])
-    cv2.putText(canvas, str(top_name), (270, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(top_name), (w+10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(folder_name), (270, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(folder_name), (w+10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(box1), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
-                (0, 255, 0), 2)
-    cv2.putText(canvas, str(pair_dist), (120, 480), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #cv2.putText(canvas, str(box1), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #            (0, 255, 0), 2)
+    cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     cv2.imwrite(output_path, canvas)
 
@@ -74,7 +100,7 @@ def plot_error_spatial(canvas, tough_pair_files):
     return canvas
 
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_count=64, tough_same_count=64,
-                              output_folder='/tmp/difficult/',frame_shape=(1920, 1080)):
+                              output_folder='/tmp/difficult/',frame_shape=(1920, 1080), load_keypoints=False):
     same_sort_ids = numpy.argsort(same_pair_dist)[::-1]  # descending argsort
     tough_same_ids = same_sort_ids[0:tough_same_count*100]
     same_select_files, same_select_dist, same_all_files = [],[],[]
