@@ -97,7 +97,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 ims.append(im)
                 files_from_gpus.append(crop_file)
 
-        if len(ims) == batch_max or i == len(crop_files)-1:
+        if len(ims) > 0 and (len(ims) == batch_max or i == len(crop_files)-1):
             if load_keypoints and (model.get_model_type() == Model_Types.HEAD_POSE or model.get_model_type() == Model_Types.LIMB_POSE):
                 assert len(ims) == len(kps)
                 descriptor_batch = model.compute_features_on_batch(ims, kps)
