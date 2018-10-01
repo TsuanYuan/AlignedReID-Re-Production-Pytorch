@@ -149,7 +149,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(index_file, model_file, sample_size, batch_size, parts_type='head',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, num_data_workers=8):
 
     composed_transforms = transforms.Compose([#transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
@@ -215,7 +215,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
 
     n_set = len(reid_datasets)
     dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
-                                             shuffle=True, num_workers=8) for set_id in range(n_set)]
+                                             shuffle=True, num_workers=num_data_workers) for set_id in range(n_set)]
     dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
@@ -285,6 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
+    parser.add_argument('--num_data_works', type=int, default=8, help="num of works in multiprocess data batching")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
@@ -304,5 +305,5 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, parts_type=args.parts_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
