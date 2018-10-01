@@ -257,7 +257,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
-    parser.add_argument('--num_data_works', type=int, default=8, help="num of works in multiprocess data batching")
+    parser.add_argument('--num_data_workers', type=int, default=8, help="num of works in multiprocess data batching")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
