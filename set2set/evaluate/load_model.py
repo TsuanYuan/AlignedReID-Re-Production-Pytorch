@@ -78,7 +78,7 @@ class AppearanceModelForward(object):
         return self.model_type
 
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False, skip_merge=False):
     """Load state_dict's of modules/optimizers from file.
     Args:
       modules_optims: A list, which members are either torch.nn.optimizer
@@ -96,6 +96,10 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc
             if skip_fc:
                 for k in sd.keys():
                     if k.find('fc') >= 0:
+                        sd.pop(k, None)
+            if skip_merge:
+                for k in sd.keys():
+                    if k.find('merge_layer') >= 0:
                         sd.pop(k, None)
             if hasattr(m, 'param_groups'):
                 m.load_state_dict(sd)

@@ -16,7 +16,7 @@ import transforms_reid, Model
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
-
+from evaluate import load_model
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
   """Save state_dict's of modules/optimizers to file.
@@ -38,34 +38,6 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
   if not os.path.isdir(os.path.dirname(os.path.abspath(ckpt_file))):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
-
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
-  """Load state_dict's of modules/optimizers from file.
-  Args:
-    modules_optims: A list, which members are either torch.nn.optimizer
-      or torch.nn.Module.
-    ckpt_file: The file path.
-    load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
-      to cpu type.
-  """
-  map_location = (lambda storage, loc: storage) if load_to_cpu else None
-  ckpt = torch.load(ckpt_file, map_location=map_location)
-  if skip_fc:
-    print('skip fc layers when loading the model!')
-  for m, sd in zip(modules_optims, ckpt['state_dicts']):
-    if m is not None:
-      if skip_fc:
-        for k in sd.keys():
-          if k.find('fc') >= 0:
-            sd.pop(k, None)
-      if hasattr(m, 'param_groups'):
-        m.load_state_dict(sd)
-      else:
-        m.load_state_dict(sd, strict=False)
-  if verbose:
-    print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
-      ckpt_file, ckpt['ep'], ckpt['scores']))
-  return ckpt['ep'], ckpt['scores']
 
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
@@ -149,7 +121,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(index_file, model_file, sample_size, batch_size, parts_type='head',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, num_data_workers=8):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, num_data_workers=8, skip_merge=False):
 
     composed_transforms = transforms.Compose([#transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
@@ -195,7 +167,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_ckpt([model], model_file)
+            load_model.load_ckpt([model], model_file, skip_fc=True, skip_merge=skip_merge)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
@@ -293,17 +265,18 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
+    parser.add_argument('--skip_merge', action='store_true', default=False, help="whether to skip loading the merge layers that combines all parts")
     parser.add_argument('--parts_type', type=str, default='head', help="parts definitions")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, skip_merge={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr)))
+                   str(args.lr), str(args.skip_merge)))
 
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, parts_type=args.parts_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, skip_merge=args.skip_merge)
