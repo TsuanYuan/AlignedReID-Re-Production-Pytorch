@@ -19,7 +19,7 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints):
+def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints, keypoints_score_th):
 
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -27,7 +27,8 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     for sub_folder in sub_folders:
         if os.path.isdir(os.path.join(data_folder,sub_folder)) and sub_folder.isdigit() and (int(sub_folder) not in ignore_ids):
             descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder,sub_folder),model, ext,
-                                                                        force_compute=force_compute, batch_max=batch_max,load_keypoints=load_keypoints)
+                                                                        force_compute=force_compute, batch_max=batch_max,
+                                                                           load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th)
             if len(descriptors) > 1:
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
@@ -74,12 +75,12 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     return tpr2, tpr3, tpr4, tpr5, th2, th3, th4, th4
 
 
-def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints):
+def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints, keypoints_score_th):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
-        tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max)
+        tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints, keypoints_score_th)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -133,6 +134,9 @@ if __name__ == "__main__":
     parser.add_argument('--load_keypoints', action='store_true', default=False,
                         help='whether to load keypoints for pose model')
 
+    parser.add_argument('--keypoints_score_th', type=float, default=0.0,
+                        help='threshold of keypoints quality')
+
     args = parser.parse_args()
     print 'frame interval={}, batch_max={}, force_compute={}, load_keypoints={}'\
         .format(str(args.frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints))
@@ -151,10 +155,10 @@ if __name__ == "__main__":
     start_time = time.time()
     if args.multi_folder:
         process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids,
-                    same_pair_requirements, args.batch_max, args.load_keypoints)
+                    same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th)
     else:
         process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids,
-                same_pair_requirements, args.batch_max, args.load_keypoints)
+                same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

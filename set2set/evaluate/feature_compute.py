@@ -120,9 +120,9 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 
-def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, load_keypoints):
+def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, load_keypoints, keypoints_score_th):
 
     descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute,
-                                                         batch_max=batch_max,load_keypoints=load_keypoints)
+                                                         batch_max=batch_max,load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th)
     save_joint_descriptors(descriptors_for_encoders, crop_files)
     return descriptors_for_encoders, crop_files
