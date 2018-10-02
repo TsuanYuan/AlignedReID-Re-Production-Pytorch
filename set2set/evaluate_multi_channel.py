@@ -138,8 +138,8 @@ if __name__ == "__main__":
                         help='threshold of keypoints quality')
 
     args = parser.parse_args()
-    print 'frame interval={}, batch_max={}, force_compute={}, load_keypoints={}'\
-        .format(str(args.frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints))
+    print 'frame interval={}, batch_max={}, force_compute={}, load_keypoints={}, kp_score_th={}'\
+        .format(str(args.frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th))
     import time
 
     same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days,
