@@ -231,7 +231,7 @@ class PoseReIDModel(nn.Module):
             self.fc_list.append(fc)
 
         self.merge_layer = nn.Sequential(
-                nn.Conv2d(self.planes+local_conv_out_channels*num_parts, self.planes, 1),
+                nn.Conv2d(local_conv_out_channels*num_parts, self.planes, 1),
                 nn.BatchNorm2d(self.planes),
                 nn.ReLU(inplace=True))
 
@@ -305,8 +305,8 @@ class PoseReIDModel(nn.Module):
             part_feature = self.pool_region(feature_map, normalized_boxes, local_id)
             part_feat_list.append(part_feature)
 
-        global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
-        part_feat_list.append(global_feat)
+        # global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
+        # part_feat_list.append(global_feat)
 
         concat_feat = torch.cat(part_feat_list, dim=1)
         final_feature = torch.squeeze(self.merge_layer(concat_feat))
