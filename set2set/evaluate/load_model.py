@@ -38,6 +38,7 @@ class AppearanceModelForward(object):
             pose_ids = (2, )
             model = PoseReIDModel(pose_ids=pose_ids)
             self.model_type = Model_Types.HEAD_ONLY
+            print "load model type head only"
         elif model_file.find('head_pose_parts') >= 0:
             pose_ids = (0, 2, 4)
             model = PoseReIDModel(pose_ids=pose_ids)
