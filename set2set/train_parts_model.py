@@ -232,13 +232,18 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
+            #if parts_type=='head' and dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
+            #    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(numpy.unique(p_pids.cpu().numpy())), str(numpy.unique(n_pids.cpu().numpy()))))
+            #    pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+            #    import debug_tool
+            #    debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', pids=pids_expand, name_tag=str(epoch)+'_'+str(i_batch)+'_')
             if i_batch==num_iters_per_epoch-1:
                 log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
-                if dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
-                    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(numpy.unique(p_pids.cpu().numpy())), str(numpy.unique(n_pids.cpu().numpy()))))
+                #if dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
+                #    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(numpy.unique(p_pids.cpu().numpy())), str(numpy.unique(n_pids.cpu().numpy()))))
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)
