@@ -195,7 +195,7 @@ class PoseReIDModel(nn.Module):
             self,
             last_conv_stride=1,
             last_conv_dilation=1,
-            local_conv_out_channels=256,
+            local_conv_out_channels=512,
             num_classes=0,
             pose_ids = None
     ):
@@ -231,8 +231,8 @@ class PoseReIDModel(nn.Module):
             self.fc_list.append(fc)
 
         self.merge_layer = nn.Sequential(
-                nn.Conv2d(local_conv_out_channels*num_parts, self.planes, 1),
-                nn.BatchNorm2d(self.planes),
+                nn.Conv2d(local_conv_out_channels*num_parts, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
                 nn.ReLU(inplace=True))
 
         self.pose_ids = pose_ids
