@@ -299,8 +299,8 @@ class PoseReIDModel(nn.Module):
             normalized_boxes[normalized_boxes<0] = 0
             normalized_boxes[normalized_boxes>0.75] = 0.75
             normalized_boxes[normalized_boxes[:,0] > 0.5,0] = 0.5 # x smaller than half
-            normalized_boxes[poses[:,pose_id, 2]==0,:] = 0
-            #normalized_boxes = normalized_boxes * torch.squeeze(poses[:,pose_id, 2])
+            # normalized_boxes[poses[:,pose_id, 2]==0,:] = 0
+            # normalized_boxes = normalized_boxes * torch.squeeze(poses[:,pose_id, 2])
             local_id = self.pose_id_2_local_id[pose_id] # local id are [0,1,2,3,4], pose id are [2,9,10, 15,16]
             part_feature = self.pool_region(feature_map, normalized_boxes, local_id)
             part_feat_list.append(part_feature)

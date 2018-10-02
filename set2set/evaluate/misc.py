@@ -13,6 +13,25 @@ import feature_compute
 import pickle
 
 
+def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
+    color = [0, 0, 0]  # zero padding
+    aspect_ratio = desired_size[0] / float(desired_size[1])
+    current_ar = im.shape[0] / float(im.shape[1])
+    if current_ar > aspect_ratio:  # current height is too high, pad width
+        delta_w = int(round(im.shape[0] / aspect_ratio - im.shape[1]))
+        left, right = delta_w / 2, delta_w - (delta_w / 2)
+        new_im = cv2.copyMakeBorder(im, 0, 0, left, right, cv2.BORDER_CONSTANT,
+                                    value=color)
+    else:  # current width is too wide, pad height
+        delta_h = int(round(im.shape[1] * aspect_ratio - im.shape[0]))
+        if head_top:
+            top, bottom = 0, delta_h
+        else:
+            top, bottom = delta_h / 2, delta_h - (delta_h / 2)
+        new_im = cv2.copyMakeBorder(im, top, bottom, 0, 0, cv2.BORDER_CONSTANT,
+                                    value=color)
+    return new_im
+
 def get_filename_for_display(file_path):
     p1, _ = os.path.split(file_path)
     folder_name = os.path.basename(p1)

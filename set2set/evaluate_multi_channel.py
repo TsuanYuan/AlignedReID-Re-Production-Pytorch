@@ -10,7 +10,7 @@ import argparse
 import logging
 import numpy
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from evaluate import feature_compute, metric_compute, misc
+from evaluate import feature_compute, metric_compute, misc, load_model
 from evaluate.metric_compute import Same_Pair_Requirements
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days,
                                                     must_same_camera=args.must_same_camera, must_diff_camera=args.must_diff_camera)
-    model = feature_compute.AppearanceModelForward(args.model_path, single_device=args.device_id)
+    model = load_model.AppearanceModelForward(args.model_path, single_device=args.device_id)
 
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))

@@ -152,6 +152,8 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
     if parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
     elif parts_type=='head':
+        pose_ids = (0, 2, 4) # redundency for heads
+    elif parts_type=='head_only':
         pose_ids = (2,)  # (0, 2, 4) # redundency for heads
     else:
         raise Exception("unknown parts definition {}".format(parts_type))

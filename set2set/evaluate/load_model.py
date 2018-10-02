@@ -12,9 +12,12 @@ import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 from enum import Enum
+import misc
+import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel
+
 
 class Model_Types(Enum):
     Base = 0
@@ -61,9 +64,11 @@ class AppearanceModelForward(object):
     def __del__(self):
         torch.cuda.empty_cache()
 
-    def compute_features_on_batch(self, image_batch, keypoints=None):
+    def compute_features_on_batch(self, image_batch, keypoints=None, norm_shape=(256, 128)):
         patches = []
         for image in image_batch:
+            image = misc.crop_pad_fixed_aspect_ratio(image, norm_shape)
+            image = cv2.resize(image, (norm_shape[1], norm_shape[0]))
             patch = image / 255.0
             patch = patch - numpy.array(self.im_mean)
             patch = patch / numpy.array(self.im_std).astype(float)
