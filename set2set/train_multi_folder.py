@@ -9,6 +9,7 @@ from DataLoader import ReIDAppearanceDataset
 import argparse
 import os
 import datetime
+from evaluate import load_model
 
 from torchvision import transforms
 import transforms_reid, Model
@@ -197,7 +198,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_ckpt([model], model_file, gpu_id=gpu_ids[0], skip_fc=True)
+            load_model.load_ckpt([model], model_file, skip_fc=True)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
