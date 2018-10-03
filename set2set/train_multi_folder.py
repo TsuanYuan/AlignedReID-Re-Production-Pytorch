@@ -181,9 +181,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         model = Model.MGNModel()
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
-        #model = Model.SEModel()
     elif model_type == 'plain':
-        model = Model.SwitchClassHeadModel()
+        model = Model.PlainModel()
     else:
         raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
