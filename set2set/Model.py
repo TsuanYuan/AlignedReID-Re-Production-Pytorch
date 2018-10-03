@@ -60,13 +60,7 @@ class PlainModel(nn.Module):
       local_feat: shape [N, H, c]
     """
         # shape [N, C, H, W]
-        if self.parts_model:
-            return self.forward_parts(x)
-
-        if self.with_final_conv:
-            feat = self.final_relu(self.final_bn(self.final_conv((self.base(x)))))
-        else:
-            feat = self.base(x)
+        feat = self.base(x)
         global_feat = F.avg_pool2d(feat, feat.size()[2:])
         # shape [N, C]
         global_feat = global_feat.view(global_feat.size(0), -1)
