@@ -55,6 +55,18 @@ def decode_wcc_image_name(image_name):
     frame_id = parts[3]
     return channel, int(date), int(video_time), int(pid), int(frame_id)
 
+def best_keypoints(keypoints):
+    if len(keypoints) == 1:
+        return keypoints[0]
+    else:
+        best_score = 0
+        best_kp = None
+        for kp in keypoints:
+            kp_score = misc.keypoints_quality(kp)
+            if kp_score > best_score:
+                best_score = kp_score
+                best_kp = kp
+    return best_kp
 
 def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75):
     p = person_folder
@@ -83,7 +95,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 if file_only not in keypoints:  # no keypoints detected on this crop image
                     skip_reading = True
                 else:
-                    kp = keypoints[file_only][0]
+                    kp = best_keypoints(keypoints[file_only])
                     kp_score = misc.keypoints_quality(kp)
                     if kp_score < keypoints_score_th:
                         skip_reading = True
