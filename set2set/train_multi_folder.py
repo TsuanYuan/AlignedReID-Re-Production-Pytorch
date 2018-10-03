@@ -182,6 +182,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
         #model = Model.SEModel()
+    elif model_type == 'plain':
+        model = Model.SwitchClassHeadModel()
     else:
         raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
@@ -295,9 +297,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr)))
+                   str(args.lr), args.model_type))
 
     torch.backends.cudnn.benchmark = False
 
