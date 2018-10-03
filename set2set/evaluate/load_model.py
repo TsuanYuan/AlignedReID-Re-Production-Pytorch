@@ -23,7 +23,7 @@ class Model_Types(Enum):
     HEAD_POSE = 3
     LIMB_POSE = 4
     HEAD_ONLY = 5
-
+    PLAIN_PARTS = 6
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, single_device=0):
@@ -37,6 +37,9 @@ class AppearanceModelForward(object):
         elif model_file.find('plain') >= 0:
             model = PlainModel()
             self.model_type = Model_Types.Plain
+        elif  model_file.find('plain_parts') >= 0:
+            model = SwitchClassHeadModel(parts_model=True)
+            self.model_type = Model_Types.PLAIN_PARTS
         elif model_file.find('pcb_parts') >= 0:
             model = PCBModel()
             self.model_type = Model_Types.PCB
