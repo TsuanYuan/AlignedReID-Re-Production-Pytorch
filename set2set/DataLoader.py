@@ -5,14 +5,14 @@ import torch
 from skimage import io
 import cv2
 import numpy
-import bisect
+from evaluate import feature_compute
 import random
 import collections
 from torch.utils.data import Dataset,ConcatDataset
 import json
 from struct_format.utils import SingleFileCrops, MultiFileCrops
 import pickle
-from parts_models import utils as parts_utils
+
 
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128)):
     color = [0, 0, 0]  # zero padding
@@ -285,15 +285,6 @@ class ReIDKeypointsDataset(Dataset):
     def __len__(self):
         return len(self.person_id_im_paths)
 
-    def adjust_keypoints_to_normalized_shape(self, keypoints, w_h_ratio, normalized_ratio=0.5):
-        kp = numpy.copy(keypoints)
-        if w_h_ratio < normalized_ratio:
-            kp[:, 0] = (keypoints[:, 0] - 0.5)*w_h_ratio/normalized_ratio+0.5
-        else:
-            kp[:, 1] = (keypoints[:, 1] - 0.5) * normalized_ratio/w_h_ratio + 0.5
-
-        return kp
-
     def __getitem__(self, set_id):
         # get personID
         person_id = self.person_id_im_paths.keys()[set_id]
@@ -307,7 +298,7 @@ class ReIDKeypointsDataset(Dataset):
         kps = []
         for im_path, kp in zip(im_paths_sample, keypoints_sample):
             im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path))
-            kp = self.adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
+            kp = feature_compute.adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
             ims.append(im)
             kps.append(kp)
 

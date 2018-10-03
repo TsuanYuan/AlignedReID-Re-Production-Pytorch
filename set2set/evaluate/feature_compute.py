@@ -44,6 +44,15 @@ def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
     return new_im
 
 
+def adjust_keypoints_to_normalized_shape(keypoints, w_h_ratio, normalized_ratio=0.5):
+    kp = numpy.copy(keypoints)
+    if w_h_ratio < normalized_ratio:
+        kp[:, 0] = (keypoints[:, 0] - 0.5) * w_h_ratio / normalized_ratio + 0.5
+    else:
+        kp[:, 1] = (keypoints[:, 1] - 0.5) * normalized_ratio / w_h_ratio + 0.5
+
+    return kp
+
 def decode_wcc_image_name(image_name):
     # decode ch00002_20180816102633_00005504_00052119.jpg
     image_base, _ = os.path.splitext(image_name)
@@ -100,6 +109,9 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                     if kp_score < keypoints_score_th:
                         skip_reading = True
                     else:
+                        im_bgr = cv2.imread(crop_file)
+                        w_h_ratio = float(im_bgr.shape[1])/im_bgr.shape[0]
+                        kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
                         kps.append(kp)
             if not skip_reading:
                 im_bgr = cv2.imread(crop_file)
