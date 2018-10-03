@@ -120,9 +120,9 @@ class SwitchClassHeadModel(nn.Module):
                     logits = logit_rows
                 else:
                     logits += logit_rows
-            return torch.cat(local_feat_list,dim=1), None, logits
+            return torch.cat(local_feat_list,dim=1), logits
         else:
-            return torch.cat(local_feat_list, dim=1), None, None
+            return torch.cat(local_feat_list, dim=1), None
 
     def forward(self, x, head_id=0):
         """
@@ -142,16 +142,16 @@ class SwitchClassHeadModel(nn.Module):
         # shape [N, C]
         global_feat = global_feat.view(global_feat.size(0), -1)
         # shape [N, C, H, 1]
-        local_feat = torch.mean(feat, -1, keepdim=True)
-        local_feat = self.local_relu(self.local_bn(self.local_conv(local_feat)))
+        #local_feat = torch.mean(feat, -1, keepdim=True)
+        #local_feat = self.local_relu(self.local_bn(self.local_conv(local_feat)))
         # shape [N, H, c]
-        local_feat = local_feat.squeeze(-1).permute(0, 2, 1)
+        #local_feat = local_feat.squeeze(-1).permute(0, 2, 1)
         # switch head of fc layer for id loss
         if hasattr(self, 'fc_list'):
             logits = self.fc_list[head_id](global_feat)
-            return global_feat, local_feat, logits
+            return global_feat, logits
 
-        return global_feat, local_feat, None
+        return global_feat, None
 
     def forward_roi(self, x, rois, pooled_height=8, pooled_width=4):
         feat = self.base(x)
