@@ -218,7 +218,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
     n_set = len(reid_datasets)
     dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
-                                             shuffle=True, num_workers=8) for set_id in range(n_set)]
+                                             shuffle=True, num_workers=4) for set_id in range(n_set)]
     dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
