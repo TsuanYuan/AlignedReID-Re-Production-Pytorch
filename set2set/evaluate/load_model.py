@@ -22,7 +22,7 @@ class Model_Types(Enum):
     PCB = 2
     HEAD_POSE = 3
     LIMB_POSE = 4
-
+    HEAD_ONLY = 5
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, single_device=0):
@@ -33,6 +33,11 @@ class AppearanceModelForward(object):
         if model_file.find('mgn') >= 0:
             model = MGNModel()
             self.model_type = Model_Types.MGN
+        elif model_file.find('head_only_parts') >= 0:
+            pose_ids = (2,)
+            model = PoseReIDModel(pose_ids=pose_ids, no_global=True)
+            self.model_type = Model_Types.HEAD_ONLY
+            print "head only model!"
         elif model_file.find('head_pose_parts') >= 0:
             pose_ids = (0, 2, 4)
             model = PoseReIDModel(pose_ids=pose_ids)

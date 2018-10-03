@@ -197,7 +197,8 @@ class PoseReIDModel(nn.Module):
             last_conv_dilation=1,
             local_conv_out_channels=256,
             num_classes=0,
-            pose_ids = None
+            pose_ids=None,
+            no_global=False
     ):
         super(PoseReIDModel, self).__init__()
 
@@ -229,12 +230,18 @@ class PoseReIDModel(nn.Module):
             init.normal(fc.weight, std=0.001)
             init.constant(fc.bias, 0)
             self.fc_list.append(fc)
-
-        self.merge_layer = nn.Sequential(
+        if no_global:
+            self.merge_layer = nn.Sequential(
+                nn.Conv2d(local_conv_out_channels * num_parts, self.planes, 1),
+                nn.BatchNorm2d(self.planes),
+                nn.ReLU(inplace=True))
+        else:
+            self.merge_layer = nn.Sequential(
                 nn.Conv2d(self.planes+local_conv_out_channels*num_parts, self.planes, 1),
                 nn.BatchNorm2d(self.planes),
                 nn.ReLU(inplace=True))
 
+        self.no_global = no_global
         self.pose_ids = pose_ids
         self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
 
@@ -305,8 +312,9 @@ class PoseReIDModel(nn.Module):
             part_feature = self.pool_region(feature_map, normalized_boxes, local_id)
             part_feat_list.append(part_feature)
 
-        global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
-        part_feat_list.append(global_feat)
+        if not self.no_global:
+            global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
+            part_feat_list.append(global_feat)
 
         concat_feat = torch.cat(part_feat_list, dim=1)
         final_feature = torch.squeeze(self.merge_layer(concat_feat))
