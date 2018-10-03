@@ -35,9 +35,9 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
 
     # boolean matrix item ids from requirements
     satisfied = numpy.ones(features_dist.shape, dtype=numpy.uint8)
-    # remove self comparison
-    diag_ids = numpy.diag_indices(features_dist.shape[0])
-    satisfied[diag_ids] = 0
+    # remove upper triangular comparison including diagonal
+    upper_ids = numpy.tril_indices(features_dist.shape[0])
+    satisfied[upper_ids] = 0
     satisfied = satisfied > 0
     n = days.size
 
