@@ -275,10 +275,10 @@ class PoseReIDModel(nn.Module):
         if box[2] == 0 or box[3] == 0:
             return 0, 0, 0, 0
         else:
-            xs = max(0, (f_w*box[0]).round().int())
-            xe = min(f_w-1, (f_w*(box[0]+box[2])).round().int())
-            ys = max(0, (f_h*box[1]).round().int())
-            ye = min(f_h-1, (f_h*(box[1]+box[3])).round().int())
+            xs = max(0, (f_w*box[0]).floor().int())
+            xe = min(f_w-1, (f_w*(box[0]+box[2])).floor().int())
+            ys = max(0, (f_h*box[1]).floor().int())
+            ye = min(f_h-1, (f_h*(box[1]+box[3])).floor().int())
         return xs, xe, ys, ye
 
     def forward(self, x, poses):
