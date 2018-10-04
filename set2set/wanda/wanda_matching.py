@@ -4,7 +4,6 @@ import pickle
 import numpy
 import json
 import argparse
-import collections
 
 def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     # cosine

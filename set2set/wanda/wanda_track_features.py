@@ -2,6 +2,8 @@ import os
 import pickle
 import argparse
 import wanda_compare_tracks
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from struct_format import utils
 
 

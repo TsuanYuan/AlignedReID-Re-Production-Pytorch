@@ -111,13 +111,15 @@ def convert_to_pid_index(tracklet_index):
     return pid_index
 
 
-def read_one_image(data_file_path, place):
+def read_one_image(data_file_path, place, bgr_flag=False):
     with open(data_file_path, 'rb') as f:
         f.seek(place + 4)
         name_len = struct.unpack('i', f.read(4))[0]
         f.seek(name_len, 1)
         img_len = struct.unpack('i', f.read(4))[0]
         img_bgr = cv2.imdecode(numpy.asarray(bytearray(f.read(img_len)), dtype="uint8"), cv2.IMREAD_COLOR)
+        if bgr_flag:
+            return img_bgr
         img = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return img
 

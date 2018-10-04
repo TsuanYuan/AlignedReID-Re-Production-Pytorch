@@ -10,6 +10,8 @@ import numpy
 import time
 import json
 import pickle
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from load_model import AppearanceModelForward
 import compute_feature_alignedReid
 from struct_format import utils
