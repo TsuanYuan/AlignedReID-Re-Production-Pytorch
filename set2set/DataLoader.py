@@ -231,7 +231,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
                 channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(jpg_file))
                 if pid not in person_id_dates:
                     person_id_dates[pid] = collections.defaultdict(list)
-                    person_id_dates[pid][date].append(jpg_file)
+                person_id_dates[pid][date].append(jpg_file)
             else:
                 skip_count += 1
         return person_id_dates
