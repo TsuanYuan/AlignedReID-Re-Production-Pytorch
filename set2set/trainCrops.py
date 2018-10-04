@@ -13,6 +13,7 @@ import datetime
 from torchvision import transforms
 import transforms_reid, Model
 import losses
+from evaluate import load_model
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 
@@ -181,7 +182,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_ckpt([model], model_file)
+            load_model.load_ckpt([model], model_file, skip_fc=True)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
