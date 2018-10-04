@@ -190,6 +190,7 @@ class SwitchClassHeadModel(nn.Module):
 
         return outputs
 
+
 class PoseReIDModel(nn.Module):
     def __init__(
             self,
@@ -318,6 +319,106 @@ class PoseReIDModel(nn.Module):
 
         concat_feat = torch.cat(part_feat_list, dim=1)
         final_feature = torch.squeeze(self.merge_layer(concat_feat))
+        if len(final_feature.size()) == 1:  # in case of single feature
+            final_feature = final_feature.unsqueeze(0)
+
+        feat = F.normalize(final_feature, p=2, dim=1)
+        return feat
+
+
+class PoseReWeightModel(nn.Module):
+    def __init__(
+            self,
+            last_conv_stride=1,
+            last_conv_dilation=1,
+            local_conv_out_channels=512,
+            num_classes=0,
+            pose_ids=None,
+            no_global=False
+    ):
+        super(PoseReWeightModel, self).__init__()
+
+        self.base = resnet50(
+            pretrained=True,
+            last_conv_stride=last_conv_stride,
+            last_conv_dilation=last_conv_dilation)
+        num_parts = len(pose_ids)
+        self.planes = 2048
+
+        self.local_conv_list = nn.ModuleList()
+        for _ in range(num_parts):
+            self.local_conv_list.append(nn.Sequential(
+                nn.Conv2d(2048, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True)
+            ))
+
+        if num_classes > 0:
+            # fc for softmax loss
+            self.fc_list = nn.ModuleList()
+            for _ in range(num_parts):
+                fc = nn.Linear(local_conv_out_channels, num_classes)
+                init.normal(fc.weight, std=0.001)
+                init.constant(fc.bias, 0)
+                self.fc_list.append(fc)
+            # fc on full body
+            fc = nn.Linear(self.planes, num_classes)
+            init.normal(fc.weight, std=0.001)
+            init.constant(fc.bias, 0)
+            self.fc_list.append(fc)
+        if no_global:
+            self.merge_layer = nn.Sequential(
+                nn.Conv2d(local_conv_out_channels * num_parts, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True))
+        else:
+            self.merge_layer = nn.Sequential(
+                nn.Conv2d(self.planes+local_conv_out_channels*num_parts, local_conv_out_channels, 1),
+                nn.BatchNorm2d(local_conv_out_channels),
+                nn.ReLU(inplace=True))
+
+        self.no_global = no_global
+        self.pose_ids = pose_ids
+        self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
+
+    def compute_roi_masks(self, normalized_boxes, feat_size):
+        n = feat_size[0]
+        if torch.has_cudnn:
+            roi_mask = torch.ones(feat_size[1:]).cuda(device=normalized_boxes.get_device())
+
+        else:
+            roi_mask = torch.ones(feat_size[1:])
+
+        for i in range(n):
+            xs, xe, ys, ye = self.compute_roi(normalized_boxes[i,:], feat_size[3], feat_size[2])
+            if xs+xe+xs+ye > 0:
+                roi_mask[:, ys:ye, xs:xe] *= normalized_boxes[i,4]
+
+        return roi_mask
+
+    def forward(self, x, poses):
+        """
+        :param x: input batch of images N 3 H W
+        :param poses: input batch of N 17 4
+        :return:
+        """
+        # shape [N, C, H, W]
+        feature_map = self.base(x)
+        normalized_boxes = torch.zeros((x.size()[0], 5)).cuda(x.get_device())
+        for pose_id in self.pose_ids:
+            normalized_boxes[:, 0] = torch.squeeze(poses[:, pose_id, 0]) - 0.25
+            normalized_boxes[:, 1] = torch.squeeze(poses[:, pose_id, 1]) - 0.25/2
+            normalized_boxes[:, 2] = 0.5
+            normalized_boxes[:, 3] = 0.5/2
+            normalized_boxes[normalized_boxes[:, :4]<0, :4] = 0
+            normalized_boxes[normalized_boxes[:, :4]>0.75, :4] = 0.75
+            normalized_boxes[normalized_boxes[:,0] > 0.5,0] = 0.5 # x smaller than half
+            normalized_boxes[:, 4] = 2/(1+torch.exp(0.01-poses[:, pose_id, 3]))
+
+        roi_mask = self.compute_roi_masks(normalized_boxes, feature_map.size())
+        weighted_feature_map = feature_map*roi_mask
+        final_feature = F.avg_pool2d(weighted_feature_map, feature_map.size()[2:])
+
         if len(final_feature.size()) == 1:  # in case of single feature
             final_feature = final_feature.unsqueeze(0)
 
