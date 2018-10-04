@@ -194,21 +194,25 @@ class SingleFileCrops(object):
         return self.pid_list
 
 class MultiFileCrops(object):
-    def __init__(self, data_folder, list_file):
+    def __init__(self, data_folder, list_file, ignore_pids=None):
         self.prefix = 0
         #index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
         self.data_folder = data_folder
         self.tracklet_index = {}
         self.pid_index = {}
-        self.load_index_files(list_file)
+        self.load_index_files(list_file, ignore_pids)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
         with open('/tmp/index.pkl', 'wb') as fp:
             pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
             print 'saved pid_index to /tmp/index.pkl'
 
-    def load_index_files(self, list_file):
+    def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
+        if ignore_pids is not None:
+            for pid in ignore_pids:
+                single_index.pop(pid, None)
+        print 'removed {} pids from ignore list'.format(len(ignore_pids))
         self.pid_index.update(single_index)
 
     def load_fixed_count_images_of_one_pid(self, pid, count):

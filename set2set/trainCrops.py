@@ -147,7 +147,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, index_file, model_file, sample_size, batch_size,
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='list'):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -199,12 +199,17 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     else:
         raise Exception('unknown loss name')
 
+    ignore_pid_list = None
+    if ignore_pid_file is not None:
+        with open(ignore_pid_file, 'r') as fp:
+            ignore_pid_list= [int(line.rstrip('\n')) for line in fp if len(line.rstrip('\n'))>0]
+
     if len(args.index_file) == 0:
         reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
     else:
         reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
-                                                sample_size=sample_size, index_format=index_format)
+                                                sample_size=sample_size, index_format=index_format, ignore_pid_list=ignore_pid_list)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
