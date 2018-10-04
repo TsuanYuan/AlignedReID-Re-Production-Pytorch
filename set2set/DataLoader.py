@@ -5,7 +5,7 @@ import torch
 from skimage import io
 import cv2
 import numpy
-from evaluate import feature_compute
+from evaluate import feature_compute, misc
 import random
 import collections
 from torch.utils.data import Dataset,ConcatDataset
@@ -48,16 +48,16 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     return new_im
 
 
-def decode_wcc_image_name(image_name):
-    # decode ch00002_20180816102633_00005504_00052119.jpg
-    image_base, _ = os.path.splitext(image_name)
-    parts = image_base.split('_')
-    channel = parts[0]
-    date = parts[1][:8]
-    time = parts[1][8:]
-    pid = parts[2]
-    frame_id = parts[3]
-    return channel, date, time, pid, frame_id
+# def decode_wcc_image_name(image_name):
+#     # decode ch00002_20180816102633_00005504_00052119.jpg
+#     image_base, _ = os.path.splitext(image_name)
+#     parts = image_base.split('_')
+#     channel = parts[0]
+#     date = parts[1][:8]
+#     time = parts[1][8:]
+#     pid = parts[2]
+#     frame_id = parts[3]
+#     return channel, date, time, pid, frame_id
 
 
 class ConcatDayDataset(ConcatDataset):
@@ -144,7 +144,7 @@ def create_list_of_days_datasets(root_dir, transform=None, crops_per_id=8):
         jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
         if len(jpgs) >= crops_per_id:
             for jpg_file in jpgs:
-                channel, date, time, pid, frame_id = decode_wcc_image_name(os.path.basename(jpg_file))
+                channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(jpg_file))
                 if date not in person_id_im_paths:
                     person_id_im_paths[date] = collections.defaultdict(list)
                 person_id_im_paths[date][pid].append(jpg_file)
@@ -198,7 +198,7 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-        channel, date, time, pid, frame_id = decode_wcc_image_name(im_paths_sample[0])
+        channel, date, time, pid, frame_id = misc.decode_wcc_image_name(im_paths_sample[0])
         sample = {'images': ims, 'person_id': person_id, 'date': date}
 
         if self.transform:
@@ -228,12 +228,13 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
         for sub_folder in sub_folders:
             jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
             for jpg_file in jpgs:
-                channel, date, time, pid, frame_id = decode_wcc_image_name(os.path.basename(jpg_file))
+                channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(jpg_file))
                 if pid not in person_id_dates:
                     person_id_dates[pid] = collections.defaultdict(list)
                     person_id_dates[pid][date].append(jpg_file)
             else:
                 skip_count += 1
+        return person_id_dates
 
     def __len__(self):
         return len(self.person_id_dates)
@@ -258,7 +259,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-        channel, date, time, pid, frame_id = decode_wcc_image_name(im_paths_sample[0])
+        channel, date, time, pid, frame_id = misc.decode_wcc_image_name(im_paths_sample[0])
         sample = {'images': ims, 'person_id': person_id, 'date': date}
 
         if self.transform:

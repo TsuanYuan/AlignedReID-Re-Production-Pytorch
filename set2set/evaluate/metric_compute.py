@@ -6,7 +6,7 @@ Quan Yuan
 from collections import namedtuple
 import os
 import numpy
-from feature_compute import decode_wcc_image_name
+from misc import decode_wcc_image_name
 import sklearn.metrics.pairwise as pairwise
 import sklearn.metrics
 

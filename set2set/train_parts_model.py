@@ -9,7 +9,6 @@ from DataLoader import ReIDKeypointsDataset
 import argparse
 import os
 import datetime
-import numpy
 
 from torchvision import transforms
 import transforms_reid, Model

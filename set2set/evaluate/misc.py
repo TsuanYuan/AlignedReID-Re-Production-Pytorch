@@ -12,6 +12,17 @@ import shutil
 import feature_compute
 import pickle
 
+def decode_wcc_image_name(image_name):
+    # decode ch00002_20180816102633_00005504_00052119.jpg
+    # or ch02001_20180917143702_pano_00034574_00001536
+    image_base, _ = os.path.splitext(image_name)
+    parts = image_base.split('_')
+    channel = parts[0]
+    date = parts[1][:8]
+    video_time = parts[1][8:]
+    pid = parts[-2]
+    frame_id = parts[-1]
+    return channel, int(date), int(video_time), int(pid), int(frame_id)
 
 def get_filename_for_display(file_path):
     p1, _ = os.path.split(file_path)
