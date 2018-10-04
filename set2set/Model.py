@@ -436,6 +436,17 @@ class PoseReWeightModel(nn.Module):
         self.pose_ids = pose_ids
         self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
 
+    def compute_roi(self, box, f_w, f_h):
+        # x y of boxes
+        if box[2] == 0 or box[3] == 0:
+            return 0, 0, 0, 0
+        else:
+            xs = max(0, (f_w*box[0]).floor().int())
+            xe = min(f_w-1, (f_w*(box[0]+box[2])).floor().int())
+            ys = max(0, (f_h*box[1]).floor().int())
+            ye = min(f_h-1, (f_h*(box[1]+box[3])).floor().int())
+        return xs, xe, ys, ye
+
     def compute_roi_masks(self, normalized_boxes, feat_size):
         n = feat_size[0]
         if torch.has_cudnn:
@@ -465,10 +476,10 @@ class PoseReWeightModel(nn.Module):
             normalized_boxes[:, 1] = torch.squeeze(poses[:, pose_id, 1]) - 0.25/2
             normalized_boxes[:, 2] = 0.5
             normalized_boxes[:, 3] = 0.5/2
-            normalized_boxes[normalized_boxes[:, :4]<0, :4] = 0
-            normalized_boxes[normalized_boxes[:, :4]>0.75, :4] = 0.75
+            normalized_boxes[:,:4][normalized_boxes[:, :4]<0] = 0
+            normalized_boxes[:,:4][normalized_boxes[:, :4]>0.75] = 0.75
             normalized_boxes[normalized_boxes[:,0] > 0.5,0] = 0.5 # x smaller than half
-            normalized_boxes[:, 4] = 2/(1+torch.exp(0.01-poses[:, pose_id, 3]))
+            normalized_boxes[:, 4] = 3/(1+2*torch.exp(100*(0.025-poses[:, pose_id, 3])))
 
         roi_mask = self.compute_roi_masks(normalized_boxes, feature_map.size())
         weighted_feature_map = feature_map*roi_mask
