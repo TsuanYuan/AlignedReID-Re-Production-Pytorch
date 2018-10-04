@@ -34,12 +34,12 @@ class AppearanceModelForward(object):
         if model_file.find('mgn') >= 0:
             model = MGNModel()
             self.model_type = Model_Types.MGN
-        elif model_file.find('plain') >= 0:
-            model = PlainModel()
-            self.model_type = Model_Types.Plain
         elif  model_file.find('plain_parts') >= 0:
             model = SwitchClassHeadModel(parts_model=True)
             self.model_type = Model_Types.PLAIN_PARTS
+        elif model_file.find('plain') >= 0:
+            model = PlainModel()
+            self.model_type = Model_Types.Plain
         elif model_file.find('pcb_parts') >= 0:
             model = PCBModel()
             self.model_type = Model_Types.PCB
