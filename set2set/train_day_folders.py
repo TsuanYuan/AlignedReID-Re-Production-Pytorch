@@ -217,10 +217,10 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
             # debug date
             # for sample in sample_batched:
             #     print "date of {}".format(sample['date'])
-            images_5d = torch.cat([sample['images'] for sample in sample_batched], dim=0)  # [batch_id, crop_id, 3, 256, 128]
+            images_5d = sample_batched['images'] #torch.cat([sample['images'] for sample in sample_batched], dim=0)  # [batch_id, crop_id, 3, 256, 128]
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
-            person_ids = torch.cat([sample['person_id'] for sample in sample_batched], dim=0)
+            person_ids = sample_batched['person_id'] #torch.cat([sample['person_id'] for sample in sample_batched], dim=0)
             # dates = torch.cat([sample['date'] for sample in sample_batched], dim=0)
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D

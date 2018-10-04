@@ -259,7 +259,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-        channel, date, time, pid, frame_id = misc.decode_wcc_image_name(im_paths_sample[0])
+        channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(im_paths_sample[0]))
         sample = {'images': ims, 'person_id': person_id, 'date': date}
 
         if self.transform:
