@@ -159,7 +159,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
     else:
         raise Exception("unknown parts definition {}".format(parts_type))
     print "parts type is {}".format(parts_type)
-    model = Model.PoseReIDModel(pose_ids=pose_ids)
+    model = Model.PoseReIDModel(pose_ids=pose_ids) # Model.PoseReWeightModel(pose_ids=pose_ids)
 
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])

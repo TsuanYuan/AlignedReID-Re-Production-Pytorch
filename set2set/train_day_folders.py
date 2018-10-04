@@ -148,8 +148,8 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', data_size_factor=4,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', num_workers=8,
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
@@ -159,8 +159,9 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                                               transforms_reid.ToTensor(),
                                               ])
 
-    reid_datasets = DataLoader.create_list_of_days_datasets(data_folder, transform=composed_transforms, crops_per_id=sample_size)
-    reid_data_concat = DataLoader.ConcatDayDataset(reid_datasets, batch_size, data_size_factor=data_size_factor)
+    #reid_datasets = DataLoader.create_list_of_days_datasets(data_folder, transform=composed_transforms, crops_per_id=sample_size)
+    #reid_data_concat = DataLoader.ConcatDayDataset(reid_datasets, batch_size, data_size_factor=data_size_factor)
+    pid_one_day_dataset = DataLoader.ReIDSameIDOneDayDataset(data_folder, transform=composed_transforms, crops_per_id=sample_size)
 
     if not torch.cuda.is_available():
         gpu_ids = None
@@ -190,7 +191,6 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     else:
         model_p = model
 
-    start_decay = 50
     min_lr = 1e-9
     if loss_name == 'triplet':
         loss_function = losses.TripletLossK(margin=margin)
@@ -199,8 +199,8 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     else:
         raise Exception('unknown loss name')
 
-    dataloader = torch.utils.data.DataLoader(reid_data_concat, batch_size=1,
-                                             shuffle=True, num_workers=8)
+    dataloader = torch.utils.data.DataLoader(pid_one_day_dataset, batch_size=batch_size,
+                                             shuffle=True, num_workers=num_workers)
     for epoch in range(num_epochs):
         sum_loss = 0
         for i_batch, sample_batched in enumerate(dataloader):
@@ -221,6 +221,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
             person_ids = torch.cat([sample['person_id'] for sample in sample_batched], dim=0)
+            # dates = torch.cat([sample['date'] for sample in sample_batched], dim=0)
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
@@ -260,6 +261,8 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
+    parser.add_argument('--start_decay', type=int, default=50, help="epoch to start learning rate decay")
+    parser.add_argument('--num_workers', type=int, default=4, help="num of data batching workers")
     parser.add_argument('--data_size_factor', type=int, default=4, help="each epoch will iterate len(datasets)*data_size_factor iterations. Not necessarily all pids")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
@@ -278,5 +281,5 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, data_size_factor=args.data_size_factor,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, num_workers=args.num_workers)
