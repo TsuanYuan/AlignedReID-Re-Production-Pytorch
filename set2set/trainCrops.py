@@ -271,7 +271,7 @@ if __name__ == '__main__':
     parser.add_argument('model_file', type=str, help="the model file")
     parser.add_argument('--data_folder', type=str, help="dataset original folder with subfolders of person id crops", default='')
     parser.add_argument('--index_format', type=str, default='list', help="format of index file")
-
+    parser.add_argument('--ignore_pid_file', type=str, help="the file of ignored pids", default=None)
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
@@ -296,5 +296,5 @@ if __name__ == '__main__':
     if len(args.data_folder) == 0:
         args.data_folder = os.path.split(args.index_file)[0]
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file,
          optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss, index_format=args.index_format)
