@@ -484,7 +484,7 @@ class PoseReWeightModel(nn.Module):
         roi_mask = self.compute_roi_masks(normalized_boxes, feature_map.size())
         weighted_feature_map = feature_map*roi_mask
         final_feature = F.avg_pool2d(weighted_feature_map, feature_map.size()[2:])
-
+        final_feature = torch.squeeze(self.merge_layer(final_feature))
         if len(final_feature.size()) == 1:  # in case of single feature
             final_feature = final_feature.unsqueeze(0)
 
