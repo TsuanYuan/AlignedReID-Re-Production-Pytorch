@@ -172,7 +172,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
 
     model = Model.MGNModel()
     if len(gpu_ids)>=0:
-        model = model.cuda()
+        model = model.cuda(device=gpu_ids[0])
     # else:
     #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
@@ -244,7 +244,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
                     person_ids = person_ids.cuda()
-                    features, logits = model_p(Variable(images.cuda(async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
+                    features, logits = model_p(Variable(images.cuda(device=gpu_ids[0], async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
                 features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
