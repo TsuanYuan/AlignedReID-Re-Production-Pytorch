@@ -146,6 +146,28 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
+def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes):
+    model = Model.MGNModel(num_classes=num_classes)
+    if len(gpu_ids) >= 0:
+        model = model.cuda(device=gpu_ids[0])
+
+    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
+    model_folder = os.path.split(model_file)[0]
+    if not os.path.isdir(model_folder):
+        os.makedirs(model_folder)
+    print('model path is {0}'.format(model_file))
+    if os.path.isfile(model_file):
+        if args.resume:
+            load_model.load_ckpt([model], model_file, skip_fc=True)
+        else:
+            print('model file {0} already exist, will overwrite it.'.format(model_file))
+
+    if len(gpu_ids) > 0:
+        model_p = DataParallel(model, device_ids=gpu_ids)
+    else:
+        model_p = model
+
+    return model_p, optimizer, model
 
 def main(data_folder, index_file, model_file, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
@@ -164,26 +186,26 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     if not torch.cuda.is_available():
         gpu_ids = None
 
-    model = Model.MGNModel()
-    if len(gpu_ids)>=0:
-        model = model.cuda(device=gpu_ids[0])
+    # model = Model.MGNModel()
+    # if len(gpu_ids)>=0:
+    #     model = model.cuda(device=gpu_ids[0])
+    # # else:
+    # #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
+    # optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
+    # model_folder = os.path.split(model_file)[0]
+    # if not os.path.isdir(model_folder):
+    #     os.makedirs(model_folder)
+    # print('model path is {0}'.format(model_file))
+    # if os.path.isfile(model_file):
+    #     if args.resume:
+    #         load_model.load_ckpt([model], model_file, skip_fc=True)
+    #     else:
+    #         print('model file {0} already exist, will overwrite it.'.format(model_file))
+    #
+    # if len(gpu_ids) > 0:
+    #     model_p = DataParallel(model, device_ids=gpu_ids)
     # else:
-    #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
-    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    model_folder = os.path.split(model_file)[0]
-    if not os.path.isdir(model_folder):
-        os.makedirs(model_folder)
-    print('model path is {0}'.format(model_file))
-    if os.path.isfile(model_file):
-        if args.resume:
-            load_model.load_ckpt([model], model_file, skip_fc=True)
-        else:
-            print('model file {0} already exist, will overwrite it.'.format(model_file))
-
-    if len(gpu_ids) > 0:
-        model_p = DataParallel(model, device_ids=gpu_ids)
-    else:
-        model_p = model
+    #     model_p = model
 
     ignore_pid_list = None
     if ignore_pid_file is not None:
@@ -200,7 +222,9 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=8)
-    # parameters and losses
+    # model and optimizer
+    model_p, optimizer, single_model = load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes)
+    # parameters and l,osses
     start_decay = 50
     min_lr = 1e-9
     if loss_name == 'triplet':
@@ -241,7 +265,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
                     person_ids = person_ids.cuda()
                     features, logits = model_p(Variable(images.cuda(device=gpu_ids[0], async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
-                features, logits = model(Variable(images))
+                features, logits = model_p(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
             metric_loss,dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
             softmax_loss = softmax_loss_func(pids_expand, logits)
@@ -258,8 +282,8 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
                             str(dist_neg.data.cpu().numpy()), str(sum_metric_loss), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,min(50, num_epochs/8)))==0:
-                    save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
-                save_ckpt([model],  epoch, log_str, model_file)
+                    save_ckpt([single_model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
+                save_ckpt([single_model],  epoch, log_str, model_file)
     print('model saved to {0}'.format(model_file))
 
 
