@@ -149,15 +149,9 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(data_folder, index_file, model_file, sample_size, batch_size,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='list'):
-    if with_roi:
-        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                                  transforms_reid.Rescale((256, 128)),
-                                                  transforms_reid.PixelNormalize(),
-                                                  transforms_reid.ToTensor(),
-                                                  ])  # no random crop
-    else:
-        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
+
+    composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop((256, 128)),
                                               #transforms_reid.RandomBlockMask(8),
@@ -289,8 +283,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
-    parser.add_argument('--with_roi', action='store_true', default=False, help="whether to use roi")
-    parser.add_argument('--original_ar', action='store_true', default=False, help="whether use original aspect ratio")
+    parser.add_argument('--softmax_loss_ratio', type=float, default=0.2, help="ratio of softmax loss in total loss")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -302,4 +295,5 @@ if __name__ == '__main__':
         args.data_folder = os.path.split(args.index_file)[0]
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file,
-         optimizer_name=args.optimizer, base_lr=args.lr, with_roi=args.with_roi, loss_name=args.loss, index_format=args.index_format)
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format,
+         softmax_loss_ratio=args.softmax_loss_ratio)
