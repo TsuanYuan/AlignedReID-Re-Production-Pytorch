@@ -51,7 +51,7 @@ class AppearanceModelForward(object):
             print "head only model!"
         elif model_file.find('head_pose_reweight') >= 0:
             pose_ids = (0, 2, 4)
-            model = PoseReWeightModel(pose_ids=pose_ids, no_global=True)
+            model = PoseReWeightModel(pose_ids=pose_ids)
             self.model_type = Model_Types.HEAD_POSE_REWEIGHT
             print "head pose reweight attention model!"
         elif model_file.find('head_pose_parts') >= 0:
