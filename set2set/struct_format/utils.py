@@ -209,10 +209,13 @@ class MultiFileCrops(object):
 
     def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
+        count = 0
         if ignore_pids is not None:
             for pid in ignore_pids:
-                single_index.pop(pid, None)
-        print 'removed {} pids from ignore list'.format(len(ignore_pids))
+                if pid in single_index:
+                    count += 1
+                    single_index.pop(pid, None)
+        print 'removed {} ignore pids from training pid list'.format(str(count))
         self.pid_index.update(single_index)
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
