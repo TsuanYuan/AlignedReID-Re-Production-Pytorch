@@ -268,7 +268,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
                 features, logits = model_p(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
             metric_loss,dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
-            softmax_loss = softmax_loss_func(pids_expand, logits)
+            softmax_loss = softmax_loss_func(pids_expand.cuda(device=gpu_ids[0]), logits)
             loss = metric_loss+softmax_loss_ratio*softmax_loss
             optimizer.zero_grad()
             loss.backward()
