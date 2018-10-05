@@ -37,8 +37,7 @@ def get_part_name(part_prefix, cur_part_idx):
 def load_list_to_pid(list_file, data_folder, prefix, path_tail_len=2):
     pid_index = collections.defaultdict(list)
     with open(list_file) as f:
-        lines = f.readlines()
-        for line in lines:
+        for line in f:
             label = int(line.split()[0])+prefix
             groups = line.strip().split()[1:]
             num_imgs = len(groups) / 2
@@ -63,8 +62,7 @@ def load_list_of_unknown_tracks(list_file):
     # assume format of each row "ch03_2018089123232-00023231 data_path file_offset"
     video_track_index = collections.defaultdict(list)
     with open(list_file) as f:
-        lines = f.readlines()
-        for line in lines:
+        for line in f:
             video_track = line.split()[0]
             groups = line.strip().split()[1:]
             num_imgs = len(groups) / 2
