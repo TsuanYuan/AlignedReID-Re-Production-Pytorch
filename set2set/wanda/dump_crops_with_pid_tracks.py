@@ -65,16 +65,16 @@ if __name__ == "__main__":
                     print "cannot find binary data file {}".format(part_file)
                     continue
                 crops_per_pid[pid]+=1
-                tracklets_per_pid[pid]+=1
                 image_bgr = utils.read_one_image(part_file, int(video_offset[1]), bgr_flag=True)
                 image_output_name = key.split('-')[0]+'_'+pid+'_'+key.split('-')[-1]+'.jpg'
                 image_output_path = os.path.join(output_pid_folder, image_output_name)
                 cv2.imwrite(image_output_path, image_bgr)
-
+            tracklets_per_pid[pid] += 1
+            
     mean_crops = sum([crops_per_pid[k] for k in crops_per_pid])/float(len(crops_per_pid))
     mean_track_count = sum([tracklets_per_pid[k] for k in tracklets_per_pid])/float(len(tracklets_per_pid))
     print "mean crops per pid is {}, mean tracks per pid is {}".format(str(mean_crops), str(mean_track_count))
     finish_time = time.time()
     elapsed = finish_time - start_time
-    print 'all dump crops finished in {0} for videos in {1}'.format(elapsed, args.merged_tracker_file)
+    print 'all dump crops finished in {0} for pids in {1}'.format(elapsed, args.pid_list_file)
 
