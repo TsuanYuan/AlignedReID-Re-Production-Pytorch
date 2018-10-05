@@ -9,8 +9,8 @@ import os
 import json
 import cv2
 import shutil
-import feature_compute
 import pickle
+
 
 def decode_wcc_image_name(image_name):
     # decode ch00002_20180816102633_00005504_00052119.jpg
@@ -129,7 +129,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     for sid in tough_same_ids:
         p = same_pair_files[sid]
         d = same_pair_dist[sid]
-        pid = feature_compute.decode_wcc_image_name(os.path.basename(p[0]))[3]
+        pid = decode_wcc_image_name(os.path.basename(p[0]))[3]
         if pid not in same_dict:
             same_dict[pid] = 1
         elif same_dict[pid] >= 3:
@@ -157,8 +157,8 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     for id in tough_diff_ids:
         p = diff_pair_files[id]
         d = diff_pair_dist[id]
-        pid0 = feature_compute.decode_wcc_image_name(os.path.basename(p[0]))[3]
-        pid1 = feature_compute.decode_wcc_image_name(os.path.basename(p[1]))[3]
+        pid0 = decode_wcc_image_name(os.path.basename(p[0]))[3]
+        pid1 = decode_wcc_image_name(os.path.basename(p[1]))[3]
         sorted_pids = tuple(sorted((pid0, pid1)))
         if sorted_pids not in diff_dict:
             diff_dict[sorted_pids] = 1
