@@ -441,13 +441,15 @@ class TripletLossK(nn.Module):
         self.margin = margin
         self.loss_func = RankingLoss(margin=margin)
 
-    def forward(self, feature, pids, logits):
+    def forward(self, feature, pids):
         feature_size = list(feature.size())
         pids_expand = pids.expand(feature_size[0:2]).contiguous().view(-1)
         feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
         element_loss, max_same_d, min_diff_d, p_pids, n_pids = global_loss(self.loss_func, feature_expand, pids_expand)
         # mc_loss = self.id_loss(pids_expand, logits)
         return element_loss, max_same_d, min_diff_d, p_pids, n_pids
+
+
 
 
 class PairLoss(nn.Module):

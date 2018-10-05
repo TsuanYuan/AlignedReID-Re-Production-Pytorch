@@ -148,7 +148,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, index_file, model_file, sample_size, batch_size,
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None,
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, with_roi=False, index_format='list'):
     if with_roi:
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -191,15 +191,6 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     else:
         model_p = model
 
-    start_decay = 50
-    min_lr = 1e-9
-    if loss_name == 'triplet':
-        loss_function = losses.TripletLossK(margin=margin)
-    elif loss_name == 'pair':
-        loss_function = losses.PairLoss(margin=margin)
-    else:
-        raise Exception('unknown loss name')
-
     ignore_pid_list = None
     if ignore_pid_file is not None:
         with open(ignore_pid_file, 'r') as fp:
@@ -215,9 +206,19 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=8)
+    # parameters and losses
+    start_decay = 50
+    min_lr = 1e-9
+    if loss_name == 'triplet':
+        metric_loss_function = losses.TripletLossK(margin=margin)
+    elif loss_name == 'pair':
+        metric_loss_function = losses.PairLoss(margin=margin)
+    else:
+        raise Exception('unknown loss name')
+    softmax_loss_func = losses.MultiClassLoss(num_classes=num_classes)
 
     for epoch in range(num_epochs):
-        sum_loss = 0
+        sum_loss, sum_metric_loss = 0, 0
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
@@ -248,18 +249,21 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
             else:
                 features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg = loss_function(outputs, person_ids, logits)
+            metric_loss,dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
+            softmax_loss = softmax_loss_func(person_ids, logits)
+            loss = metric_loss+softmax_loss_ratio*softmax_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
+            sum_metric_loss+=metric_loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
             if i_batch==len(dataloader)-1:
-                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
+                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={}, sum_metric_loss={}, sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
-                            str(dist_neg.data.cpu().numpy()), str(sum_loss))
+                            str(dist_neg.data.cpu().numpy()), str(sum_metric_loss), str(sum_loss))
                 print(log_str)
-                if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
+                if (epoch+1) %(max(1,min(50, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)
     print('model saved to {0}'.format(model_file))
