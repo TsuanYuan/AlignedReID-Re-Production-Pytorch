@@ -154,6 +154,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
     elif parts_type=='head_reweight':
         pose_ids = (0, 2 ,4)
         model = Model.PoseReWeightModel(pose_ids=pose_ids)
+        print "head pose reweight model!"
     elif parts_type=='head':
         pose_ids = (0, 2, 4) # redundency for heads
         model = Model.PoseReIDModel(pose_ids=pose_ids)
