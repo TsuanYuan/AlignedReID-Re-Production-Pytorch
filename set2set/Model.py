@@ -472,7 +472,7 @@ class PoseReWeightModel(nn.Module):
             normalized_boxes[:,:4][normalized_boxes[:, :4]<0] = 0
             normalized_boxes[:,:4][normalized_boxes[:, :4]>0.75] = 0.75
             normalized_boxes[normalized_boxes[:,0] > 0.5,0] = 0.5 # x smaller than half
-            normalized_boxes[:, 4] = 3/(1+2*torch.exp(100*(0.025-poses[:, pose_id, 3])))
+            normalized_boxes[:, 4] = 3/(1+2*torch.exp(10*(0.025-poses[:, pose_id, 3])))
 
         roi_mask = self.compute_roi_masks(normalized_boxes, feature_map.size())
         weighted_feature_map = feature_map*roi_mask

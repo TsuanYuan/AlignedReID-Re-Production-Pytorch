@@ -150,15 +150,21 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
         torch.cuda.set_device(gpu_ids[0])
     if parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
+        model = Model.PoseReIDModel(pose_ids=pose_ids)
+    elif parts_type=='head_reweight':
+        pose_ids = (0, 2 ,4)
+        model = Model.PoseReWeightModel(pose_ids=pose_ids)
     elif parts_type=='head':
         pose_ids = (0, 2, 4) # redundency for heads
+        model = Model.PoseReIDModel(pose_ids=pose_ids)
     elif parts_type=='head_only':
         pose_ids = (2,)
+        model = Model.PoseReIDModel(pose_ids=pose_ids)
         print "head only model!"
     else:
         raise Exception("unknown parts definition {}".format(parts_type))
     print "parts type is {}".format(parts_type)
-    model = Model.PoseReIDModel(pose_ids=pose_ids) # Model.PoseReWeightModel(pose_ids=pose_ids)
+    #model = Model.PoseReIDModel(pose_ids=pose_ids) # Model.PoseReWeightModel(pose_ids=pose_ids)
 
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
