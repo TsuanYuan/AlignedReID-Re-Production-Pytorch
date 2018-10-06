@@ -389,7 +389,6 @@ class PoseReWeightModel(nn.Module):
             local_conv_out_channels=512,
             num_classes=0,
             pose_ids=None,
-            no_global=False
     ):
         super(PoseReWeightModel, self).__init__()
 
@@ -421,18 +420,12 @@ class PoseReWeightModel(nn.Module):
             init.normal(fc.weight, std=0.001)
             init.constant(fc.bias, 0)
             self.fc_list.append(fc)
-        if no_global:
-            self.merge_layer = nn.Sequential(
-                nn.Conv2d(local_conv_out_channels * num_parts, local_conv_out_channels, 1),
-                nn.BatchNorm2d(local_conv_out_channels),
-                nn.ReLU(inplace=True))
-        else:
-            self.merge_layer = nn.Sequential(
-                nn.Conv2d(self.planes+local_conv_out_channels*num_parts, local_conv_out_channels, 1),
-                nn.BatchNorm2d(local_conv_out_channels),
-                nn.ReLU(inplace=True))
 
-        self.no_global = no_global
+        self.merge_layer = nn.Sequential(
+            nn.Conv2d(self.planes*2, self.planes, 1),
+            nn.BatchNorm2d(self.planes),
+            nn.ReLU(inplace=True))
+
         self.pose_ids = pose_ids
         self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
 
@@ -483,8 +476,9 @@ class PoseReWeightModel(nn.Module):
 
         roi_mask = self.compute_roi_masks(normalized_boxes, feature_map.size())
         weighted_feature_map = feature_map*roi_mask
-        final_feature = F.avg_pool2d(weighted_feature_map, feature_map.size()[2:])
-        final_feature = torch.squeeze(self.merge_layer(final_feature))
+        concat_feature = torch.cat([weighted_feature_map, feature_map], dim=1)
+        pool_feature = F.avg_pool2d(concat_feature, concat_feature.size()[2:])
+        final_feature = torch.squeeze(self.merge_layer(pool_feature))
         if len(final_feature.size()) == 1:  # in case of single feature
             final_feature = final_feature.unsqueeze(0)
 
