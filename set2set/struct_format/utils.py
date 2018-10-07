@@ -204,6 +204,7 @@ class MultiFileCrops(object):
         self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.75, 'min_h': 128}
         self.pids_no_good_qualities = set()
+        self.pids_few_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
         # with open('/tmp/index.pkl', 'wb') as fp:
         #     pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
@@ -252,11 +253,24 @@ class MultiFileCrops(object):
                 print "failed to read one image from path {}".format(data_file)
         if len(images) < count and len(images) > 0:
             images = [images[k%len(images)] for k in range(count)]
-            #print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
+            if pid not in self.pids_few_good_qualities :
+                self.pids_few_good_qualities.add(pid)
+                if len(self.pids_no_good_qualities)%50 == 0:
+                    print "number of pids of few good qualities are {}".format(str(len(self.pids_few_good_qualities)))
+                    with open('/tmp/few_good_quality.txt', 'w') as fp:
+                        for pid in self.pids_few_good_qualities:
+                            fp.write('{}\n'.format(str(pid)))
+
         elif len(images) == 0:
             images = [low_quality_ones[k%len(low_quality_ones)] for k in range(count)]
-            self.pids_no_good_qualities.add(pid)
-            # print 'pid={} has no good quality images'.format(str(pid), str(count))
+            if pid not in self.pids_no_good_qualities:
+                self.pids_no_good_qualities.add(pid)
+                if len(self.pids_no_good_qualities)%20 == 0:
+                    print "number of pids of no good qualities are {}".format(str(len(self.pids_no_good_qualities)))
+                    with open('/tmp/no_good_quality.txt', 'w') as fp:
+                        for pid in self.pids_no_good_qualities:
+                            fp.write('{}\n'.format(str(pid)))
+                            
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
