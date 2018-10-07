@@ -255,7 +255,7 @@ class MultiFileCrops(object):
             images = [images[k%len(images)] for k in range(count)]
             if pid not in self.pids_few_good_qualities :
                 self.pids_few_good_qualities.add(pid)
-                if len(self.pids_no_good_qualities)%50 == 0:
+                if len(self.pids_few_good_qualities)%50 == 0:
                     print "number of pids of few good qualities are {}".format(str(len(self.pids_few_good_qualities)))
                     with open('/tmp/few_good_quality.txt', 'w') as fp:
                         for pid in self.pids_few_good_qualities:
@@ -270,7 +270,7 @@ class MultiFileCrops(object):
                     with open('/tmp/no_good_quality.txt', 'w') as fp:
                         for pid in self.pids_no_good_qualities:
                             fp.write('{}\n'.format(str(pid)))
-                            
+
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
