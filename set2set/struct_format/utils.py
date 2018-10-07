@@ -251,9 +251,11 @@ class MultiFileCrops(object):
         if len(images) < count and len(images) > 0:
             images = [images[k%len(images)] for k in range(count)]
             print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
+            print 'image count = {}'.format(str(len(images)))
         elif len(images) == 0:
             images = [low_quality_ones[k%len(low_quality_ones)] for k in range(count)]
             print 'pid={} has no good quality images'.format(str(pid), str(count))
+            print 'image count = {}'.format(str(len(images)))
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
