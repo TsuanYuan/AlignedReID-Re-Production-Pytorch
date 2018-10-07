@@ -191,6 +191,7 @@ class SingleFileCrops(object):
     def get_pid_list(self):
         return self.pid_list
 
+
 class MultiFileCrops(object):
     def __init__(self, data_folder, list_file, ignore_pids=None):
         self.prefix = 0
@@ -202,10 +203,11 @@ class MultiFileCrops(object):
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.75, 'min_h': 128}
+        self.pids_no_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
-        with open('/tmp/index.pkl', 'wb') as fp:
-            pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
-            print 'saved pid_index to /tmp/index.pkl'
+        # with open('/tmp/index.pkl', 'wb') as fp:
+        #     pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
+        #     print 'saved pid_index to /tmp/index.pkl'
 
     def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
@@ -221,7 +223,7 @@ class MultiFileCrops(object):
     def prepare_im(self, one_image):
         im = crop_pad_fixed_aspect_ratio(one_image)
         im = cv2.resize(im, (128, 256))
-        return one_image
+        return im
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
@@ -250,10 +252,11 @@ class MultiFileCrops(object):
                 print "failed to read one image from path {}".format(data_file)
         if len(images) < count and len(images) > 0:
             images = [images[k%len(images)] for k in range(count)]
-            print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
+            #print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
         elif len(images) == 0:
             images = [low_quality_ones[k%len(low_quality_ones)] for k in range(count)]
-            print 'pid={} has no good quality images'.format(str(pid), str(count))
+            self.pids_no_good_qualities.add(pid)
+            # print 'pid={} has no good quality images'.format(str(pid), str(count))
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
@@ -297,8 +300,10 @@ if __name__ == "__main__":
 
     index_files = glob.glob(os.path.join(args.index_file_folder, "*.list"))
     # pid_index = load_list_to_pid(index_files[3], prefix=0)
-    mfc = MultiFileCrops(args.index_file_folder, prefix=0)
-    mfc.load_fixed_count_images_of_one_pid(5, 300)
+
+
+    #mfc = MultiFileCrops(args.index_file_folder, )
+    #mfc.load_fixed_count_images_of_one_pid(5, 300)
     # sfc = SingleFileCrops(index_files)
     # index = SingleFileCrops.load_index(args.index_file)
     # pid_index = SingleFileCrops.convert_to_pid_index(index)

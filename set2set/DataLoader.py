@@ -125,6 +125,13 @@ class ReIDSingleFileCropsDataset(Dataset):
     def __getitem__(self, set_id):
         # get personID
         person_id = self.person_ids[set_id]
+        visit_count = 0
+        while person_id in self.single_file_data.pids_no_good_qualities and visit_count< len(self.person_ids):
+            set_id += (set_id+1)%len(self.person_ids)
+            visit_count += 1
+        if visit_count == len(self.person_ids):
+            raise Exception('no person_ids are of good quality!')
+
         ims = self.single_file_data.load_fixed_count_images_of_one_pid(person_id, self.sample_size)
         for i, im in enumerate(ims):
             ims[i], w_h_ratio = crop_pad_fixed_aspect_ratio(im, desired_size=self.desired_size)
