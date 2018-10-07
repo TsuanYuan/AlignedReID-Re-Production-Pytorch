@@ -248,9 +248,12 @@ class MultiFileCrops(object):
                 i+=1
             except:
                 print "failed to read one image from path {}".format(data_file)
-        if len(images) < count:
-            images = images + low_quality_ones[:count-len(images)]
+        if len(images) < count and len(images) > 0:
+            images = [images[k%len(images)] for k in range(len(images))]
             print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
+        elif len(images) == 0:
+            images = [low_quality_ones[k%len(low_quality_ones)] for k in range(len(low_quality_ones))]
+            print 'pid={} has no good quality images'.format(str(pid), str(count))
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
