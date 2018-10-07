@@ -201,6 +201,8 @@ class MultiFileCrops(object):
         self.load_index_files(list_file, ignore_pids)
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
+        self.quality = {'w_h_max': 0.75, 'min_h': 128}
+        print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
         with open('/tmp/index.pkl', 'wb') as fp:
             pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
             print 'saved pid_index to /tmp/index.pkl'
@@ -227,6 +229,10 @@ class MultiFileCrops(object):
             data_file, place = self.pid_index[pid][k]
             try:
                 one_image = read_one_image(data_file, place)
+                if one_image.shape[0] < self.quality['min_h']:
+                    continue
+                if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
+                    continue
                 im = crop_pad_fixed_aspect_ratio(one_image)
                 im = cv2.resize(im, (128, 256))
                 images.append(im)
