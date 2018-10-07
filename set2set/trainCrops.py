@@ -174,8 +174,9 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256, 128)),
+                                              transforms_reid.Rescale((256, 128)),
+                                              #transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
+                                              #transforms_reid.RandomCrop((256, 128)),
                                               #transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
@@ -253,8 +254,8 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
             # # debug
             actual_size = images_5d.size()
             pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
-            # import debug_tool
-            # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', pids=pids_expand, name_tag=str(epoch)+'_'+str(i_batch)+'_')
+            #import debug_tool
+            #debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', pids=pids_expand, name_tag=str(epoch)+'_'+str(i_batch)+'_')
 
             # w_h_ratios = sample_batched['w_h_ratios']
             # actual_size = list(images_5d.size())
