@@ -218,28 +218,39 @@ class MultiFileCrops(object):
         print 'removed {} ignore pids from training pid list'.format(str(count))
         self.pid_index.update(single_index)
 
+    def prepare_im(self, one_image):
+        im = crop_pad_fixed_aspect_ratio(one_image)
+        im = cv2.resize(im, (128, 256))
+        return one_image
+
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
+        low_quality_ones = []
         if pos==0 or pos + count > len(self.pid_index[pid]):
             random.shuffle(self.pid_index[pid])
         i = pos
-        while i<pos + count:
+        visit_count = 0
+        while i<pos + count and visit_count < len(self.pid_index[pid]):
             k = i%len(self.pid_index[pid])
             data_file, place = self.pid_index[pid][k]
+            visit_count += 1
             try:
                 one_image = read_one_image(data_file, place)
+                im = self.prepare_im(one_image)
                 if one_image.shape[0] < self.quality['min_h']:
+                    low_quality_ones.append(im)
                     continue
                 if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
+                    low_quality_ones.append(im)
                     continue
-                im = crop_pad_fixed_aspect_ratio(one_image)
-                im = cv2.resize(im, (128, 256))
                 images.append(im)
                 i+=1
             except:
                 print "failed to read one image from path {}".format(data_file)
-
+        if len(images) < count:
+            images = images + low_quality_ones[:count-len(images)]
+            print 'pid={} has less than {} good quality images'.format(str(pid), str(count))
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
