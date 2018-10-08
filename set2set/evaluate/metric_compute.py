@@ -10,7 +10,7 @@ from misc import decode_wcc_image_name
 import sklearn.metrics.pairwise as pairwise
 import sklearn.metrics
 
-Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_camera', 'must_diff_camera'])
+Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_camera', 'must_diff_camera', 'same_sample_size'])
 
 def make_string_matrix_from_arr(string_arr, k):
     return numpy.tile(string_arr.reshape((string_arr.size, 1)), [1, k])

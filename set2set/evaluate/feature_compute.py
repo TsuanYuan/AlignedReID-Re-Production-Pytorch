@@ -66,7 +66,7 @@ def best_keypoints(keypoints):
                 best_kp = kp
     return best_kp
 
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75):
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75, same_sample_size=-1):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
@@ -79,6 +79,10 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
         keypoint_file = os.path.join(person_folder, 'keypoints.pkl')
         with open(keypoint_file, 'rb') as fp:
             keypoints = pickle.load(fp)
+
+    if same_sample_size > 0:
+        sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
+        crop_files = numpy.array(crop_files)[sample_ids].tolist()
 
     for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
