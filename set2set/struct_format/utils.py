@@ -256,7 +256,7 @@ class MultiFileCrops(object):
             if pid not in self.pids_few_good_qualities :
                 self.pids_few_good_qualities.add(pid)
                 if len(self.pids_few_good_qualities)%10 == 0:
-                    with open('/tmp/no_good_quality.txt', 'r') as fr:
+                    with open('/tmp/few_good_quality.txt', 'r') as fr:
                         n = len(fr.readlines())
                         if len(self.pids_few_good_qualities) > n:
                             print "number of pids of few good qualities are {}".format(str(len(self.pids_few_good_qualities)))
