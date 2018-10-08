@@ -17,7 +17,7 @@ from torchvision.models import vgg16_bn, vgg11_bn
 from parts_models import se_resnet
 
 
-def create_model(model_type, num_classes=None, num_strips=None):
+def create_model(model_type, num_classes=None, num_stripes=None):
     if model_type == 'mgn':
         model = MGNModel(num_classes=num_classes)
     elif model_type == 'se':
@@ -29,10 +29,10 @@ def create_model(model_type, num_classes=None, num_strips=None):
     elif model_type == 'pose_reweight_reid':
         model = PoseReWeightModel(num_classes=num_classes)
     elif model_type == 'pcb':
-        if num_strips is None:
+        if num_stripes is None:
             model = PCBModel(num_classes=num_classes)
         else:
-            model = PCBModel(num_classes=num_classes, num_stripes=num_strips)
+            model = PCBModel(num_classes=num_classes, num_stripes=num_stripes)
     else:
         raise Exception('unknown model type {}'.format(model_type))
 
