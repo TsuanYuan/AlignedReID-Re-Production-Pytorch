@@ -116,6 +116,8 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc
     ckpt = torch.load(ckpt_file, map_location=map_location)
     if skip_fc:
         print('skip fc layers when loading the model!')
+    if skip_merge:
+        print('skip merge layers when loading the model!')
     for m, sd in zip(modules_optims, ckpt['state_dicts']):
         if m is not None:
             if skip_fc:
