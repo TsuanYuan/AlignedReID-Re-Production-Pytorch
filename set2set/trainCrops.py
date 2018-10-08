@@ -146,8 +146,9 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes):
-    model = Model.MGNModel(num_classes=num_classes)
+def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type):
+
+    model = Model.create_model(model_type, num_classes=num_classes, num_strips=None)
     if len(gpu_ids) >= 0:
         model = model.cuda(device=gpu_ids[0])
 
@@ -169,7 +170,7 @@ def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_de
 
     return model_p, optimizer, model
 
-def main(data_folder, index_file, model_file, sample_size, batch_size,
+def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
 
@@ -224,7 +225,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size,
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=8)
     # model and optimizer
-    model_p, optimizer, single_model = load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes)
+    model_p, optimizer, single_model = load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type)
     # parameters and l,osses
     start_decay = 50
     min_lr = 1e-9
@@ -309,16 +310,17 @@ if __name__ == '__main__':
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--softmax_loss_ratio', type=float, default=0.2, help="ratio of softmax loss in total loss")
+    parser.add_argument('--model_type', type=str, default='plain', help="model_type. plain, pcb, mgn, pose_reid and etc")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.index_file))
-    print('  sample_size={}, batch_size={},  margin={}, metric_loss={}, softmax_loss_ratio={}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.softmax_loss_ratio)))
+    print('  sample_size={}, batch_size={},  margin={}, metric_loss={}, softmax_loss_ratio={}, model_type={}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.softmax_loss_ratio), args.model_type))
     torch.backends.cudnn.benchmark = False
     if len(args.data_folder) == 0:
         args.data_folder = os.path.split(args.index_file)[0]
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format,
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format, model_type=args.model_type,
          softmax_loss_ratio=args.softmax_loss_ratio)

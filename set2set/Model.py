@@ -17,6 +17,27 @@ from torchvision.models import vgg16_bn, vgg11_bn
 from parts_models import se_resnet
 
 
+def create_model(model_type, num_classes=None, num_strips=None):
+    if model_type == 'mgn':
+        model = MGNModel(num_classes=num_classes)
+    elif model_type == 'se':
+        model = MGNModel(num_classes=num_classes, base_model='resnet50se')
+    elif model_type == 'plain':
+        model = PlainModel(num_classes=num_classes)
+    elif model_type == 'pose_reid':
+        model = PoseReIDModel(num_classes=num_classes)
+    elif model_type == 'pose_reweight_reid':
+        model = PoseReWeightModel(num_classes=num_classes)
+    elif model_type == 'pcb':
+        if num_strips is None:
+            model = PCBModel(num_classes=num_classes)
+        else:
+            model = PCBModel(num_classes=num_classes, num_stripes=num_strips)
+    else:
+        raise Exception('unknown model type {}'.format(model_type))
+
+    return model
+
 class PlainModel(nn.Module):
     def __init__(self,
                  num_classes=None, base_model='resnet50', ):
@@ -73,8 +94,8 @@ class PlainModel(nn.Module):
 
 
 class SwitchClassHeadModel(nn.Module):
-    def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512,
-                 num_classes=(1,), base_model='resnet50', with_final_conv=False, parts_model=False, num_stripes=4):
+    def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512, num_classification_head = (1,),
+                 num_classes=None, base_model='resnet50', with_final_conv=False, parts_model=False, num_stripes=4):
         super(SwitchClassHeadModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50(pretrained=True)
@@ -106,7 +127,7 @@ class SwitchClassHeadModel(nn.Module):
         self.parts_model = parts_model
         self.num_stripes = num_stripes
         self.num_classes = num_classes
-        self.num_classification_head = len(num_classes)
+        self.num_classification_head = len(num_classification_head)
         if with_final_conv:
             self.final_conv = nn.Conv2d(planes, final_conv_out_channels, 1)
             self.final_bn = nn.BatchNorm2d(final_conv_out_channels)
@@ -252,7 +273,7 @@ class PoseReIDModel(nn.Module):
             last_conv_stride=1,
             last_conv_dilation=1,
             local_conv_out_channels=512,
-            num_classes=0,
+            num_classes=None,
             pose_ids=None,
             no_global=False
     ):
@@ -273,7 +294,7 @@ class PoseReIDModel(nn.Module):
                 nn.ReLU(inplace=True)
             ))
 
-        if num_classes > 0:
+        if num_classes is not None:
             # fc for softmax loss
             self.fc_list = nn.ModuleList()
             for _ in range(num_parts):
@@ -371,7 +392,7 @@ class PoseReIDModel(nn.Module):
         if not self.no_global:
             global_feat = F.max_pool2d(feature_map, feature_map.size()[2:])
             part_feat_list.append(global_feat)
-
+        ## todo: add fc list forward pass
         concat_feat = torch.cat(part_feat_list, dim=1)
         final_feature = torch.squeeze(self.merge_layer(concat_feat))
         if len(final_feature.size()) == 1:  # in case of single feature
@@ -387,7 +408,7 @@ class PoseReWeightModel(nn.Module):
             last_conv_stride=1,
             last_conv_dilation=1,
             local_conv_out_channels=512,
-            num_classes=0,
+            num_classes=None,
             pose_ids=None,
     ):
         super(PoseReWeightModel, self).__init__()
@@ -407,19 +428,12 @@ class PoseReWeightModel(nn.Module):
                 nn.ReLU(inplace=True)
             ))
 
-        if num_classes > 0:
-            # fc for softmax loss
-            self.fc_list = nn.ModuleList()
-            for _ in range(num_parts):
-                fc = nn.Linear(local_conv_out_channels, num_classes)
-                init.normal(fc.weight, std=0.001)
-                init.constant(fc.bias, 0)
-                self.fc_list.append(fc)
+        self.num_classes = num_classes
+        if num_classes is not None:
             # fc on full body
-            fc = nn.Linear(self.planes, num_classes)
-            init.normal(fc.weight, std=0.001)
-            init.constant(fc.bias, 0)
-            self.fc_list.append(fc)
+            self.fc = nn.Linear(self.planes, num_classes)
+            init.normal(self.fc.weight, std=0.001)
+            init.constant(self.fc.bias, 0)
 
         self.merge_layer = nn.Sequential(
             nn.Conv2d(self.planes*2, self.planes, 1),
@@ -481,6 +495,7 @@ class PoseReWeightModel(nn.Module):
         final_feature = torch.squeeze(self.merge_layer(pool_feature))
         if len(final_feature.size()) == 1:  # in case of single feature
             final_feature = final_feature.unsqueeze(0)
+        ## todo: add number of softmax fc path
 
         feat = F.normalize(final_feature, p=2, dim=1)
         return feat
@@ -577,7 +592,7 @@ class PCBModel(nn.Module):
       last_conv_dilation=1,
       num_stripes=6,
       local_conv_out_channels=256,
-      num_classes=0
+      num_classes=None
   ):
     super(PCBModel, self).__init__()
 
@@ -586,6 +601,7 @@ class PCBModel(nn.Module):
       last_conv_stride=last_conv_stride,
       last_conv_dilation=last_conv_dilation)
     self.num_stripes = num_stripes
+    self.num_classes = num_classes
 
     self.local_conv_list = nn.ModuleList()
     for _ in range(num_stripes):
@@ -595,7 +611,7 @@ class PCBModel(nn.Module):
         nn.ReLU(inplace=True)
       ))
 
-    if num_classes > 0:
+    if num_classes is not None:
       self.fc_list = nn.ModuleList()
       for _ in range(num_stripes):
         fc = nn.Linear(local_conv_out_channels, num_classes)
@@ -643,7 +659,7 @@ class PCBModel(nn.Module):
 
 class MGNModel(nn.Module):
     def __init__(self,
-                 num_classes=2, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128, parts_model=False):
         super(MGNModel, self).__init__()
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
@@ -677,17 +693,18 @@ class MGNModel(nn.Module):
                 nn.BatchNorm2d(local_conv_out_channels),
                 nn.ReLU(inplace=True)
             ))
-
-        self.fc_list = nn.ModuleList()
-        for _ in range(self.level2_strips+self.level3_strips):
+        if num_classes is not None:
+            self.fc_list = nn.ModuleList()
+            for _ in range(self.level2_strips+self.level3_strips):
+                fc = nn.Linear(local_conv_out_channels, num_classes)
+                init.normal_(fc.weight, std=0.001)
+                init.constant_(fc.bias, 0)
+                self.fc_list.append(fc)
             fc = nn.Linear(local_conv_out_channels, num_classes)
             init.normal_(fc.weight, std=0.001)
             init.constant_(fc.bias, 0)
             self.fc_list.append(fc)
-        fc = nn.Linear(local_conv_out_channels, num_classes)
-        init.normal_(fc.weight, std=0.001)
-        init.constant_(fc.bias, 0)
-        self.fc_list.append(fc)
+        self.num_classes = num_classes
 
     def forward(self, x):
         """
@@ -716,7 +733,7 @@ class MGNModel(nn.Module):
             # shape [N, c]
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat)
-            if hasattr(self, 'parts_fc_list'):
+            if hasattr(self, 'fc_list'):
                 logits_list.append(self.fc_list[i](local_feat))
 
         stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
@@ -738,14 +755,18 @@ class MGNModel(nn.Module):
         if len(global_feat.size()) == 1:
             global_feat = global_feat.unsqueeze(0)
         local_feat_list.append(global_feat)
-        logits_list.append(self.fc_list[-1](torch.squeeze(global_feat)))
-        # sum up logits and concatinate features
-        logits = None
-        for i, logit_rows in enumerate(logits_list):
-            if i == 0:
-                logits = logit_rows
-            else:
-                logits += logit_rows
+        if self.num_classes is not None:
+            logits_list.append(self.fc_list[-1](torch.squeeze(global_feat)))
+            # sum up logits and concatinate features
+            logits = None
+            for i, logit_rows in enumerate(logits_list):
+                if i == 0:
+                    logits = logit_rows
+                else:
+                    logits += logit_rows
+        else:
+            logits = None
+
         condensed_feat = torch.cat(local_feat_list, dim=1)
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
