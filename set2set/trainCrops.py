@@ -311,6 +311,8 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--softmax_loss_ratio', type=float, default=0.2, help="ratio of softmax loss in total loss")
     parser.add_argument('--model_type', type=str, default='plain', help="model_type. plain, pcb, mgn, pose_reid and etc")
+    parser.add_argument('--num_strips', type=int, default=32,
+                        help="num samples in a mini-batch, each sample is a sequence of images")
 
     args = parser.parse_args()
     print('training_parameters:')
