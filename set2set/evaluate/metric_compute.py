@@ -102,7 +102,7 @@ def sub_sample_feature_files(files_dict, features_dict, features_per_person, cro
     return features_j, files_j
 
 
-def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sample_size=16):
+def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sample_size=16, folder_sample_interval=1):
     """
     :param features_per_person: list of features, each item is an array of features from the same person.
     :param crop_files_per_person: list of arrays of corresponding file path of each feature
@@ -116,7 +116,7 @@ def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sampl
     features_dict = {}
     for i in range(n):
         features_i, files_i = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, i, sub_sample_size)
-        for j in range(i+1, n):
+        for j in range(i+1, n,folder_sample_interval):
             features_j, files_j = sub_sample_feature_files(files_dict, features_dict, features_per_person, crop_files_per_person, j, sub_sample_size)
             dists = pairwise.cosine_distances(features_i, features_j).ravel()
             crop_files_matrix_i = make_string_matrix_from_arr(files_i, files_j.size).ravel()

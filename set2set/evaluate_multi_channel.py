@@ -19,7 +19,8 @@ level = logging.getLevelName('INFO')
 mlog.setLevel(level)
 
 
-def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints, keypoints_score_th, same_sample_size):
+def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints,
+            keypoints_score_th, same_sample_size, neg_folder_sample_interval):
 
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -49,7 +50,7 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     print "finish feature computing"
     same_pair_dist, same_pair_files = metric_compute.compute_same_pair_dist(features_per_person, crops_file_list, same_pair_requirements)
     print "same pair dist are done"
-    diff_pair_dist, diff_pair_files = metric_compute.compute_diff_pair_dist(features_per_person, crops_file_list)
+    diff_pair_dist, diff_pair_files = metric_compute.compute_diff_pair_dist(features_per_person, crops_file_list, folder_sample_interval=neg_folder_sample_interval)
     print "diff pair dist are done"
     # dump difficult files
     data_tag = os.path.basename(os.path.normpath(data_folder))
@@ -77,13 +78,14 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     return tpr2, tpr3, tpr4, tpr5, th2, th3, th4, th4
 
 
-def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints, keypoints_score_th, same_sample_size):
+def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints,
+                keypoints_score_th, same_sample_size, neg_folder_interval):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
         tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max,
-                      load_keypoints, keypoints_score_th, same_sample_size)
+                      load_keypoints, keypoints_score_th, same_sample_size, neg_folder_interval)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -137,6 +139,9 @@ if __name__ == "__main__":
     parser.add_argument('--same_sample_size', type=int, default=-1,
                         help='sample size of in each class of same')
 
+    parser.add_argument('--neg_folder_interval', type=int, default=1,
+                        help='interval of neg sample folder')
+
     parser.add_argument('--load_keypoints', action='store_true', default=False,
                         help='whether to load keypoints for pose model')
 
@@ -161,10 +166,10 @@ if __name__ == "__main__":
     start_time = time.time()
     if args.multi_folder:
         process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids,
-                    same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size)
+                    same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval)
     else:
         process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids,
-                same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size)
+                same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))
