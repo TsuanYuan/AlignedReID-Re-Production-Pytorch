@@ -407,7 +407,7 @@ class PoseReWeightModel(nn.Module):
             self,
             last_conv_stride=1,
             last_conv_dilation=1,
-            local_conv_out_channels=512,
+            local_conv_out_channels=256,
             num_classes=None,
             pose_ids=None,
     ):
@@ -495,7 +495,7 @@ class PoseReWeightModel(nn.Module):
         weighted_feature_map = feature_map*roi_mask
         concat_feature = torch.cat([weighted_feature_map, feature_map], dim=1)
         pool_feature = F.avg_pool2d(concat_feature, concat_feature.size()[2:])
-        final_feature = torch.squeeze(self.merge_layer(pool_feature))
+        final_feature = self.merge_layer(torch.squeeze(pool_feature))
         if len(final_feature.size()) == 1:  # in case of single feature
             final_feature = final_feature.unsqueeze(0)
         ## todo: add number of softmax fc path

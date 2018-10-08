@@ -235,7 +235,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
             else:
                 features = model(Variable(images), keypoints)
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids, None)
+            loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

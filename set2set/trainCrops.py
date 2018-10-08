@@ -159,7 +159,7 @@ def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_de
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_model.load_ckpt([model], model_file, skip_fc=True)
+            load_model.load_ckpt([model], model_file, skip_fc=True, skip_merge=True)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
