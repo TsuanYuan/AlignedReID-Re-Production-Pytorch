@@ -435,10 +435,13 @@ class PoseReWeightModel(nn.Module):
             init.normal(self.fc.weight, std=0.001)
             init.constant(self.fc.bias, 0)
 
-        self.merge_layer = nn.Sequential(
-            nn.Conv2d(self.planes*2, self.planes, 1),
-            nn.BatchNorm2d(self.planes),
-            nn.ReLU(inplace=True))
+        self.merge_layer = nn.Linear(self.planes*2, self.planes)
+        init.normal(self.merge_layer.weight, std=0.001)
+        init.constant(self.merge_layer.bias, 0)
+            # nn.Sequential(
+            # nn.Conv2d(self.planes*2, self.planes, 1),
+            # nn.BatchNorm2d(self.planes),
+            # nn.ReLU(inplace=True))
 
         self.pose_ids = pose_ids
         self.pose_id_2_local_id = {p: k for k, p in enumerate(pose_ids)}
