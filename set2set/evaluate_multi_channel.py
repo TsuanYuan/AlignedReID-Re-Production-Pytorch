@@ -33,7 +33,7 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
                 if (len(crops_file_list)+1)%100 == 0:
-                    print "finished {} pid folders".format(str(len(crops_file_list)))
+                    print "finished {} pid folders".format(str(len(crops_file_list)+1))
     # avoid bias towards person of long tracks
     mean_len = sum([len(crop_files) for crop_files in crops_file_list])/max(1,len(crops_file_list))
     len_limit = int(mean_len*1.5)
