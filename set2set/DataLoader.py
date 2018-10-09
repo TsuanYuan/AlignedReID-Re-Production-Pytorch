@@ -142,6 +142,7 @@ class ReIDSingleFileCropsDataset(Dataset):
         sample['person_id'] = torch.from_numpy(numpy.array([set_id]))
         return sample
 
+
 def create_list_of_days_datasets(root_dir, transform=None, crops_per_id=8):
     datasets = []
     sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]

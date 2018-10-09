@@ -148,6 +148,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
         gpu_ids = None
     else:
         torch.cuda.set_device(gpu_ids[0])
+
     if parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
@@ -158,6 +159,9 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
     elif parts_type=='head':
         pose_ids = (0, 2, 4) # redundency for heads
         model = Model.PoseReIDModel(pose_ids=pose_ids)
+    elif parts_type == 'head_extra':
+        pose_id = 0
+        model = Model.MGNWithHead(pose_id=pose_id)
     elif parts_type=='head_only':
         pose_ids = (2,)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
