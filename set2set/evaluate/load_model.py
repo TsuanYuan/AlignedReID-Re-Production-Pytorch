@@ -62,7 +62,12 @@ class AppearanceModelForward(object):
             self.model_type = Model_Types.HEAD_POSE
         elif model_file.find('head_extra') >= 0:
             pose_id = 0
-            model = MGNWithHead(pose_id=pose_id)
+            if model_file.find('head_extra_attention') >= 0:
+                model = MGNWithHead(pose_id=pose_id, attention_weight=True)
+                print "head extra model with attention weight!"
+            else:
+                model = MGNWithHead(pose_id=pose_id)
+                print "head extra model!"
             self.model_type = Model_Types.HEAD_EXTRA
         elif model_file.find('limb_pose_parts') >= 0:
             pose_ids = (2,9,10,15,16)
