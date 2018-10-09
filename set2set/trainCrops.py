@@ -146,7 +146,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, num_stripes, model_type):
+def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type,num_stripes):
 
     model = Model.create_model(model_type, num_classes=num_classes, num_stripes=num_stripes)
     if len(gpu_ids) >= 0:
