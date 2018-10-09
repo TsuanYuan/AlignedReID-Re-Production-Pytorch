@@ -193,7 +193,7 @@ class SingleFileCrops(object):
 
 
 class MultiFileCrops(object):
-    def __init__(self, data_folder, list_file, ignore_pids=None):
+    def __init__(self, data_folder, list_file, ignore_pids=None, same_day_camera=False):
         self.prefix = 0
         #index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
         self.data_folder = data_folder
@@ -203,6 +203,7 @@ class MultiFileCrops(object):
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.75, 'min_h': 128}
+        self.same_day_camera = same_day_camera
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
@@ -231,7 +232,7 @@ class MultiFileCrops(object):
         time = int(parts[1][8:])
         return ch, date, time
 
-    def load_fixed_count_images_of_one_pid(self, pid, count, same_day=False):
+    def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
         low_quality_ones = []
@@ -244,25 +245,27 @@ class MultiFileCrops(object):
             k = i%len(self.pid_index[pid])
             data_file, place = self.pid_index[pid][k]
             visit_count += 1
-            try:
-                one_image = read_one_image(data_file, place)
-                im = self.prepare_im(one_image)
-                if one_image.shape[0] < self.quality['min_h']:
-                    low_quality_ones.append(im)
-                    continue
-                if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
-                    low_quality_ones.append(im)
-                    continue
+            #try:
+            one_image = read_one_image(data_file, place)
+            im = self.prepare_im(one_image)
+            if one_image.shape[0] < self.quality['min_h']:
+                low_quality_ones.append(im)
+                continue
+            if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
+                low_quality_ones.append(im)
+                continue
 
-                file_only = os.path.basename(data_file)
-                file_ch, file_date, file_time = self.decode_wanda_file(file_only)
-                if date is None:
-                    date = file_date
-                    ch = file_ch
-                images.append(im)
-                i+=1
-            except:
-                print "failed to read one image from path {}".format(data_file)
+            file_only = os.path.basename(data_file)
+            file_ch, file_date, file_time = self.decode_wanda_file(file_only)
+            if date is None:
+                date = file_date
+                ch = file_ch
+                if self.same_day_camera and (date != file_date or ch != file_ch):
+                    continue
+            images.append(im)
+            i+=1
+            #except:
+            #    print "failed to read one image from path {}".format(data_file)
         if len(images) < count and len(images) > 0:
             images = [images[k%len(images)] for k in range(count)]
             if pid not in self.pids_few_good_qualities :

@@ -146,7 +146,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
     else:
         raise KeyError("Unsupported optim: {}".format(optim))
 
-def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type,num_stripes):
+def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes):
 
     model = Model.create_model(model_type, num_classes=num_classes, num_stripes=num_stripes)
     if len(gpu_ids) >= 0:
@@ -170,7 +170,7 @@ def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_de
 
     return model_p, optimizer, model
 
-def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain', num_stripes=None,
+def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain', num_stripes=None, same_day_camera=False,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
 
@@ -218,7 +218,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
         reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
     else:
-        reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms,
+        reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=same_day_camera,
                                                 sample_size=sample_size, index_format=index_format, ignore_pid_list=ignore_pid_list)
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
@@ -313,6 +313,7 @@ if __name__ == '__main__':
     parser.add_argument('--model_type', type=str, default='plain', help="model_type. plain, pcb, mgn, pose_reid and etc")
     parser.add_argument('--num_stripes', type=int, default=None,
                         help="num stripes in a part based model")
+    parser.add_argument('--same_day_camera', action='store_true', default=False, help="whether to train a tracking model with same day same camera")
 
     args = parser.parse_args()
     print('training_parameters:')
