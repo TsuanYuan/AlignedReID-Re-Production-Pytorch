@@ -234,6 +234,18 @@ class MultiFileCrops(object):
         time = int(date_time[8:])
         return ch, date, time
 
+    def save_no_good_file(self, no_good_file, file_list):
+        # dump bad pids to files for ignore pids
+        if not os.path.isfile(no_good_file):
+            open(no_good_file, 'a').close()
+        with open(no_good_file, 'r') as fp:
+            n = len(fp.readlines())
+            if len(file_list) > n:
+                print "number of pids of {} are {}".format(os.path.basename(no_good_file), str(len(file_list)))
+                with open(no_good_file, 'w') as fw:
+                    for pid in file_list:
+                        fw.write('{}\n'.format(str(pid)))
+
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         images = []
@@ -273,26 +285,18 @@ class MultiFileCrops(object):
             if pid not in self.pids_few_good_qualities :
                 self.pids_few_good_qualities.add(pid)
                 if len(self.pids_few_good_qualities)%10 == 0:
-                    with open('/tmp/few_good_quality.txt', 'r') as fr:
-                        n = len(fr.readlines())
-                        if len(self.pids_few_good_qualities) > n:
-                            print "number of pids of few good qualities are {}".format(str(len(self.pids_few_good_qualities)))
-                            with open('/tmp/few_good_quality.txt', 'w') as fp:
-                                for pid in self.pids_few_good_qualities:
-                                    fp.write('{}\n'.format(str(pid)))
+                    few_good_file = '/tmp/few_good_quality.txt'
+                    self.save_no_good_file(few_good_file, self.pids_few_good_qualities)
+
 
         elif len(images) == 0:
             images = [low_quality_ones[k%len(low_quality_ones)] for k in range(count)]
             if pid not in self.pids_no_good_qualities:
                 self.pids_no_good_qualities.add(pid)
                 if len(self.pids_no_good_qualities)%10 == 0:
-                    with open('/tmp/no_good_quality.txt', 'r') as fp:
-                        n = len(fp.readlines())
-                        if len(self.pids_no_good_qualities) > n:
-                            print "number of pids of no good qualities are {}".format(str(len(self.pids_no_good_qualities)))
-                            with open('/tmp/no_good_quality.txt', 'w') as fw:
-                                for pid in self.pids_no_good_qualities:
-                                    fw.write('{}\n'.format(str(pid)))
+                    no_good_file = '/tmp/no_good_quality.txt'
+                    self.save_no_good_file(no_good_file, self.pids_no_good_qualities)
+
 
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
