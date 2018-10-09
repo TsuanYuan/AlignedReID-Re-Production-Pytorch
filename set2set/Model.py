@@ -809,7 +809,8 @@ class MGNWithHead(MGNModel):
             head_crops[i, :,:,:] = x[i, :, torch.round(normalized_boxes[i, 1]*x_size[2]).int():torch.round((normalized_boxes[i, 1]+normalized_boxes[i, 3])*x_size[2]).int(),
                               torch.round(normalized_boxes[i, 0] * x_size[3]).int():torch.round((normalized_boxes[i, 0] + normalized_boxes[i, 2]) * x_size[3]).int()]
         #import debug_tool
-        #debug_tool.dump_images_in_batch(head_crops, '/tmp/head_crops/')
+        #debug_tool.dump_images(head_crops, '/tmp/head_crops/')
+        #print 'dumped head crops to /tmp/head_crops/'
         return head_crops
 
     def forward(self, x, pose_points=None):
