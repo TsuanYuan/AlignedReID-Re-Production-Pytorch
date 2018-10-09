@@ -226,10 +226,12 @@ class MultiFileCrops(object):
 
     def decode_wanda_file(self, wanda_data_file):
         # decode ch16016_20180821120938_0
+        # decode ch06002_20180918123747.mp4.short_0
         parts = wanda_data_file.split('_')
         ch = parts[0]
-        date = int(parts[1][:8])
-        time = int(parts[1][8:])
+        date_time = parts[1].split('.')[0]
+        date = int(date_time[:8])
+        time = int(date_time[1][8:])
         return ch, date, time
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
