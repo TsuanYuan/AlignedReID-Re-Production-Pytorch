@@ -14,7 +14,7 @@ from torch.nn.parallel import DataParallel
 from enum import Enum
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel
+from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, MGNWithHead
 
 class Model_Types(Enum):
     Plain = 0
@@ -25,6 +25,8 @@ class Model_Types(Enum):
     HEAD_ONLY = 5
     PLAIN_PARTS = 6
     HEAD_POSE_REWEIGHT = 7
+    HEAD_EXTRA = 8
+    LIMB_EXTRA = 9
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, single_device=0):
@@ -58,6 +60,10 @@ class AppearanceModelForward(object):
             pose_ids = (0, 2, 4)
             model = PoseReIDModel(pose_ids=pose_ids)
             self.model_type = Model_Types.HEAD_POSE
+        elif model_file.find('head_extra') >= 0:
+            pose_id = 0
+            model = MGNWithHead(pose_id=pose_id)
+            self.model_type = Model_Types.HEAD_EXTRA
         elif model_file.find('limb_pose_parts') >= 0:
             pose_ids = (2,9,10,15,16)
             model = PoseReIDModel(pose_ids=pose_ids)
