@@ -9,7 +9,6 @@ import DataLoader
 import argparse
 import os
 import datetime
-import torch.utils.data as torch_data
 
 from torchvision import transforms
 import transforms_reid, Model

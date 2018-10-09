@@ -206,9 +206,6 @@ class MultiFileCrops(object):
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
-        # with open('/tmp/index.pkl', 'wb') as fp:
-        #     pickle.dump(self.pid_index, fp, protocol=pickle.HIGHEST_PROTOCOL)
-        #     print 'saved pid_index to /tmp/index.pkl'
 
     def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
@@ -226,7 +223,15 @@ class MultiFileCrops(object):
         im = cv2.resize(im, (128, 256))
         return im
 
-    def load_fixed_count_images_of_one_pid(self, pid, count):
+    def decode_wanda_file(self, wanda_data_file):
+        # decode ch16016_20180821120938_0
+        parts = wanda_data_file.split('_')
+        ch = parts[0]
+        date = int(parts[1][:8])
+        time = int(parts[1][8:])
+        return ch, date, time
+
+    def load_fixed_count_images_of_one_pid(self, pid, count, same_day=False):
         pos = self.pid_pos[pid]
         images = []
         low_quality_ones = []
@@ -234,6 +239,7 @@ class MultiFileCrops(object):
             random.shuffle(self.pid_index[pid])
         i = pos
         visit_count = 0
+        date, ch = None, None
         while i<pos + count and visit_count < len(self.pid_index[pid]):
             k = i%len(self.pid_index[pid])
             data_file, place = self.pid_index[pid][k]
@@ -247,6 +253,12 @@ class MultiFileCrops(object):
                 if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
                     low_quality_ones.append(im)
                     continue
+
+                file_only = os.path.basename(data_file)
+                file_ch, file_date, file_time = self.decode_wanda_file(file_only)
+                if date is None:
+                    date = file_date
+                    ch = file_ch
                 images.append(im)
                 i+=1
             except:

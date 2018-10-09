@@ -11,6 +11,7 @@ import pickle
 from load_model import AppearanceModelForward, Model_Types
 import misc
 
+
 def load_experts(experts_file, device_id):
     models, exts = [], []
 
