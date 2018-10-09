@@ -800,23 +800,25 @@ class MGNWithHead(MGNModel):
         normalized_boxes[:, 0] = torch.squeeze(points[:, 0]) - 0.25
         normalized_boxes[:, 1] = torch.squeeze(points[:, 1]) - 0.25 / 2
         normalized_boxes[:, 2] = 0.5
-        normalized_boxes[:, 3] = 0.5 / 2
+        normalized_boxes[:, 3] = 0.5/2
         normalized_boxes[normalized_boxes < 0] = 0
         normalized_boxes[normalized_boxes > 0.75] = 0.75
         normalized_boxes[normalized_boxes[:, 0] > 0.5, 0] = 0.5  # x smaller than half
-        head_crops = torch.zeros((x_size[0], x_size[1], x_size[2]/4, x_size[3]/2)).uint8().cuda(x.get_device())
+        head_crops = torch.zeros((x_size[0], x_size[1], x_size[2]/4, x_size[3]/2)).cuda(x.get_device())
         for i in range(x_size[0]):
-            head_crops[i, :,:,:] = x[i, :, torch.round(normalized_boxes[i, 0]*x_size[2]).int():torch.round((normalized_boxes[i, 0]+normalized_boxes[i, 2])*x_size[2]).int(),
-                              torch.round(normalized_boxes[i, 1] * x_size[3]).int():torch.round((normalized_boxes[i, 1] + normalized_boxes[i, 3]) * x_size[3]).int()]
+            head_crops[i, :,:,:] = x[i, :, torch.round(normalized_boxes[i, 1]*x_size[2]).int():torch.round((normalized_boxes[i, 1]+normalized_boxes[i, 3])*x_size[2]).int(),
+                              torch.round(normalized_boxes[i, 0] * x_size[3]).int():torch.round((normalized_boxes[i, 0] + normalized_boxes[i, 2]) * x_size[3]).int()]
         #import debug_tool
         #debug_tool.dump_images_in_batch(head_crops, '/tmp/head_crops/')
         return head_crops
 
     def forward(self, x, pose_points=None):
-        head_points = pose_points[self.pose_id, :]
+        head_points = pose_points[:, self.pose_id, :]
         head_crops = self.get_head_crops(x, head_points)
         head_base_feature = self.head_base(head_crops)
-        head_feat = F.max_pool2d(head_base_feature, head_base_feature.size()[2:])
+        head_feat = torch.squeeze(F.max_pool2d(head_base_feature, head_base_feature.size()[2:]))
+        if len(head_feat.size()) == 1: # in case of single feature
+            head_feat = head_feat.unsqueeze(0)
         mgn_feat, _ = self.concat_part_features(x)
         combined_feat = torch.cat((head_feat, mgn_feat), dim=1)
         merged_feat = self.merge_layer(combined_feat)
