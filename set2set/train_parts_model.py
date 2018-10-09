@@ -290,9 +290,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, skip_merge={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, skip_merge={}, num_data_workers={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), str(args.skip_merge)))
+                   str(args.lr), str(args.skip_merge), str(args.num_data_workers)))
 
     torch.backends.cudnn.benchmark = False
 
