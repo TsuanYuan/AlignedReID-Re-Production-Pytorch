@@ -305,24 +305,16 @@ class ReIDKeypointsDataset(Dataset):
                 person_id = int(subfolder)
                 jpgs_with_kps = [os.path.join(pid_folder, p) for p in keypoints.keys()]
                 kps = [keypoints[os.path.split(jpg)[1]]  for jpg in jpgs_with_kps]
-                # debug, turn off transforms
-                # n = 0
-                # for jpg, kp in zip(jpgs_with_kps, kps):
-                #     im = cv2.imread(jpg)
-                #     parts_utils.visualize_keypoints_on_im(im, kp, '{}'.format(str(n)))
-                #     n+=1
 
                 selected_kps, sids = self.keypoints_quality_selection(kps)
                 # normalize kps to padded crop
-                if len(selected_kps) >= crops_per_id:
+                if len(selected_kps) >= 1:
                     self.person_id_im_paths[person_id] = numpy.array(jpgs_with_kps)[sids]
                     self.person_id_keypoints[person_id] = numpy.array(selected_kps)
                 else:
                     skip_count += 1
-        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}, or without keypoints.pkl'.format(str(skip_count),
-                                                                                                     str(len(
-                                                                                                         subfolders)),
-                                                                                                     str(crops_per_id)))
+        print('skipped {0} out of {1} sets for the size are smaller than 1, or without keypoints.pkl'.format(str(skip_count),
+                                                                                                     str(len(subfolders))))
 
         self.transform = transform
         self.crop_per_id = crops_per_id
@@ -331,13 +323,6 @@ class ReIDKeypointsDataset(Dataset):
         selected_ids = []
         selected_kp = []
         for i, kp in enumerate(kps):
-            # if len(kp) == 1:
-            #     if len(kp[0].shape) == 2: # (17, 4)
-            #         selected_kp.append(kp[0])
-            #         selected_ids.append(i)
-            #     else:
-            #         raise Exception('wrong shape of keypoints')
-
             if len(kp) >= 1:
                 mean_visible = numpy.array([numpy.mean(x, axis=0)[3] for x in kp])
                 area_ratio = numpy.array([numpy.prod(numpy.max(x, axis=0)[0:2]-numpy.min(x, axis=0)[0:2]) for x in kp])
@@ -359,7 +344,12 @@ class ReIDKeypointsDataset(Dataset):
         person_id = self.person_id_im_paths.keys()[set_id]
         im_paths = self.person_id_im_paths[person_id]
         keypoints = self.person_id_keypoints[person_id]
-        permute_ids = numpy.random.permutation(range(len(keypoints)))[:min(self.crop_per_id, len(im_paths))]
+        if len(im_paths) < self.crop_per_id:
+            # with replacement
+            permute_ids = numpy.random.choice(len(im_paths), self.crop_per_id)
+        else:
+            # no replacement
+            permute_ids = numpy.random.permutation(range(len(keypoints)))[:min(self.crop_per_id, len(im_paths))]
 
         im_paths_sample = im_paths[permute_ids]
         keypoints_sample = keypoints[permute_ids]
