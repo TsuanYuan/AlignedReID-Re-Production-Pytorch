@@ -254,7 +254,7 @@ class MultiFileCrops(object):
             random.shuffle(self.pid_index[pid])
         i = pos
         visit_count = 0
-        date, ch = None, None
+        file_date, file_ch, file_time =None, None, None
         while i<pos + count and visit_count < len(self.pid_index[pid]):
             k = i%len(self.pid_index[pid])
             data_file, place = self.pid_index[pid][k]
@@ -270,11 +270,10 @@ class MultiFileCrops(object):
                 continue
 
             file_only = os.path.basename(data_file)
-            file_ch, file_date, file_time = self.decode_wanda_file(file_only)
-            if date is None:
-                date = file_date
-                ch = file_ch
-                if self.same_day_camera and (date != file_date or ch != file_ch):
+            current_ch, current_date, current_time = self.decode_wanda_file(file_only)
+            if file_date is None:
+                file_date, file_ch, file_time = current_date, current_ch, current_time
+                if self.same_day_camera and (current_date != file_date or current_ch != file_ch or current_time != file_time):
                     continue
             images.append(im)
             i+=1
