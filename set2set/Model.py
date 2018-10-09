@@ -798,7 +798,7 @@ class MGNWithHead(MGNModel):
         self.attention_weight = attention_weight
         if attention_weight:
             self.attention_weight_layer = nn.Linear(head_feature_len, 1)
-            init.normal_(self.attention_weight_layer.weight, mean=0.001, std=0.001)
+            init.normal_(self.attention_weight_layer.weight, mean=0.0, std=0.001)
             init.constant_(self.attention_weight_layer.bias, 0)
 
     def get_head_crops(self, x, points):
