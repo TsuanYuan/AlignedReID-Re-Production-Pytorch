@@ -783,7 +783,7 @@ class MGNModel(nn.Module):
 
 
 class MGNWithHead(MGNModel):
-    def __init__(self, pose_id = 0,
+    def __init__(self, pose_id = 0, attention_weight = False,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=128):
         super(MGNWithHead, self).__init__(num_classes=num_classes, base_model=base_model,
                                           local_conv_out_channels=local_conv_out_channels)
@@ -792,7 +792,14 @@ class MGNWithHead(MGNModel):
         mgn_feature_len = 1408
         output_feature_len = 1024
         self.merge_layer = nn.Linear(head_feature_len+mgn_feature_len, output_feature_len)
+        init.normal_(self.merge_layer.weight, std=0.001)
+        init.constant_(self.merge_layer.bias, 0)
         self.pose_id = pose_id
+        self.attention_weight = attention_weight
+        if attention_weight:
+            self.attention_weight_layer = nn.Linear(head_feature_len, 1)
+            init.normal_(self.attention_weight_layer.weight, mean=0.001, std=0.001)
+            init.constant_(self.attention_weight_layer.bias, 0)
 
     def get_head_crops(self, x, points):
         x_size = x.size()
@@ -818,6 +825,9 @@ class MGNWithHead(MGNModel):
         head_crops = self.get_head_crops(x, head_points)
         head_base_feature = self.head_base(head_crops)
         head_feat = torch.squeeze(F.max_pool2d(head_base_feature, head_base_feature.size()[2:]))
+        if self.attention_weight:
+            head_weights = torch.clamp(self.attention_weight_layer(head_feat), min=0.0, max=10.0)
+            head_feat = head_feat*head_weights
         if len(head_feat.size()) == 1: # in case of single feature
             head_feat = head_feat.unsqueeze(0)
         mgn_feat, _ = self.concat_part_features(x)

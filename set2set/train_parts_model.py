@@ -118,7 +118,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(index_file, model_file, sample_size, batch_size, parts_type='head',
+def main(index_file, model_file, sample_size, batch_size, parts_type='head', attention_weight=False,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, num_data_workers=8, skip_merge=False):
 
@@ -161,7 +161,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
         model = Model.PoseReIDModel(pose_ids=pose_ids)
     elif parts_type == 'head_extra':
         pose_id = 0
-        model = Model.MGNWithHead(pose_id=pose_id)
+        model = Model.MGNWithHead(pose_id=pose_id, attention_weight=attention_weight)
     elif parts_type=='head_only':
         pose_ids = (2,)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
@@ -285,6 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--skip_merge', action='store_true', default=False, help="whether to skip loading the merge layers that combines all parts")
     parser.add_argument('--parts_type', type=str, default='head', help="parts definitions")
+    parser.add_argument('--attention_weight', action='store_true', default=False, help="whether to use attention weight for parts")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -297,4 +298,4 @@ if __name__ == '__main__':
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, parts_type=args.parts_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, skip_merge=args.skip_merge)
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, skip_merge=args.skip_merge, attention_weight=args.attention_weight)
