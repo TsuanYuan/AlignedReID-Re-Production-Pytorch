@@ -231,7 +231,7 @@ class MultiFileCrops(object):
         ch = parts[0]
         date_time = parts[1].split('.')[0]
         date = int(date_time[:8])
-        time = int(date_time[1][8:])
+        time = int(date_time[8:])
         return ch, date, time
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
