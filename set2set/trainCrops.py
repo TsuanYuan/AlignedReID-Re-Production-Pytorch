@@ -290,7 +290,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
+    parser = argparse.ArgumentParser(description="training with binary crop formats")
 
     parser.add_argument('index_file', type=str, help="index of binary dataset original folder")
     parser.add_argument('model_file', type=str, help="the model file")

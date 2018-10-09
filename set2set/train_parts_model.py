@@ -261,7 +261,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head',
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
+    parser = argparse.ArgumentParser(description="training with parts model")
 
     parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
