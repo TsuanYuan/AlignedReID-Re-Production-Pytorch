@@ -171,7 +171,7 @@ def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_de
     return model_p, optimizer, model
 
 def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain', num_stripes=None, same_day_camera=False,
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2,
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2, num_data_workers=8,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -223,7 +223,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
     num_classes = len(reid_dataset)
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
-                                             shuffle=True, num_workers=8)
+                                             shuffle=True, num_workers=num_data_workers)
     # model and optimizer
     model_p, optimizer, single_model = load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes)
     # parameters and l,osses
@@ -299,6 +299,7 @@ if __name__ == '__main__':
     parser.add_argument('--ignore_pid_file', type=str, help="the file of ignored pids", default=None)
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
+    parser.add_argument('--num_data_workers', type=int, default=8, help="num of works in multiprocess data batching")
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
@@ -326,4 +327,4 @@ if __name__ == '__main__':
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file, num_stripes=args.num_stripes,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format, model_type=args.model_type,
-         softmax_loss_ratio=args.softmax_loss_ratio, same_day_camera=args.same_day_camera)
+         softmax_loss_ratio=args.softmax_loss_ratio, same_day_camera=args.same_day_camera, num_data_workers=args.num_data_workers)
