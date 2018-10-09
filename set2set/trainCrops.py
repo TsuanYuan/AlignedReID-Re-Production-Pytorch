@@ -326,4 +326,4 @@ if __name__ == '__main__':
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file, num_stripes=args.num_stripes,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format, model_type=args.model_type,
-         softmax_loss_ratio=args.softmax_loss_ratio)
+         softmax_loss_ratio=args.softmax_loss_ratio, same_day_camera=args.same_day_camera)
