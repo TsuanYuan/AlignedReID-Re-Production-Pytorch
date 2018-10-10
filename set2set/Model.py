@@ -39,6 +39,11 @@ def create_model(model_type, num_classes=None, num_stripes=None):
     return model
 
 
+def stop_gradient_on_module(m):
+    for p in m.parameters():
+        p.requires_grad = False
+
+
 class PlainModel(nn.Module):
     def __init__(self,
                  num_classes=None, base_model='resnet50', ):
@@ -800,6 +805,8 @@ class MGNWithHead(MGNModel):
             self.attention_weight_layer = nn.Linear(head_feature_len, 1)
             init.normal_(self.attention_weight_layer.weight, mean=0.0, std=0.001)
             init.constant_(self.attention_weight_layer.bias, 0)
+        stop_gradient_on_module(self.base) # no updates on mgn base part
+
 
     def get_head_crops(self, x, points):
         x_size = x.size()
