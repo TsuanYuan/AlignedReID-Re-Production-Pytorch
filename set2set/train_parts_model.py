@@ -152,6 +152,10 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
     if parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
+    elif parts_type=='limbs_only':
+        pose_ids = (2,9,10,15,16)
+        model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
+        print "limbs only model!"
     elif parts_type=='head_reweight':
         pose_ids = (0, 2 ,4)
         model = Model.PoseReWeightModel(pose_ids=pose_ids)
@@ -164,7 +168,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
         model = Model.MGNWithHead(pose_id=pose_id, attention_weight=attention_weight)
     elif parts_type=='head_only':
         pose_ids = (2,)
-        model = Model.PoseReIDModel(pose_ids=pose_ids)
+        model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
         print "head only model!"
     else:
         raise Exception("unknown parts definition {}".format(parts_type))
