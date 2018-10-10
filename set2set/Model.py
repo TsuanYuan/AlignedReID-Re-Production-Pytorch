@@ -795,9 +795,10 @@ class MGNWithHead(MGNModel):
         self.head_base = resnet34(pretrained=True)
         head_feature_len = 512
         mgn_feature_len = 1408
-        output_feature_len = 1024
+        output_feature_len = mgn_feature_len
         self.merge_layer = nn.Linear(head_feature_len+mgn_feature_len, output_feature_len)
-        init.normal_(self.merge_layer.weight, std=0.001)
+        #init.normal_(self.merge_layer.weight, std=0.001)
+        self.merge_layer.weight = torch.nn.Parameter(torch.cat((torch.zeros((output_feature_len, head_feature_len)), torch.eye(output_feature_len)), dim=1))
         init.constant_(self.merge_layer.bias, 0)
         self.pose_id = pose_id
         self.attention_weight = attention_weight
