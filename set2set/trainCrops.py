@@ -221,6 +221,8 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
         reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=same_day_camera,
                                                 sample_size=sample_size, index_format=index_format, ignore_pid_list=ignore_pid_list)
     num_classes = len(reid_dataset)
+    if num_classes == 0:
+        raise Exception('0 classes are in the training set!')
     print "A total of {} classes are in the data set".format(str(num_classes))
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=num_data_workers)
