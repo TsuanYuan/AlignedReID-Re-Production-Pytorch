@@ -200,6 +200,9 @@ class MultiFileCrops(object):
         self.tracklet_index = {}
         self.pid_index = {}
         self.load_index_files(list_file, ignore_pids)
+        if same_day_camera:
+            self.convert_channel_time_records()  # put crops of same video together
+
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.75, 'min_h': 128}
@@ -207,6 +210,17 @@ class MultiFileCrops(object):
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
+
+    def convert_channel_time_records(self):
+        # indexed by pid and data_file, which encodes channel and time
+        self.pids_ch_time = {}
+        for pid in self.pid_index:
+            if pid not in self.pids_ch_time:
+                self.pids_ch_time[pid] = {}
+            for data_file, offset in self.pid_index[pid]:
+                if data_file not in self.pids_ch_time[pid]:
+                    self.pids_ch_time[pid][data_file] = []
+                self.pids_ch_time[pid][data_file].append(offset)
 
     def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
@@ -248,18 +262,25 @@ class MultiFileCrops(object):
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
+        if self.same_day_camera:
+            # select crops of same video file (ch, date, time)
+            data_file_list = self.pids_ch_time[pid].keys()
+            data_file_select = random.choice(data_file_list)
+            places = self.pids_ch_time[pid][data_file_select]
+            data_file_place_pairs = zip([data_file_select]*len(places), places)
+        else:
+            data_file_place_pairs = self.pid_index[pid]
+        # shuffle the list of (file, offset) pairs
+        random.shuffle(data_file_place_pairs)
+        i = 0
+        visit_count = 0
         images = []
         low_quality_ones = []
-        if pos==0 or pos + count > len(self.pid_index[pid]):
-            random.shuffle(self.pid_index[pid])
-        i = pos
-        visit_count = 0
-        file_date, file_ch, file_time =None, None, None
-        while i<pos + count and visit_count < len(self.pid_index[pid]):
-            k = i%len(self.pid_index[pid])
+        n = len(data_file_place_pairs)
+        while i < count and visit_count < n:
+            k = i%n
             data_file, place = self.pid_index[pid][k]
             visit_count += 1
-            #try:
             one_image = read_one_image(data_file, place)
             im = self.prepare_im(one_image)
             if one_image.shape[0] < self.quality['min_h']:
@@ -268,34 +289,24 @@ class MultiFileCrops(object):
             if one_image.shape[1]/float(one_image.shape[0]) > self.quality['w_h_max']:
                 low_quality_ones.append(im)
                 continue
-
-            file_only = os.path.basename(data_file)
-            current_ch, current_date, current_time = self.decode_wanda_file(file_only)
-            if file_date is None:
-                file_date, file_ch, file_time = current_date, current_ch, current_time
-                if self.same_day_camera and (current_date != file_date or current_ch != file_ch or current_time != file_time):
-                    continue
             images.append(im)
             i+=1
-            #except:
-            #    print "failed to read one image from path {}".format(data_file)
+
         if len(images) < count and len(images) > 0:
             images = [images[k%len(images)] for k in range(count)]
-            if pid not in self.pids_few_good_qualities :
+            if (not self.same_day_camera) and (pid not in self.pids_few_good_qualities) :
                 self.pids_few_good_qualities.add(pid)
                 if len(self.pids_few_good_qualities)%10 == 0:
                     few_good_file = '/tmp/few_good_quality.txt'
                     self.save_no_good_file(few_good_file, self.pids_few_good_qualities)
 
-
         elif len(images) == 0:
             images = [low_quality_ones[k%len(low_quality_ones)] for k in range(count)]
-            if pid not in self.pids_no_good_qualities:
+            if (not self.same_day_camera) and (pid not in self.pids_no_good_qualities):
                 self.pids_no_good_qualities.add(pid)
                 if len(self.pids_no_good_qualities)%10 == 0:
                     no_good_file = '/tmp/no_good_quality.txt'
                     self.save_no_good_file(no_good_file, self.pids_no_good_qualities)
-
 
         self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
