@@ -83,6 +83,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
 
     if same_sample_size > 0:
         sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
+        sample_ids = numpy.unique(sample_ids)
         crop_files = numpy.array(crop_files)[sample_ids].tolist()
 
     for i, crop_file in enumerate(crop_files):
