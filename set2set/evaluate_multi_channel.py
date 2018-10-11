@@ -115,8 +115,8 @@ if __name__ == "__main__":
     parser.add_argument('--force_compute', action='store_true', default=False,
                         help='whether to force compute features')
 
-    parser.add_argument('--device_id', type=int, default=0,
-                        help='device id to run model')
+    parser.add_argument('--device_ids', nargs='+', type=int, default=(0, ),
+                        help='device ids to run model')
 
     parser.add_argument('--batch_max', type=int, default=128,
                         help='batch size to compute reid features')
@@ -164,7 +164,7 @@ if __name__ == "__main__":
 
     same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval,must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
-    model = feature_compute.AppearanceModelForward(args.model_path, single_device=args.device_id)
+    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))

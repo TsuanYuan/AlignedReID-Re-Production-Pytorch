@@ -30,9 +30,9 @@ class Model_Types(Enum):
     LIMB_ONLY = 10
 
 class AppearanceModelForward(object):
-    def __init__(self, model_path, single_device=0):
+    def __init__(self, model_path, device_ids=(0,)):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
-        torch.cuda.set_device(single_device)
+        torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
 
         if model_file.find('mgn') >= 0:
@@ -91,7 +91,8 @@ class AppearanceModelForward(object):
         else:
             raise Exception("unknown model type!")
 
-        self.model_ws = DataParallel(model, device_ids=(single_device,))
+        self.device_ids = device_ids
+        self.model_ws = DataParallel(model, device_ids=(device_ids,))
         # load the model
         load_ckpt([model], model_path, skip_fc=True)
         # Set eval mode.
@@ -101,6 +102,9 @@ class AppearanceModelForward(object):
 
     def __del__(self):
         torch.cuda.empty_cache()
+
+    def get_num_gpus(self):
+        return len(self.device_ids)
 
     def compute_features_on_batch(self, image_batch, keypoints=None):
         patches = []
