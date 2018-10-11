@@ -10,7 +10,8 @@ from misc import decode_wcc_image_name
 import sklearn.metrics.pairwise as pairwise
 import sklearn.metrics
 
-Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_camera', 'must_diff_camera', 'same_sample_size'])
+Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_day', 'must_same_camera',
+                                                               'must_diff_camera','must_same_video', 'must_diff_video', 'same_sample_size'])
 
 def make_string_matrix_from_arr(string_arr, k):
     return numpy.tile(string_arr.reshape((string_arr.size, 1)), [1, k])
@@ -41,28 +42,34 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     satisfied = satisfied > 0
     n = days.size
 
-    if requirements.must_same_camera:
-        same_camera = string_distance_array(camera_ids, camera_ids)
-        satisfied = numpy.logical_and(satisfied, same_camera)
+    assert requirements.must_diff_camera and requirements.must_same_camera == False
+    assert requirements.must_different_days and requirements.must_same_day == False
 
-    if requirements.must_diff_camera:
-        same_camera = string_distance_array(camera_ids, camera_ids)
+    same_camera = string_distance_array(camera_ids, camera_ids)
+    same_video_times = string_distance_array(video_times, video_times)
+    same_days = pairwise.euclidean_distances(days.reshape((n, 1))) == 0
+
+    if requirements.must_same_camera:
+        satisfied = numpy.logical_and(satisfied, same_camera)
+    elif requirements.must_diff_camera:
         satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_camera))
 
-    if requirements.must_different_days:
-        days_same = pairwise.euclidean_distances(days.reshape((n, 1))) == 0
-        satisfied = numpy.logical_and(satisfied, numpy.logical_not(days_same))
+    if requirements.must_same_video:
+        satisfied = numpy.logical_and(satisfied, same_camera, same_video_times)
+    elif requirements.must_diff_video:
+        satisfied = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
+
+    if requirements.must_same_day:
+        satisfied = numpy.logical_and(satisfied, same_days)
+    elif requirements.must_different_days:
+        satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_days))
 
     if requirements.frame_interval > 0:
         # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval
-        same_camera = string_distance_array(camera_ids, camera_ids)
-        days_diff = pairwise.euclidean_distances(days.reshape((n, 1))) > 0
-        video_diff = pairwise.euclidean_distances(video_times.reshape((n, 1))) > 0
+        diff_days = numpy.logical_not(same_days)
+        diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
         frame_interval_diff = pairwise.euclidean_distances(frame_indices.reshape((n, 1))) > requirements.frame_interval
-        frame_requirement = numpy.logical_or(days_diff, video_diff)
-        frame_requirement = numpy.logical_or(frame_requirement, frame_interval_diff)
-        frame_requirement = numpy.logical_or(frame_requirement, numpy.logical_not(same_camera))
-
+        frame_requirement = numpy.logical_or(diff_days, diff_videos, frame_interval_diff)
         satisfied = numpy.logical_and(satisfied, frame_requirement)
 
     satisfied_dist = features_dist[satisfied]

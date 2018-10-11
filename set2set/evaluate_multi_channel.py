@@ -127,6 +127,9 @@ if __name__ == "__main__":
     parser.add_argument('--multi_folder', action='store_true', default=False,
                         help='process multiple subfolders')
 
+    parser.add_argument('--must_same_day', action='store_true', default=False,
+                        help='same pair must be at same day')
+
     parser.add_argument('--must_different_days', action='store_true', default=False,
                         help='same pair must be at different days')
 
@@ -135,6 +138,12 @@ if __name__ == "__main__":
 
     parser.add_argument('--must_diff_camera', action='store_true', default=False,
                         help='same pair must be at different cameras')
+
+    parser.add_argument('--must_same_video', action='store_true', default=False,
+                        help='same pair must be at same video')
+
+    parser.add_argument('--must_diff_video', action='store_true', default=False,
+                        help='same pair must be at different videos')
 
     parser.add_argument('--same_sample_size', type=int, default=-1,
                         help='sample size of in each class of same')
@@ -153,8 +162,8 @@ if __name__ == "__main__":
         .format(str(args.frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th))
     import time
 
-    same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
-                                                    must_diff_camera=args.must_diff_camera, same_sample_size=args.same_sample_size)
+    same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval,must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
+                                                    must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
     model = feature_compute.AppearanceModelForward(args.model_path, single_device=args.device_id)
 
     if len(args.ignore_ids) > 0:
