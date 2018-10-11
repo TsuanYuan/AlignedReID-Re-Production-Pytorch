@@ -27,6 +27,7 @@ class Model_Types(Enum):
     HEAD_POSE_REWEIGHT = 7
     HEAD_EXTRA = 8
     LIMB_EXTRA = 9
+    LIMB_ONLY = 10
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, single_device=0):
@@ -46,11 +47,16 @@ class AppearanceModelForward(object):
         elif model_file.find('pcb_parts') >= 0:
             model = PCBModel()
             self.model_type = Model_Types.PCB
-        elif model_file.find('head_only_parts') >= 0:
+        elif model_file.find('head_only') >= 0:
             pose_ids = (2,)
             model = PoseReIDModel(pose_ids=pose_ids, no_global=True)
             self.model_type = Model_Types.HEAD_ONLY
             print "head only model!"
+        elif model_file.find('limbs_only') >= 0:
+            pose_ids = (2,9,10,15,16)
+            model = PoseReIDModel(pose_ids=pose_ids, no_global=True)
+            self.model_type = Model_Types.LIMB_ONLY
+            print "limbs only model!"
         elif model_file.find('head_pose_reweight') >= 0:
             pose_ids = (0, 2, 4)
             model = PoseReWeightModel(pose_ids=pose_ids)
