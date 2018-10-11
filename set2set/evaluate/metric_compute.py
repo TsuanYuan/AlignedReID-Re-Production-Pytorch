@@ -55,7 +55,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
         satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_camera))
 
     if requirements.must_same_video:
-        satisfied = numpy.logical_and(satisfied, same_camera, same_video_times)
+        satisfied = numpy.logical_and(satisfied, numpy.logical_and(same_camera, same_video_times))
     elif requirements.must_diff_video:
         satisfied = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
 
@@ -70,7 +70,7 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     frame_diff =  pairwise.euclidean_distances(frame_indices.reshape((n, 1)))
     frame_interval_min_satisfied = frame_diff >= requirements.min_frame_interval
     frame_interval_max_satisfied = frame_diff <= requirements.max_frame_interval
-    frame_requirement = numpy.logical_or(diff_days, diff_videos, frame_interval_min_satisfied, frame_interval_max_satisfied)
+    frame_requirement = numpy.logical_or(numpy.logical_or(diff_days, diff_videos), numpy.logical_or(frame_interval_min_satisfied, frame_interval_max_satisfied))
     satisfied = numpy.logical_and(satisfied, frame_requirement)
 
     satisfied_dist = features_dist[satisfied]
