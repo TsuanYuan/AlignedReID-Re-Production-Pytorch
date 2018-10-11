@@ -36,63 +36,63 @@ class AppearanceModelForward(object):
         model_file = os.path.split(model_path)[1]
 
         if model_file.find('mgn') >= 0:
-            model = MGNModel()
+            model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
         elif  model_file.find('plain_parts') >= 0:
-            model = SwitchClassHeadModel(parts_model=True)
+            model = SwitchClassHeadModel(parts_model=True).cuda(device=device_ids[0])
             self.model_type = Model_Types.PLAIN_PARTS
         elif model_file.find('plain') >= 0:
-            model = PlainModel()
+            model = PlainModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.Plain
         elif model_file.find('pcb_parts') >= 0:
-            model = PCBModel()
+            model = PCBModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.PCB
         elif model_file.find('head_only') >= 0:
             pose_ids = (2,)
-            model = PoseReIDModel(pose_ids=pose_ids, no_global=True)
+            model = PoseReIDModel(pose_ids=pose_ids, no_global=True).cuda(device=device_ids[0])
             self.model_type = Model_Types.HEAD_ONLY
             print "head only model!"
         elif model_file.find('limbs_only') >= 0:
             pose_ids = (2,9,10,15,16)
-            model = PoseReIDModel(pose_ids=pose_ids, no_global=True)
+            model = PoseReIDModel(pose_ids=pose_ids, no_global=True).cuda(device=device_ids[0])
             self.model_type = Model_Types.LIMB_ONLY
             print "limbs only model!"
         elif model_file.find('head_pose_reweight') >= 0:
             pose_ids = (0, 2, 4)
-            model = PoseReWeightModel(pose_ids=pose_ids)
+            model = PoseReWeightModel(pose_ids=pose_ids).cuda(device=device_ids[0])
             self.model_type = Model_Types.HEAD_POSE_REWEIGHT
             print "head pose reweight attention model!"
         elif model_file.find('head_pose_parts') >= 0:
             pose_ids = (0, 2, 4)
-            model = PoseReIDModel(pose_ids=pose_ids)
+            model = PoseReIDModel(pose_ids=pose_ids).cuda(device=device_ids[0])
             self.model_type = Model_Types.HEAD_POSE
         elif model_file.find('head_extra') >= 0:
             pose_id = 0
             if model_file.find('head_extra_attention') >= 0:
-                model = MGNWithHead(pose_id=pose_id, attention_weight=True)
+                model = MGNWithHead(pose_id=pose_id, attention_weight=True).cuda(device=device_ids[0])
                 print "head extra model with attention weight!"
             else:
-                model = MGNWithHead(pose_id=pose_id)
+                model = MGNWithHead(pose_id=pose_id).cuda(device=device_ids[0])
                 print "head extra model without attention weight!"
             self.model_type = Model_Types.HEAD_EXTRA
         elif model_file.find('limbs_extra') >= 0:
             pose_ids = (2, 9, 10, 15, 16)
             if model_file.find('limbs_extra_attention') >= 0:
-                model = MGNWithParts(pose_ids=pose_ids, attention_weight=True)
+                model = MGNWithParts(pose_ids=pose_ids, attention_weight=True).cuda(device=device_ids[0])
                 print "limbs extra model with attention weight!"
             else:
-                model = MGNWithParts(pose_ids=pose_ids)
+                model = MGNWithParts(pose_ids=pose_ids).cuda(device=device_ids[0])
                 print "limbs extra model without attention weight!"
             self.model_type = Model_Types.HEAD_EXTRA
         elif model_file.find('limb_pose_parts') >= 0:
             pose_ids = (2,9,10,15,16)
-            model = PoseReIDModel(pose_ids=pose_ids)
+            model = PoseReIDModel(pose_ids=pose_ids).cuda(device=device_ids[0])
             self.model_type = Model_Types.LIMB_POSE
         else:
             raise Exception("unknown model type!")
 
         self.device_ids = device_ids
-        self.model_ws = DataParallel(model, device_ids=(device_ids,))
+        self.model_ws = DataParallel(model, device_ids=device_ids)
         # load the model
         load_ckpt([model], model_path, skip_fc=True)
         # Set eval mode.
