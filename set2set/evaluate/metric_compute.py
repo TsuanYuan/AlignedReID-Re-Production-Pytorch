@@ -42,8 +42,8 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     satisfied = satisfied > 0
     n = days.size
 
-    assert requirements.must_diff_camera and requirements.must_same_camera == False
-    assert requirements.must_different_days and requirements.must_same_day == False
+    assert (requirements.must_diff_camera and requirements.must_same_camera) == False
+    assert (requirements.must_different_days and requirements.must_same_day) == False
 
     same_camera = string_distance_array(camera_ids, camera_ids)
     same_video_times = string_distance_array(video_times, video_times)
