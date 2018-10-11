@@ -10,7 +10,7 @@ from misc import decode_wcc_image_name
 import sklearn.metrics.pairwise as pairwise
 import sklearn.metrics
 
-Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['frame_interval', 'must_different_days', 'must_same_day', 'must_same_camera',
+Same_Pair_Requirements = namedtuple("Same_Pair_Requirements", ['min_frame_interval', 'max_frame_interval','must_different_days', 'must_same_day', 'must_same_camera',
                                                                'must_diff_camera','must_same_video', 'must_diff_video', 'same_sample_size'])
 
 def make_string_matrix_from_arr(string_arr, k):
@@ -64,13 +64,14 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
     elif requirements.must_different_days:
         satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_days))
 
-    if requirements.frame_interval > 0:
-        # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval
-        diff_days = numpy.logical_not(same_days)
-        diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
-        frame_interval_diff = pairwise.euclidean_distances(frame_indices.reshape((n, 1))) > requirements.frame_interval
-        frame_requirement = numpy.logical_or(diff_days, diff_videos, frame_interval_diff)
-        satisfied = numpy.logical_and(satisfied, frame_requirement)
+    # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval
+    diff_days = numpy.logical_not(same_days)
+    diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
+    frame_diff =  pairwise.euclidean_distances(frame_indices.reshape((n, 1)))
+    frame_interval_min_satisfied = frame_diff >= requirements.min_frame_interval
+    frame_interval_max_satisfied = frame_diff <= requirements.max_frame_interval
+    frame_requirement = numpy.logical_or(diff_days, diff_videos, frame_interval_min_satisfied, frame_interval_max_satisfied)
+    satisfied = numpy.logical_and(satisfied, frame_requirement)
 
     satisfied_dist = features_dist[satisfied]
     crops_file_array = numpy.tile(numpy.array(crop_files).reshape((n, 1)), [1, n])

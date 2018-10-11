@@ -106,8 +106,11 @@ if __name__ == "__main__":
     parser.add_argument('--ext', type=str, default='dsc',
                         help='the ext to dump descirptor files')
 
-    parser.add_argument('--frame_interval', type=int, default=-1,
-                        help='the num of samples from each ID')
+    parser.add_argument('--min_frame_interval', type=int, default=-1,
+                        help='the min frame intervals between a same pair')
+
+    parser.add_argument('--max_frame_interval', type=int, default=10000000,
+                        help='the max frame intervals between a same pair')
 
     parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
                         help='whether to dump tough pairs')
@@ -162,7 +165,7 @@ if __name__ == "__main__":
         .format(str(args.frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th))
     import time
 
-    same_pair_requirements = Same_Pair_Requirements(frame_interval=args.frame_interval,must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
+    same_pair_requirements = Same_Pair_Requirements(min_frame_interval=args.min_frame_interval, max_frame_interval=args.max_frame_interval, must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
     model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
