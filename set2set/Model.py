@@ -715,7 +715,7 @@ class MGNModel(nn.Module):
             self.fc_list.append(fc)
         self.num_classes = num_classes
 
-    def concat_part_features(self, x):
+    def compute_stripe_feature_list(self, x):
         # shape [N, C, H, W]
         feat_final, feat_l3, feat_l2 = self.base(x)
         feat_shorten = self.global_final_relu(self.global_final_bn(self.global_final_conv((feat_final))))
@@ -770,7 +770,10 @@ class MGNModel(nn.Module):
                     logits += logit_rows
         else:
             logits = None
+        return local_feat_list, logits
 
+    def concat_stripe_features(self, x):
+        local_feat_list, logits = self.compute_stripe_feature_list(x)
         condensed_feat = torch.cat(local_feat_list, dim=1)
         return condensed_feat, logits
 
@@ -780,7 +783,7 @@ class MGNModel(nn.Module):
       global_feat: shape [N, C]
       local_feat: shape [N, H, c]
     """
-        condensed_feat, logits = self.concat_part_features(x)
+        condensed_feat, logits = self.concat_stripe_features(x)
         if len(condensed_feat.size()) == 1: # in case of single feature
             condensed_feat = condensed_feat.unsqueeze(0)
         feat = F.normalize(condensed_feat, p=2, dim=1)
@@ -838,10 +841,115 @@ class MGNWithHead(MGNModel):
             head_feat = head_feat*head_weights
         if len(head_feat.size()) == 1: # in case of single feature
             head_feat = head_feat.unsqueeze(0)
-        mgn_feat, _ = self.concat_part_features(x)
+        mgn_feat, _ = self.concat_stripe_features(x)
         combined_feat = torch.cat((head_feat, mgn_feat), dim=1)
         merged_feat = self.merge_layer(combined_feat)
         if len(merged_feat.size()) == 1: # in case of single feature
             merged_feat = merged_feat.unsqueeze(0)
         feat = F.normalize(merged_feat, p=2, dim=1)
+        return feat
+
+
+
+class MGNWithParts(MGNModel):
+    def __init__(self, pose_ids, attention_weight = False,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128):
+        super(MGNWithParts, self).__init__(num_classes=num_classes, base_model=base_model,
+                                          local_conv_out_channels=local_conv_out_channels)
+        self.parts_base = resnet34(pretrained=True) # model to extract part feature and part weights
+        self.pose_ids = pose_ids
+        num_parts = len(pose_ids)
+        parts_feature_len = 512
+        mgn_feature_len = 1408
+        output_feature_len = mgn_feature_len
+        self.merge_layer = nn.Linear(num_parts*parts_feature_len+mgn_feature_len, output_feature_len)
+        self.merge_layer.weight = torch.nn.Parameter(torch.cat((torch.zeros((output_feature_len, num_parts*parts_feature_len)), torch.eye(output_feature_len)), dim=1))
+        init.constant_(self.merge_layer.bias, 0)
+
+        self.attention_weight = attention_weight
+        if attention_weight:
+            self.attention_weight_layers = nn.ModuleList()
+            for _ in range(num_parts):
+                attention_weight_layer = nn.Linear(parts_feature_len, 1)
+                init.normal_(attention_weight_layer.weight, mean=0.0, std=0.00001)
+                init.constant_(attention_weight_layer.bias, 0)
+                self.attention_weight_layers.append(attention_weight_layer)
+        stop_gradient_on_module(self.base) # no updates on mgn base part
+
+    def pool_region(self, x, normalized_boxes, local_id):
+        """
+        :param x: NCHW feature
+        :param normalized_boxes: normalized boxes [left, top, w, h] within [0, 1]
+        :return: pooled feature
+        """
+        feature_shape = x.size()
+        roi_masks, roi_areas = self.compute_roi_masks(normalized_boxes, feature_shape)
+        masked_feat = x * Variable(roi_masks)
+        max_pooled_feat = F.max_pool2d(masked_feat, masked_feat.size()[2:])
+        # feature_sum = torch.sum(torch.sum(masked_feat, 3),2)
+        # roi_areas = roi_areas.unsqueeze(1)
+        # feature_average = feature_sum/Variable(roi_areas.expand((feature_shape[0], feature_shape[1]))+1e-8)
+        condensed_feat = torch.squeeze(max_pooled_feat) #self.local_conv_list[local_id](max_pooled_feat)
+        if len(condensed_feat.size()) == 1:  # in case of single feature
+            condensed_feat = condensed_feat.unsqueeze(0)
+        return condensed_feat
+
+    def compute_roi_masks(self, normalized_boxes, feat_size):
+        n = feat_size[0]
+        if torch.has_cudnn:
+            roi_masks = torch.zeros(feat_size).cuda(device=normalized_boxes.get_device())
+            roi_areas = torch.zeros(n).cuda(device=normalized_boxes.get_device())
+        else:
+            roi_masks = torch.zeros(feat_size)
+            roi_areas = torch.zeros(n)
+
+        for i in range(n):
+            xs, xe, ys, ye = self.compute_roi(normalized_boxes[i,:], feat_size[3], feat_size[2])
+            if xs+xe+xs+ye > 0:
+                roi_masks[i, :, ys:ye, xs:xe] = 1
+                roi_areas[i] = (ye-ys)*(xe-xs)
+        return roi_masks, roi_areas
+
+    def compute_roi(self, box, f_w, f_h):
+        # x y of boxes
+        if box[2] == 0 or box[3] == 0:
+            return 0, 0, 0, 0
+        else:
+            xs = max(0, (f_w*box[0]).floor().int())
+            xe = min(f_w-1, (f_w*(box[0]+box[2])).floor().int())
+            ys = max(0, (f_h*box[1]).floor().int())
+            ye = min(f_h-1, (f_h*(box[1]+box[3])).floor().int())
+        return xs, xe, ys, ye
+
+    def forward(self, x, pose_points=None):
+        # shape [N, C, H, W]
+        # parts feature with weights from parts network
+        part_feature_map = self.parts_base(x)
+        normalized_boxes = torch.zeros((x.size()[0], 4)).cuda(x.get_device())
+        part_feat_list = []
+        for moduel_id, pose_id in enumerate(self.pose_ids):
+            normalized_boxes[:, 0] = torch.squeeze(pose_points[:, pose_id, 0]) - 0.25
+            normalized_boxes[:, 1] = torch.squeeze(pose_points[:, pose_id, 1]) - 0.25 / 2
+            normalized_boxes[:, 2] = 0.5
+            normalized_boxes[:, 3] = 0.5 / 2
+            normalized_boxes[normalized_boxes < 0] = 0
+            normalized_boxes[normalized_boxes > 0.75] = 0.75
+            normalized_boxes[normalized_boxes[:, 0] > 0.5, 0] = 0.5  # x smaller than half
+              # local id are [0,1,2,3,4], pose id are [2,9,10, 15,16]
+            part_feature = self.pool_region(part_feature_map, normalized_boxes, moduel_id)
+            if self.attention_weight:
+                part_feature_weight = torch.clamp(self.attention_weight_layers[moduel_id](part_feature), min=0.0, max=10.0)
+            else:
+                part_feature_weight = 1
+            part_feat_list.append(part_feature*part_feature_weight)
+        # mgn feature by mgn network
+        mgn_feature, _ = self.concat_stripe_features(x)
+        part_feat_list.append(mgn_feature)
+        ## todo: add fc list forward pass
+        concat_feat = torch.cat(part_feat_list, dim=1)
+        final_feature = torch.squeeze(self.merge_layer(concat_feat))
+        if len(final_feature.size()) == 1:  # in case of single feature
+            final_feature = final_feature.unsqueeze(0)
+
+        feat = F.normalize(final_feature, p=2, dim=1)
         return feat

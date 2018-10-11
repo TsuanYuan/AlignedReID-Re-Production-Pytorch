@@ -166,6 +166,9 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
     elif parts_type == 'head_extra':
         pose_id = 0
         model = Model.MGNWithHead(pose_id=pose_id, attention_weight=attention_weight)
+    elif parts_type == 'limbs_extra':
+        pose_ids = (2,9,10,15,16)
+        model = Model.MGNWithParts(pose_ids=pose_ids, attention_weight=attention_weight)
     elif parts_type=='head_only':
         pose_ids = (2,)
         model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
