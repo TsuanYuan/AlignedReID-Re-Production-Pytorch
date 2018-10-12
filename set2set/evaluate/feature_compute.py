@@ -69,7 +69,7 @@ def best_keypoints(keypoints):
 
 
 def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
-                  same_sample_size=-1, w_h_quality_th=1.0, min_crop_h=96):
+                  same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:

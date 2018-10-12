@@ -205,7 +205,7 @@ class MultiFileCrops(object):
 
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
-        self.quality = {'w_h_max': 1.0, 'min_h':  96}
+        self.quality = {'w_h_max': 0.9, 'min_h':  96}
         self.same_day_camera = same_day_camera
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()
