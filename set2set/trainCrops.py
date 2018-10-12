@@ -172,10 +172,10 @@ def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_de
 
 def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain', num_stripes=None, same_day_camera=False,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2, num_data_workers=8,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list'):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, index_format='list', desized_size=(256, 128)):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((256, 128)),
+                                              transforms_reid.Rescale(desized_size),
                                               #transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
                                               #transforms_reid.RandomBlockMask(8),
@@ -188,27 +188,6 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
     if not torch.cuda.is_available():
         gpu_ids = None
 
-    # model = Model.MGNModel()
-    # if len(gpu_ids)>=0:
-    #     model = model.cuda(device=gpu_ids[0])
-    # # else:
-    # #     model = Model.WeightedReIDFeatureModel(base_model=base_model,num_classes=num_classes)
-    # optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    # model_folder = os.path.split(model_file)[0]
-    # if not os.path.isdir(model_folder):
-    #     os.makedirs(model_folder)
-    # print('model path is {0}'.format(model_file))
-    # if os.path.isfile(model_file):
-    #     if args.resume:
-    #         load_model.load_ckpt([model], model_file, skip_fc=True)
-    #     else:
-    #         print('model file {0} already exist, will overwrite it.'.format(model_file))
-    #
-    # if len(gpu_ids) > 0:
-    #     model_p = DataParallel(model, device_ids=gpu_ids)
-    # else:
-    #     model_p = model
-
     ignore_pid_list = None
     if ignore_pid_file is not None:
         with open(ignore_pid_file, 'r') as fp:
@@ -219,7 +198,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
                                                 crops_per_id=sample_size)
     else:
         reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=same_day_camera,
-                                                sample_size=sample_size, index_format=index_format, ignore_pid_list=ignore_pid_list)
+                                                sample_size=sample_size, index_format=index_format, ignore_pid_list=ignore_pid_list, desired_size=desized_size)
     num_classes = len(reid_dataset)
     if num_classes == 0:
         raise Exception('0 classes are in the training set!')
@@ -308,6 +287,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--base_model', type=str, default='resnet50', help="base backbone model")
     parser.add_argument('--optimizer', type=str, default='adam', help="optimizer to use")
+    parser.add_argument('--crop_aspect_ratio', type=float, default=2.0, help="aspect ratio of crops")
     parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.001, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
@@ -321,12 +301,19 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.index_file))
-    print('  sample_size={}, batch_size={},  margin={}, metric_loss={}, softmax_loss_ratio={}, model_type={}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.softmax_loss_ratio), args.model_type))
+    print('  sample_size={}, batch_size={},  margin={}, metric_loss={}, softmax_loss_ratio={}, model_type={}, crop_aspect_ratio={}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.softmax_loss_ratio), args.model_type, str(args.crop_aspect_ratio)))
     torch.backends.cudnn.benchmark = False
     if len(args.data_folder) == 0:
         args.data_folder = os.path.split(args.index_file)[0]
+    if args.crop_aspect_ratio == 2.0:
+        desized_size = (256, 128)
+    elif args.crop_aspect_ratio == 3.0:
+        desized_size = (384, 128)
+    else:
+        raise Exception('unknown crop aspect ratio {}'.format(str(args.crop_aspect_ratio)))
+
     main(args.data_folder, args.index_file, args.model_file, args.sample_size, args.batch_size,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, ignore_pid_file=args.ignore_pid_file, num_stripes=args.num_stripes,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, index_format=args.index_format, model_type=args.model_type,
-         softmax_loss_ratio=args.softmax_loss_ratio, same_day_camera=args.same_day_camera, num_data_workers=args.num_data_workers)
+         softmax_loss_ratio=args.softmax_loss_ratio, same_day_camera=args.same_day_camera, num_data_workers=args.num_data_workers, desized_size=desized_size)
