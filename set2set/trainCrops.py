@@ -241,7 +241,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
 
             # w_h_ratios = sample_batched['w_h_ratios']
             # actual_size = list(images_5d.size())
-            images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
+            images = images_5d.view([actual_size[0]*sample_size,3,desized_size[0],desized_size[1]])  # unfolder to 4-D
 
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
