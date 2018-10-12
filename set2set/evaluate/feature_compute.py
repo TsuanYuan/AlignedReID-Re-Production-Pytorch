@@ -99,24 +99,26 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
             im_bgr = cv2.imread(crop_file)
             w_h_ratio = float(im_bgr.shape[1]) / im_bgr.shape[0]
             if w_h_ratio > w_h_quality_th or im_bgr.shape[0] < min_crop_h:  # a crop that is too wide, possibly a partial crop of head only or too small
-                continue
+                skip_reading = True
 
-            if load_keypoints:
+            if load_keypoints and (not skip_reading):
                 file_only = os.path.basename(crop_file)
                 if file_only not in keypoints:  # no keypoints detected on this crop image
-                    continue
+                    skip_reading = True
                 else:
                     kp = best_keypoints(keypoints[file_only])
                     kp_score = misc.keypoints_quality(kp)
                     if kp_score < keypoints_score_th:
-                        continue
-                    kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
-                    kps.append(kp)
-            im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-            im = crop_pad_fixed_aspect_ratio(im)
-            im = cv2.resize(im, (128, 256))
-            ims.append(im)
-            files_from_gpus.append(crop_file)
+                        skip_reading = True
+                    else:
+                        kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
+                        kps.append(kp)
+            if not skip_reading:
+                im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+                im = crop_pad_fixed_aspect_ratio(im)
+                im = cv2.resize(im, (128, 256))
+                ims.append(im)
+                files_from_gpus.append(crop_file)
 
         if len(ims) > 0 and (len(ims) == batch_max or i == len(crop_files)-1):
             if load_keypoints and (model.get_model_type() == Model_Types.HEAD_POSE or model.get_model_type() == Model_Types.LIMB_POSE
