@@ -68,6 +68,8 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
     h = 512
     im0 = cv2.imread(file_pairs[0])
     im1 = cv2.imread(file_pairs[1])
+    im_shape_0 = im0.shape
+    im_shape_1 = im1.shape
     im0 = cv2.resize(im0, (w, h))
     im1 = cv2.resize(im1, (w, h))
     canvas = numpy.zeros((h, h, 3), dtype=numpy.uint8)
@@ -91,14 +93,14 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(im0.shape), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(im_shape_0), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     top_name, folder_name = get_filename_for_display(file_pairs[1])
     cv2.putText(canvas, str(top_name), (w+10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
     cv2.putText(canvas, str(folder_name), (w+10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(im1.shape), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(im_shape_1), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                (0, 255, 0), 2)
     cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
