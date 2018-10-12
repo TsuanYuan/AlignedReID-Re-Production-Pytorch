@@ -217,10 +217,10 @@ class MultiFileCrops(object):
         for pid in self.pid_index:
             if pid not in self.pids_ch_time:
                 self.pids_ch_time[pid] = {}
-            for data_file, offset in self.pid_index[pid]:
-                if data_file not in self.pids_ch_time[pid]:
-                    self.pids_ch_time[pid][data_file] = []
-                self.pids_ch_time[pid][data_file].append(offset)
+            for video_file, offset in self.pid_index[pid]:
+                if video_file not in self.pids_ch_time[pid]:
+                    self.pids_ch_time[pid][video_file] = []
+                self.pids_ch_time[pid][video_file].append(offset)
 
     def load_index_files(self, list_file, ignore_pids=None):
         single_index = load_list_to_pid(list_file, self.data_folder, self.prefix)
@@ -264,10 +264,10 @@ class MultiFileCrops(object):
         pos = self.pid_pos[pid]
         if self.same_day_camera:
             # select crops of same video file (ch, date, time)
-            data_file_list = self.pids_ch_time[pid].keys()
-            data_file_select = random.choice(data_file_list)
-            places = self.pids_ch_time[pid][data_file_select]
-            data_file_place_pairs = zip([data_file_select]*len(places), places)
+            video_file_list = self.pids_ch_time[pid].keys()
+            video_file_select = random.choice(video_file_list)
+            places = self.pids_ch_time[pid][video_file_select]
+            data_file_place_pairs = zip([video_file_select]*len(places), places)
         else:
             data_file_place_pairs = self.pid_index[pid]
         # shuffle the list of (file, offset) pairs
