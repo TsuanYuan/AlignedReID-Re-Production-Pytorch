@@ -38,6 +38,7 @@ class AppearanceModelForward(object):
         if model_file.find('mgn') >= 0:
             model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
+            print "use mgn model"
         elif  model_file.find('plain_parts') >= 0:
             model = SwitchClassHeadModel(parts_model=True).cuda(device=device_ids[0])
             self.model_type = Model_Types.PLAIN_PARTS
