@@ -96,6 +96,8 @@ def compute_same_pair_dist(features_per_person, crop_files, requirements):
             dists_all = dists
         else:
             dists_all = numpy.concatenate((dists_all, dists))
+        if numpy.any(numpy.isnan(dists)):
+                print "found nan in dists all of file {}".format(file_pairs[0])
     return dists_all, file_pairs_all
 
 
@@ -135,6 +137,8 @@ def compute_diff_pair_dist(features_per_person, crop_files_per_person, sub_sampl
                 dists_all = numpy.concatenate((dists_all, dists))
             file_pairs = zip(crop_files_matrix_i.tolist(), crop_files_matrix_j.tolist())
             file_pairs_all += file_pairs
+            if numpy.any(numpy.isnan(dists)):
+                print "found nan in dists all of file {}".format(file_pairs[0])
     return dists_all, file_pairs_all
 
 
