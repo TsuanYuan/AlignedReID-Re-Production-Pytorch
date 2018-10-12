@@ -624,8 +624,8 @@ class PCBModel(nn.Module):
       self.fc_list = nn.ModuleList()
       for _ in range(num_stripes):
         fc = nn.Linear(local_conv_out_channels, num_classes)
-        init.normal(fc.weight, std=0.001)
-        init.constant(fc.bias, 0)
+        init.normal_(fc.weight, std=0.001)
+        init.constant_(fc.bias, 0)
         self.fc_list.append(fc)
 
   def forward(self, x):
