@@ -68,7 +68,8 @@ def best_keypoints(keypoints):
     return best_kp
 
 
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75, same_sample_size=-1, w_h_quality_th=1.0):
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
+                  same_sample_size=-1, w_h_quality_th=1.0, min_crop_h=96):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
@@ -97,7 +98,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
         else:
             im_bgr = cv2.imread(crop_file)
             w_h_ratio = float(im_bgr.shape[1]) / im_bgr.shape[0]
-            if w_h_ratio > w_h_quality_th:  # a crop that is too wide, possibly a partial crop of head only
+            if w_h_ratio > w_h_quality_th or im_bgr.shape[0] < min_crop_h:  # a crop that is too wide, possibly a partial crop of head only or too small
                 continue
 
             if load_keypoints:
