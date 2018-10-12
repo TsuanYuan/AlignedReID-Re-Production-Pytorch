@@ -12,14 +12,14 @@ from load_model import AppearanceModelForward, Model_Types
 import misc
 
 
-def load_experts(experts_file, device_id):
+def load_experts(experts_file, device_ids):
     models, exts = [], []
 
     with open(experts_file, 'r') as fp:
         for line in fp:
             fields = line.rstrip('\n').rstrip(' ').split(' ')
             model_path, ext = fields[0], fields[1]
-            model = AppearanceModelForward(model_path, single_device=device_id)
+            model = AppearanceModelForward(model_path, device_ids=device_ids)
             models.append(model)
             exts.append(ext)
     return models, exts
@@ -67,7 +67,8 @@ def best_keypoints(keypoints):
                 best_kp = kp
     return best_kp
 
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75, same_sample_size=-1):
+
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75, same_sample_size=-1, w_h_quality_th=1.0):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
@@ -106,8 +107,11 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                     else:
                         im_bgr = cv2.imread(crop_file)
                         w_h_ratio = float(im_bgr.shape[1])/im_bgr.shape[0]
-                        kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
-                        kps.append(kp)
+                        if w_h_ratio > w_h_quality_th:  # a crop that is too wide, possibly a partial crop of head only
+                            skip_reading = True
+                        else:
+                            kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
+                            kps.append(kp)
             if not skip_reading:
                 im_bgr = cv2.imread(crop_file)
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
