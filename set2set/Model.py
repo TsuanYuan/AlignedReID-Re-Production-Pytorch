@@ -640,7 +640,7 @@ class PCBModel(nn.Module):
     logits_list = []
     stripe_h = float(feat.size(2)) / self.num_stripes
     # stripe_h = int(np.ceil(stripe_s))
-    for i in range(self.num_strips):
+    for i in range(self.num_stripes):
         # shape [N, C, 1, 1]
         stripe_start = int(round(stripe_h * i))
         stripe_end = int(min(np.ceil(stripe_h * (i + 1)), feat.size(2)))
