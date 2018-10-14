@@ -88,6 +88,11 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
         sample_ids = numpy.unique(sample_ids)
         crop_files = numpy.array(crop_files)[sample_ids].tolist()
 
+    if model.get_model_type.find('PCB') >= 0:
+        desired_size = (384, 128)
+    else:
+        desired_size = (256, 128)
+
     for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
         skip_reading = False
@@ -115,8 +120,8 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                         kps.append(kp)
             if not skip_reading:
                 im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-                im = crop_pad_fixed_aspect_ratio(im)
-                im = cv2.resize(im, (128, 256))
+                im = crop_pad_fixed_aspect_ratio(im, desired_size=desired_size)
+                im = cv2.resize(im, (desired_size[1], desired_size[0]))
                 ims.append(im)
                 files_from_gpus.append(crop_file)
 
