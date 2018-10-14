@@ -88,7 +88,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
         sample_ids = numpy.unique(sample_ids)
         crop_files = numpy.array(crop_files)[sample_ids].tolist()
 
-    if model.get_model_type.find('PCB') >= 0:
+    if model.get_model_type()== Model_Types.PCB_3 or model.get_model_type()== Model_Types.PCB_6:
         desired_size = (384, 128)
     else:
         desired_size = (256, 128)
