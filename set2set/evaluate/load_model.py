@@ -19,7 +19,7 @@ from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, Plain
 class Model_Types(Enum):
     Plain = 0
     MGN = 1
-    PCB = 2
+    PCB_6 = 2
     HEAD_POSE = 3
     LIMB_POSE = 4
     HEAD_ONLY = 5
@@ -28,6 +28,7 @@ class Model_Types(Enum):
     HEAD_EXTRA = 8
     LIMB_EXTRA = 9
     LIMB_ONLY = 10
+    PCB_3 =11
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, device_ids=(0,)):
@@ -45,9 +46,12 @@ class AppearanceModelForward(object):
         elif model_file.find('plain') >= 0:
             model = PlainModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.Plain
-        elif model_file.find('pcb_parts') >= 0:
-            model = PCBModel().cuda(device=device_ids[0])
-            self.model_type = Model_Types.PCB
+        elif model_file.find('pcb_6') >= 0:
+            model = PCBModel(num_stripes=6).cuda(device=device_ids[0])
+            self.model_type = Model_Types.PCB_6
+        elif model_file.find('pcb_3') >= 0:
+            model = PCBModel(num_stripes=3).cuda(device=device_ids[0])
+            self.model_type = Model_Types.PCB_3
         elif model_file.find('head_only') >= 0:
             pose_ids = (2,)
             model = PoseReIDModel(pose_ids=pose_ids, no_global=True).cuda(device=device_ids[0])

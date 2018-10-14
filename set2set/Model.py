@@ -648,7 +648,7 @@ class PCBModel(nn.Module):
         local_feat = F.max_pool2d(
             feat[:, :, stripe_start: stripe_end, :], (sh, feat.size(-1)))
         # shape [N, c, 1, 1]
-        local_feat = self.level2_conv_list[i](local_feat)
+        local_feat = self.local_conv_list[i](local_feat)
         # shape [N, c]
         local_feat = local_feat.view(local_feat.size(0), -1)
         local_feat_list.append(local_feat)
