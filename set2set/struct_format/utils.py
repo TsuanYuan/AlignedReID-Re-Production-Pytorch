@@ -206,7 +206,10 @@ class MultiFileCrops(object):
             self.only_keep_noon_time_videos()
         self.red_start_noon = red_start_noon
         self.pid_pos = collections.defaultdict(int)
-        self.pid_list = self.pid_index.keys()
+        if red_start_noon:
+            self.pid_list = self.noon_time.keys()
+        else:
+            self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.9, 'min_h':  96}
         self.same_day_camera = same_day_camera
         self.pids_no_good_qualities = set()
