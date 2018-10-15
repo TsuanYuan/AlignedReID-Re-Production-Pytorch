@@ -260,6 +260,22 @@ class MultiFileCrops(object):
                     for pid in file_list:
                         fw.write('{}\n'.format(str(pid)))
 
+    def sort_data_by_file(self, data_file_place_pairs, count):
+        # put same data file together, for better io performance
+        new_data_file_place_pairs = []
+        for i in range(0, len(data_file_place_pairs), count):
+            current_batch = data_file_place_pairs[i:i+count]
+            d = {}
+            for data_file, offset in current_batch:
+                if data_file not in d:
+                    d[data_file] = []
+                d[data_file].append(offset)
+            for data_file in d:
+                for offset in d[data_file]:
+                    new_data_file_place_pairs.append((data_file, offset))
+        return new_data_file_place_pairs
+
+
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
         if self.same_day_camera:
@@ -272,6 +288,7 @@ class MultiFileCrops(object):
             data_file_place_pairs = self.pid_index[pid]
         # shuffle the list of (file, offset) pairs
         random.shuffle(data_file_place_pairs)
+        data_file_place_pairs = self.sort_data_by_file(data_file_place_pairs, count)
         i = 0
         visit_count = 0
         images = []
