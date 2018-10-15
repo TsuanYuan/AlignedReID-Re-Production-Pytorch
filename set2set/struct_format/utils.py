@@ -193,7 +193,7 @@ class SingleFileCrops(object):
 
 
 class MultiFileCrops(object):
-    def __init__(self, data_folder, list_file, ignore_pids=None, same_day_camera=False):
+    def __init__(self, data_folder, list_file, ignore_pids=None, same_day_camera=False, red_start_noon=True):
         self.prefix = 0
         #index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
         self.data_folder = data_folder
@@ -202,7 +202,9 @@ class MultiFileCrops(object):
         self.load_index_files(list_file, ignore_pids)
         if same_day_camera:
             self.convert_channel_time_records()  # put crops of same video together
-
+        if red_start_noon:
+            self.only_keep_noon_time_videos()
+        self.red_start_noon = red_start_noon
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
         self.quality = {'w_h_max': 0.9, 'min_h':  96}
@@ -210,6 +212,17 @@ class MultiFileCrops(object):
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()
         print 'crop qualities are w_h_max={}, min_h={}'.format(str(self.quality['w_h_max']), str(self.quality['min_h']))
+
+    def only_keep_noon_time_videos(self):
+        self.noon_time = {}
+        for pid in self.pid_index:
+            for video_file, offset in self.pid_index[pid]:
+                ch, date, time = self.decode_wanda_file(video_file)
+                if time > 110000 and time < 150000:
+                    if pid not in self.noon_time:
+                        self.noon_time[pid] = []
+                    self.noon_time[pid].append((video_file, offset))
+
 
     def convert_channel_time_records(self):
         # indexed by pid and data_file, which encodes channel and time
@@ -262,7 +275,9 @@ class MultiFileCrops(object):
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
         pos = self.pid_pos[pid]
-        if self.same_day_camera:
+        if self.red_start_noon:
+            data_file_place_pairs = self.noon_time[pid]
+        elif self.same_day_camera:
             # select crops of same video file (ch, date, time)
             video_file_list = self.pids_ch_time[pid].keys()
             video_file_select = random.choice(video_file_list)
