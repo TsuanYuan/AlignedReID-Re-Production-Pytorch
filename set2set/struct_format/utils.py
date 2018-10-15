@@ -223,7 +223,6 @@ class MultiFileCrops(object):
                         self.noon_time[pid] = []
                     self.noon_time[pid].append((video_file, offset))
 
-
     def convert_channel_time_records(self):
         # indexed by pid and data_file, which encodes channel and time
         self.pids_ch_time = {}
@@ -290,7 +289,7 @@ class MultiFileCrops(object):
 
 
     def load_fixed_count_images_of_one_pid(self, pid, count):
-        pos = self.pid_pos[pid]
+        #pos = self.pid_pos[pid]
         if self.red_start_noon:
             data_file_place_pairs = self.noon_time[pid]
         elif self.same_day_camera:
@@ -340,7 +339,7 @@ class MultiFileCrops(object):
                     no_good_file = '/tmp/no_good_quality.txt'
                     self.save_no_good_file(no_good_file, self.pids_no_good_qualities)
 
-        self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
+        #self.pid_pos[pid] = (pos+count)%len(self.pid_index[pid])
         return images
 
     def get_pid_list(self):
