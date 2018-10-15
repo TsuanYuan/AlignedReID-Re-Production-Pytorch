@@ -1,0 +1,93 @@
+# yaml format for config
+
+
+# settings
+
+# frame interval between two
+min_frame_interval: 32
+
+max_frame_interval: 64
+# output folder for top errors in same pairs an diff pairs
+dump_folder: "/tmp/wanda/difficult"
+# recompute all features
+force_compute: True
+# same pair must be from the same day
+must_same_day: True
+# same pair must be from the same video file
+must_same_video: True
+# sample x crops from on pid for same pair
+same_sample_size: 512
+# jump at intervals in folder list when compare current pid to a different pid folder
+neg_folder_interval: 128
+
+load_keypoints: False
+# for quality control, only load keypoints with score greater than threshold
+keypoints_score_th: 0
+
+
+
+parser.add_argument('test_folder', type=str,
+                        help='folder of ground truth crops with computed features')
+
+    parser.add_argument('model_path', type=str,
+                        help='the model path')
+
+    parser.add_argument('--config_file', type=str, default='',
+                        help='the config file of parameters')
+
+    parser.add_argument('--ext', type=str, default='dsc',
+                        help='the ext to dump descirptor files')
+
+    parser.add_argument('--min_frame_interval', type=int, default=-1,
+                        help='the min frame intervals between a same pair')
+
+    parser.add_argument('--max_frame_interval', type=int, default=10000000,
+                        help='the max frame intervals between a same pair')
+
+    parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
+                        help='whether to dump tough pairs')
+
+    parser.add_argument('--force_compute', action='store_true', default=False,
+                        help='whether to force compute features')
+
+    parser.add_argument('--device_ids', nargs='+', type=int, default=(0, ),
+                        help='device ids to run model')
+
+    parser.add_argument('--batch_max', type=int, default=128,
+                        help='batch size to compute reid features')
+
+    parser.add_argument('--ignore_ids', nargs='+', type=int, default=[],
+                        help='ids to ignore in evaluation')
+
+    parser.add_argument('--multi_folder', action='store_true', default=False,
+                        help='process multiple subfolders')
+
+    parser.add_argument('--must_same_day', action='store_true', default=False,
+                        help='same pair must be at same day')
+
+    parser.add_argument('--must_different_days', action='store_true', default=False,
+                        help='same pair must be at different days')
+
+    parser.add_argument('--must_same_camera', action='store_true', default=False,
+                        help='same pair must be at same cameras')
+
+    parser.add_argument('--must_diff_camera', action='store_true', default=False,
+                        help='same pair must be at different cameras')
+
+    parser.add_argument('--must_same_video', action='store_true', default=False,
+                        help='same pair must be at same video')
+
+    parser.add_argument('--must_diff_video', action='store_true', default=False,
+                        help='same pair must be at different videos')
+
+    parser.add_argument('--same_sample_size', type=int, default=-1,
+                        help='sample size of in each class of same')
+
+    parser.add_argument('--neg_folder_interval', type=int, default=1,
+                        help='interval of neg sample folder')
+
+    parser.add_argument('--load_keypoints', action='store_true', default=False,
+                        help='whether to load keypoints for pose model')
+
+    parser.add_argument('--keypoints_score_th', type=float, default=0.0,
+                        help='threshold of keypoints quality')

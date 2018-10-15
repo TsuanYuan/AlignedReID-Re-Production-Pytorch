@@ -7,6 +7,7 @@ Quan Yuan
 import os
 import sys
 import argparse
+from utils import ioutils
 import logging
 import numpy
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
@@ -103,6 +104,9 @@ if __name__ == "__main__":
     parser.add_argument('model_path', type=str,
                         help='the model path')
 
+    parser.add_argument('--config_file', type=str, default='',
+                        help='the config file of parameters')
+
     parser.add_argument('--ext', type=str, default='dsc',
                         help='the ext to dump descirptor files')
 
@@ -161,6 +165,9 @@ if __name__ == "__main__":
                         help='threshold of keypoints quality')
 
     args = parser.parse_args()
+    if len(args.config_file) > 0: #  config files overwrites parameters
+        args = ioutils.parse_config(args, args.config_file)
+
     print 'min_frame interval={}, batch_max={}, force_compute={}, load_keypoints={}, kp_score_th={}'\
         .format(str(args.min_frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th))
     import time
