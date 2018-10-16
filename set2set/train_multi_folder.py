@@ -257,7 +257,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             else:
                 features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg, _, _ = loss_function(outputs, person_ids, logits)
+            loss,dist_pos, dist_neg, _, _ = loss_function(outputs, person_ids)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
