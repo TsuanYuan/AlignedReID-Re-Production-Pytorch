@@ -20,9 +20,11 @@ def decode_wcc_image_name(image_name):
     channel = parts[0]
     date = parts[1][:8]
     video_time = parts[1][8:]
+    if video_time.isdigit():
+        video_time = int(video_time)
     pid = parts[-2]
     frame_id = parts[-1]
-    return channel, int(date), int(video_time), int(pid), int(frame_id)
+    return channel, int(date), video_time, int(pid), int(frame_id)
 
 def get_filename_for_display(file_path):
     p1, _ = os.path.split(file_path)
