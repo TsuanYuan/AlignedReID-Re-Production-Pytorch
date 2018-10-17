@@ -28,7 +28,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
         if cdv not in crops_by_camera_video:
             crops_by_camera_video[cdv] = []
         crops_by_camera_video[cdv].append((frame_id, image_file))
-    # 2. sort by time (frame_id)
+    # 2. sort by time (frame_id) and split by frame interval gap
     tracklets_collections = {}
     for cdv in crops_by_camera_video:
         frame_data = crops_by_camera_video[cdv]
@@ -40,7 +40,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
             if current_frame_id is None:
                 current_frame_id = frame_id
             else:
-                if frame_id - current_frame_id <= frame_interval_gap_th or len(current_track) < tracklet_length_max:
+                if frame_id - current_frame_id <= frame_interval_gap_th and len(current_track) < tracklet_length_max:
                     current_track.append((frame_id, image_file))
                 else:
                     if pid not in tracklets_collections:
