@@ -18,7 +18,7 @@ from struct_format import utils
 from evaluate import misc
 
 
-def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, tracklet_length_max=100):
+def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, tracklet_length_max=128):
     image_files = glob.glob(os.path.join(pid_folder_path, "*.jpg"))
     # 1. separate by camera and video
     crops_by_camera_video = {}
@@ -29,7 +29,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
             crops_by_camera_video[cdv] = []
         crops_by_camera_video[cdv].append((frame_id, image_file))
     # 2. sort by time (frame_id) and split by frame interval gap
-    tracklets_collections = {}
+    tracklets_collections = []
     for cdv in crops_by_camera_video:
         frame_data = crops_by_camera_video[cdv]
         frame_data = sorted(frame_data, key=lambda k: k[0])
@@ -43,9 +43,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
                 if frame_id - current_frame_id <= frame_interval_gap_th and len(current_track) < tracklet_length_max:
                     current_track.append((frame_id, image_file))
                 else:
-                    if pid not in tracklets_collections:
-                        tracklets_collections[pid] = []
-                    tracklets_collections[pid].append(list(current_track))
+                    tracklets_collections.append(list(current_track))
                     current_track = []
                     current_frame_id = frame_id
     return tracklets_collections
