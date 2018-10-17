@@ -11,7 +11,8 @@ import os
 import datetime
 
 from torchvision import transforms
-import transforms_reid, Model
+import transforms_reid
+from set2set.models import Model
 import losses
 from evaluate import load_model
 from torch.autograd import Variable

@@ -1,17 +1,19 @@
 """
-train appearance model on days
+train appearance model with quality weight
 Quan Yuan
 2018-05-15
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-import DataLoader
+from DataLoader import ReIDAppearanceDataset
 import argparse
 import os
 import datetime
+from evaluate import load_model
 
 from torchvision import transforms
-import transforms_reid, Model
+import transforms_reid
+from set2set.models import Model
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
@@ -38,7 +40,7 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=True, skip_fc=False):
   """Load state_dict's of modules/optimizers from file.
   Args:
     modules_optims: A list, which members are either torch.nn.optimizer
@@ -47,7 +49,10 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc
     load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
       to cpu type.
   """
-  map_location = (lambda storage, loc: storage) if load_to_cpu else None
+  if load_to_cpu:
+    map_location = (lambda storage, loc: storage)
+  else:
+    map_location = torch.device('cuda:{}'.format(str(gpu_id)))#(lambda storage, loc: storage.cuda(gpu_id))
   ckpt = torch.load(ckpt_file, map_location=map_location)
   if skip_fc:
     print('skip fc layers when loading the model!')
@@ -146,9 +151,9 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', num_workers=8,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50):
+def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
@@ -157,10 +162,20 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-
-    #reid_datasets = DataLoader.create_list_of_days_datasets(data_folder, transform=composed_transforms, crops_per_id=sample_size)
-    #reid_data_concat = DataLoader.ConcatDayDataset(reid_datasets, batch_size, data_size_factor=data_size_factor)
-    pid_one_day_dataset = DataLoader.ReIDSameIDOneDayDataset(data_folder, transform=composed_transforms, crops_per_id=sample_size)
+    data_folders = []
+    with open(index_file) as f:
+        for line in f:
+            data_folders.append(line.strip())
+    reid_datasets = []
+    for data_folder in data_folders:
+        if os.path.isdir(data_folder):
+            reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+                                                crops_per_id=sample_size)
+            reid_datasets.append(reid_dataset)
+            num_classes = len(reid_dataset)
+            print "A total of {} classes are in the data set".format(str(num_classes))
+        else:
+            print 'cannot find data folder {}'.format(data_folder)
 
     if not torch.cuda.is_available():
         gpu_ids = None
@@ -174,6 +189,9 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         raise Exception('unknown model type {}'.format(model_type))
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
+    else:
+        torch.cuda.set_device(gpu_ids[0])
+
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
@@ -181,7 +199,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_ckpt([model], model_file, skip_fc=True)
+            load_model.load_ckpt([model], model_file, skip_fc=True)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
@@ -190,6 +208,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     else:
         model_p = model
 
+    start_decay = 50
     min_lr = 1e-9
     if loss_name == 'triplet':
         loss_function = losses.TripletLossK(margin=margin)
@@ -198,12 +217,22 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     else:
         raise Exception('unknown loss name')
 
-    dataloader = torch.utils.data.DataLoader(pid_one_day_dataset, batch_size=batch_size,
-                                             shuffle=True, num_workers=num_workers)
+    n_set = len(reid_datasets)
+    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
+                                             shuffle=True, num_workers=4) for set_id in range(n_set)]
+    dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
+    num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
         sum_loss = 0
-        for i_batch, sample_batched in enumerate(dataloader):
-
+        i_batch = 0
+        while i_batch < num_iters_per_epoch: #i_batch, sample_batched in enumerate(dataloader):
+            set_id = i_batch % n_set
+            it = dataloader_iterators[set_id]
+            try:
+                sample_batched = next(it)
+            except:
+                dataloader_iterators[set_id] = iter(dataloaders[set_id])
+                sample_batched = next(dataloader_iterators[set_id])
             # stair case adjust learning rate
             if i_batch ==0:
                 adjust_lr_exp(
@@ -213,14 +242,12 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                     num_epochs,
                     start_decay, min_lr)
 
-            # debug date
-            # for sample in sample_batched:
-            #     print "date of {}".format(sample['date'])
-            images_5d = sample_batched['images'] #torch.cat([sample['images'] for sample in sample_batched], dim=0)  # [batch_id, crop_id, 3, 256, 128]
+            # load batch data
+            images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
-            person_ids = sample_batched['person_id'] #torch.cat([sample['person_id'] for sample in sample_batched], dim=0)
-            # dates = torch.cat([sample['date'] for sample in sample_batched], dim=0)
+            person_ids = sample_batched['person_id']
+            # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
 
@@ -237,7 +264,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
-            if i_batch==len(dataloader)-1:
+            if i_batch==num_iters_per_epoch-1:
                 log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
@@ -250,9 +277,9 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="training reid with day by day Dataset. Each subfolder is of one ID")
+    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
 
-    parser.add_argument('data_folder', type=str, help="training folder, contains multiple pid folders")
+    parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
 
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
@@ -260,9 +287,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
-    parser.add_argument('--start_decay', type=int, default=50, help="epoch to start learning rate decay")
-    parser.add_argument('--num_workers', type=int, default=4, help="num of data batching workers")
-    parser.add_argument('--data_size_factor', type=int, default=4, help="each epoch will iterate len(datasets)*data_size_factor iterations. Not necessarily all pids")
+    parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
@@ -272,13 +297,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print('training_parameters:')
-    print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, data_size_factor={}'.
+    print('  index_file={0}'.format(args.folder_list_file))
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), str(args.data_size_factor)))
+                   str(args.lr), args.model_type))
 
     torch.backends.cudnn.benchmark = False
 
-    main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, num_workers=args.num_workers)
+    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)

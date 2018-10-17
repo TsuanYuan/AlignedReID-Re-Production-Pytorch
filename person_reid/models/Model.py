@@ -10,11 +10,11 @@ import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
 from torch.autograd import Variable
-from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
+from set2set.models.BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
-from parts_models import se_resnet
+# from set2set.parts_models import se_resnet
 
 
 def create_model(model_type, num_classes=None, num_stripes=None):
@@ -510,44 +510,6 @@ class PoseReWeightModel(nn.Module):
         return feat
 
 
-class SEModel(nn.Module):
-    def __init__(self,
-                 num_classes=None, base_model='resnet50'):
-        super(SEModel, self).__init__()
-        if base_model == 'resnet50':
-            self.base = se_resnet.se_resnet50(pretrained=True)
-            planes = 2048
-        else:
-            raise RuntimeError("unknown base model!")
-
-        self.num_classes = num_classes
-        if num_classes is not None:
-            self.fc = nn.Linear(planes, num_classes)
-            init.normal_(self.fc.weight, std=0.001)
-            init.constant_(self.fc.bias, 0)
-
-    def forward(self, x):
-        """
-    Returns:
-      global_feat: shape [N, C]
-      logits: shape [N, nc]
-    """
-        #x: shape [N, C, H, W]
-        feat = self.base(x)
-        global_feat = F.avg_pool2d(feat, feat.size()[2:])
-        # shape [N, C]
-        global_feat = global_feat.view(global_feat.size(0), -1)
-
-        if len(global_feat.size()) == 1:  # in case of single feature
-            global_feat = global_feat.unsqueeze(0)
-        feat = F.normalize(global_feat, p=2, dim=1)
-
-        if hasattr(self, 'fc'):
-            logits = self.fc(feat)
-            return feat,logits
-
-        return feat, None
-
 
 class BinaryModel(nn.Module):
     def __init__(self, local_conv_out_channels=256, base_model='resnet18', device_id=-1, num_classes=None):
@@ -675,9 +637,6 @@ class MGNModel(nn.Module):
         if base_model == 'resnet50':
             self.base = resnet50_with_layers(pretrained=True)
             planes = 2048
-        elif base_model == 'resnet50se':
-            self.base = se_resnet.se_resnet50_with_layers(pretrained=True)
-            planes = 2048
         else:
             raise RuntimeError("unknown base model!")
 
@@ -705,16 +664,9 @@ class MGNModel(nn.Module):
                 nn.ReLU(inplace=True)
             ))
         if num_classes is not None:
-            self.fc_list = nn.ModuleList()
-            for _ in range(self.level2_strips+self.level3_strips):
-                fc = nn.Linear(local_conv_out_channels, num_classes)
-                init.normal_(fc.weight, std=0.001)
-                init.constant_(fc.bias, 0)
-                self.fc_list.append(fc)
-            fc = nn.Linear(local_conv_out_channels, num_classes)
-            init.normal_(fc.weight, std=0.001)
-            init.constant_(fc.bias, 0)
-            self.fc_list.append(fc)
+                self.fc = nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes)
+                init.normal_(self.fc.weight, std=0.001)
+                init.constant_(self.fc.bias, 0)
         self.num_classes = num_classes
 
     def compute_stripe_feature_list(self, x):
@@ -739,8 +691,6 @@ class MGNModel(nn.Module):
             # shape [N, c]
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat)
-            if hasattr(self, 'fc_list'):
-                logits_list.append(self.fc_list[i](local_feat))
 
         stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
         # stripe_h = int(np.ceil(stripe_s))
@@ -756,27 +706,17 @@ class MGNModel(nn.Module):
             # shape [N, c]
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat)
-            if hasattr(self, 'parts_fc_list'):
-                logits_list.append(self.parts_fc_list[i + self.level2_strips](local_feat))
+
         if len(global_feat.size()) == 1:
             global_feat = global_feat.unsqueeze(0)
         local_feat_list.append(global_feat)
-        if self.num_classes is not None:
-            logits_list.append(self.fc_list[-1](torch.squeeze(global_feat)))
-            # sum up logits and concatinate features
-            logits = None
-            for i, logit_rows in enumerate(logits_list):
-                if i == 0:
-                    logits = logit_rows
-                else:
-                    logits += logit_rows
-        else:
-            logits = None
-        return local_feat_list, logits
+
+        return local_feat_list
 
     def concat_stripe_features(self, x):
-        local_feat_list, logits = self.compute_stripe_feature_list(x)
+        local_feat_list = self.compute_stripe_feature_list(x)
         condensed_feat = torch.cat(local_feat_list, dim=1)
+        logits = self.fc(condensed_feat)
         return condensed_feat, logits
 
     def forward(self, x):

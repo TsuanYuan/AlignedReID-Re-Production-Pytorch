@@ -48,18 +48,6 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     return new_im
 
 
-# def decode_wcc_image_name(image_name):
-#     # decode ch00002_20180816102633_00005504_00052119.jpg
-#     image_base, _ = os.path.splitext(image_name)
-#     parts = image_base.split('_')
-#     channel = parts[0]
-#     date = parts[1][:8]
-#     time = parts[1][8:]
-#     pid = parts[2]
-#     frame_id = parts[3]
-#     return channel, date, time, pid, frame_id
-
-
 class ConcatDayDataset(ConcatDataset):
     """
     random select samples through
@@ -439,6 +427,46 @@ class ReIDAppearanceDataset(Dataset):
         sample['w_h_ratios'] = torch.from_numpy(numpy.array(w_h_ratios))
         return sample
 
+
+class ReIDClassifierDataSet(Dataset):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, with_roi=False,
+                 original_ar=False):
+        """
+        Args:
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        ## folder structure, root_folder->person_id_folders->image_crops
+        self.root_dir = root_dir
+        subfolders = os.listdir(root_dir)
+        self.person_id_im_paths = {}
+        for item in subfolders:
+            path = os.path.join(root_dir, item)
+            if os.path.isdir(path) and item.isdigit():
+                person_id = int(item)
+                jpgs = glob.glob(os.path.join(path, '*.jpg'))
+                if len(jpgs) > 0:
+                    self.person_id_im_paths[person_id] = jpgs
+
+        self.transform = transform
+        self.crop_per_id = crops_per_id
+        self.original_ar = original_ar # whether to use fixed aspect ratio
+        self.with_roi = with_roi
+
+    def __len__(self):
+        return len(self.person_id_im_paths)
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.person_id_im_paths.keys()[set_id]
+        im_paths = self.person_id_im_paths[person_id]
+        im_path = random.choice(im_paths)
+        im, _ = crop_pad_fixed_aspect_ratio(io.imread(im_path))
+        sample = {'image': im, 'class_id': class_id}
+        if self.transform:
+            sample['image'] = self.transform(sample['image'])
+        return sample
 
 class ReIDMultiFolderAppearanceDataset(Dataset):
     """ReID dataset of multiple folders, triplets only comes from one folder each iter"""

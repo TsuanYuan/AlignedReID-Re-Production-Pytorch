@@ -5,18 +5,18 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset
+from DataLoader import ReIDKeypointsDataset
 import argparse
 import os
 import datetime
-from evaluate import load_model
 
 from torchvision import transforms
-import transforms_reid, Model
+import transforms_reid
+from set2set.models import Model
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
-
+from evaluate import load_model
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
   """Save state_dict's of modules/optimizers to file.
@@ -38,37 +38,6 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
   if not os.path.isdir(os.path.dirname(os.path.abspath(ckpt_file))):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
-
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=False, gpu_id=0, verbose=True, skip_fc=False):
-  """Load state_dict's of modules/optimizers from file.
-  Args:
-    modules_optims: A list, which members are either torch.nn.optimizer
-      or torch.nn.Module.
-    ckpt_file: The file path.
-    load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
-      to cpu type.
-  """
-  if load_to_cpu:
-    map_location = (lambda storage, loc: storage)
-  else:
-    map_location = torch.device('cuda:{}'.format(str(gpu_id)))#(lambda storage, loc: storage.cuda(gpu_id))
-  ckpt = torch.load(ckpt_file, map_location=map_location)
-  if skip_fc:
-    print('skip fc layers when loading the model!')
-  for m, sd in zip(modules_optims, ckpt['state_dicts']):
-    if m is not None:
-      if skip_fc:
-        for k in sd.keys():
-          if k.find('fc') >= 0:
-            sd.pop(k, None)
-      if hasattr(m, 'param_groups'):
-        m.load_state_dict(sd)
-      else:
-        m.load_state_dict(sd, strict=False)
-  if verbose:
-    print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
-      ckpt_file, ckpt['ep'], ckpt['scores']))
-  return ckpt['ep'], ckpt['scores']
 
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
@@ -150,14 +119,14 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
         raise KeyError("Unsupported optim: {}".format(optim))
 
 
-def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
+def main(index_file, model_file, sample_size, batch_size, parts_type='head', attention_weight=False,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, num_data_workers=8, skip_merge=False):
 
-    composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256, 128)),
-                                              transforms_reid.RandomBlockMask(8),
+    composed_transforms = transforms.Compose([#transforms_reid.RandomHorizontalFlip(),
+                                              transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
+                                              #transforms_reid.RandomCrop((256, 128)),
+                                              #transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
@@ -168,7 +137,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     reid_datasets = []
     for data_folder in data_folders:
         if os.path.isdir(data_folder):
-            reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+            reid_dataset = ReIDKeypointsDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
@@ -178,19 +147,39 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
     if not torch.cuda.is_available():
         gpu_ids = None
-    if model_type == 'mgn':
-        model = Model.MGNModel()
-    elif model_type == 'se':
-        model = Model.MGNModel(base_model='resnet50se')
-    elif model_type == 'plain':
-        model = Model.PlainModel()
-    else:
-        raise Exception('unknown model type {}'.format(model_type))
-    if len(gpu_ids)>=0:
-        model = model.cuda(device=gpu_ids[0])
     else:
         torch.cuda.set_device(gpu_ids[0])
 
+    if parts_type=='limbs':
+        pose_ids = (2,9,10,15,16)
+        model = Model.PoseReIDModel(pose_ids=pose_ids)
+    elif parts_type=='limbs_only':
+        pose_ids = (2,9,10,15,16)
+        model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
+        print "limbs only model!"
+    elif parts_type=='head_reweight':
+        pose_ids = (0, 2 ,4)
+        model = Model.PoseReWeightModel(pose_ids=pose_ids)
+        print "head pose reweight model!"
+    elif parts_type=='head':
+        pose_ids = (0, 2, 4) # redundency for heads
+        model = Model.PoseReIDModel(pose_ids=pose_ids)
+    elif parts_type == 'head_extra':
+        pose_id = 0
+        model = Model.MGNWithHead(pose_id=pose_id, attention_weight=attention_weight)
+    elif parts_type == 'limbs_extra':
+        pose_ids = (2,9,10,15,16)
+        model = Model.MGNWithParts(pose_ids=pose_ids, attention_weight=attention_weight)
+    elif parts_type=='head_only':
+        pose_ids = (2,)
+        model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
+        print "head only model!"
+    else:
+        raise Exception("unknown parts definition {}".format(parts_type))
+    print "parts type is {}".format(parts_type)
+
+    if len(gpu_ids)>=0:
+        model = model.cuda(device=gpu_ids[0])
     optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
     model_folder = os.path.split(model_file)[0]
     if not os.path.isdir(model_folder):
@@ -198,7 +187,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_model.load_ckpt([model], model_file, skip_fc=True)
+            load_model.load_ckpt([model], model_file, skip_fc=True, skip_merge=skip_merge)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
@@ -217,8 +206,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
         raise Exception('unknown loss name')
 
     n_set = len(reid_datasets)
-    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
-                                             shuffle=True, num_workers=4) for set_id in range(n_set)]
+    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size, drop_last = True,
+                                             shuffle=True, num_workers=num_data_workers) for set_id in range(n_set)]
     dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
@@ -240,34 +229,41 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
                     epoch + 1,
                     num_epochs,
                     start_decay, min_lr)
-
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
+            keypoints_5d = sample_batched['keypoints']
+            person_ids = sample_batched['person_id']
             # import debug_tool
             # debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/')
-            person_ids = sample_batched['person_id']
-            # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
             images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
-
+            kp_size = keypoints_5d.size()
+            keypoints = keypoints_5d.view([kp_size[0]*kp_size[1],kp_size[2],kp_size[3]])
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
                     person_ids = person_ids.cuda(device=gpu_ids[0])
-                    features, logits = model_p(Variable(images.cuda(device=gpu_ids[0], async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
+                    features = model_p(Variable(images.cuda(device=gpu_ids[0], async=True)), keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
-                features, logits = model(Variable(images))
+                features = model(Variable(images), keypoints)
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg, _, _ = loss_function(outputs, person_ids)
+            loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
+            #if parts_type=='head' and dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
+            #    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(numpy.unique(p_pids.cpu().numpy())), str(numpy.unique(n_pids.cpu().numpy()))))
+            #    pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+            #    import debug_tool
+            #    debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d/', pids=pids_expand, name_tag=str(epoch)+'_'+str(i_batch)+'_')
             if i_batch==num_iters_per_epoch-1:
                 log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
+                #if dist_pos.data.cpu().numpy() > dist_neg.data.cpu().numpy():
+                #    print("  a touch case. pos_pids are {}, neg_pids are {}".format(str(numpy.unique(p_pids.cpu().numpy())), str(numpy.unique(n_pids.cpu().numpy()))))
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 save_ckpt([model],  epoch, log_str, model_file)
@@ -276,7 +272,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
+    parser = argparse.ArgumentParser(description="training with parts model")
 
     parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
@@ -286,6 +282,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
+    parser.add_argument('--num_data_workers', type=int, default=8, help="num of works in multiprocess data batching")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
     parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
@@ -293,16 +290,19 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
+    parser.add_argument('--skip_merge', action='store_true', default=False, help="whether to skip loading the merge layers that combines all parts")
+    parser.add_argument('--parts_type', type=str, default='head', help="parts definitions")
+    parser.add_argument('--attention_weight', action='store_true', default=False, help="whether to use attention weight for parts")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, skip_merge={}, num_data_workers={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), args.model_type))
+                   str(args.lr), str(args.skip_merge), str(args.num_data_workers)))
 
     torch.backends.cudnn.benchmark = False
 
-    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
+    main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, parts_type=args.parts_type,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, skip_merge=args.skip_merge, attention_weight=args.attention_weight)

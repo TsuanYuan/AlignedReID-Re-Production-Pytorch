@@ -13,7 +13,7 @@ import sklearn.metrics.pairwise
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 import aligned_reid.utils.utils
-import Model
+from set2set.models import Model
 from torch.nn.parallel import DataParallel
 from torch.autograd import Variable
 import torch
@@ -161,13 +161,13 @@ def create_alignedReID_model_ml(model_weight_file, sys_device_ids=((0,),), image
 
     if len(model_name) ==0:
         models = [Model.SwitchClassHeadModel(local_conv_out_channels=local_conv_out_channels, num_classes=num_classes,
-                                                 final_conv_out_channels=num_planes, base_model=base_name, with_final_conv=with_final_conv,
-                                                 parts_model=parts_model)
+                                             final_conv_out_channels=num_planes, base_model=base_name, with_final_conv=with_final_conv,
+                                             parts_model=parts_model)
                   for _ in range(num_models)]
     elif model_name == 'mgn':
         models = [
            Model.MGNModel(local_conv_out_channels=local_conv_out_channels,
-                                            base_model=base_name, parts_model=parts_model)
+                          base_model=base_name, parts_model=parts_model)
             for _ in range(num_models)]
     elif model_name == 'senet':
         models = [

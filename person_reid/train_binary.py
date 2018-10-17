@@ -12,12 +12,10 @@ from torch import nn
 import torch
 
 from torchvision import transforms
-from torchvision.utils import make_grid, save_image
-import transforms_reid, Model
-import utils
-import losses
+import transforms_reid
+from set2set.models import Model
 from torch.autograd import Variable
-import debug_tool
+
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
     """Multiplied by a factor at the BEGINNING of specified epochs. All
@@ -94,7 +92,7 @@ def main(data_folder, model_folder, batch_size, decay_interval=80,
     if gpu_id>=0:
         model = Model.MGNModel(base_model=base_model, num_classes=num_classes).cuda(device=gpu_id)
     else:
-        model = Model.MGNModel(base_model=base_model,num_classes=num_classes)
+        model = Model.MGNModel(base_model=base_model, num_classes=num_classes)
 
     if not os.path.isdir(model_folder):
         os.makedirs(model_folder)

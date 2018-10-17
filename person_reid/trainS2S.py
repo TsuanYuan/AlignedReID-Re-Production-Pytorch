@@ -10,7 +10,8 @@ import argparse
 import os
 
 from torchvision import transforms
-import transforms_reid, Model
+import transforms_reid
+from set2set.models import Model
 import utils
 import losses
 from torch.autograd import Variable
