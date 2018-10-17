@@ -48,18 +48,6 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     return new_im
 
 
-# def decode_wcc_image_name(image_name):
-#     # decode ch00002_20180816102633_00005504_00052119.jpg
-#     image_base, _ = os.path.splitext(image_name)
-#     parts = image_base.split('_')
-#     channel = parts[0]
-#     date = parts[1][:8]
-#     time = parts[1][8:]
-#     pid = parts[2]
-#     frame_id = parts[3]
-#     return channel, date, time, pid, frame_id
-
-
 class ConcatDayDataset(ConcatDataset):
     """
     random select samples through
@@ -212,6 +200,103 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
         if self.transform:
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
+        return sample
+
+
+class ReIDCarDataset(Dataset):
+    """ReID dataset."""
+
+    def __init__(self, root_dir, transform=None, crops_per_id=8, frame_group_interval=128,
+                 desired_size= (128,128)
+                 ):
+        """
+        Args:
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        ## folder structure, root_folder->car_id_folders->image_crops
+        self.root_dir = root_dir
+        subfolders = os.listdir(root_dir)
+        self.car_id_im_paths = {}
+
+        skip_count = 0
+        for item in subfolders:
+            path = os.path.join(root_dir, item)
+            if os.path.isdir(path) and item.isdigit():
+                car_id = int(item)
+                jpgs = glob.glob(os.path.join(path, '*.jpg'))
+                if len(jpgs) >= crops_per_id:
+                    self.car_id_im_paths[car_id] = jpgs
+                else:
+                    skip_count += 1
+        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count), str(len(subfolders)), str(crops_per_id)))
+        self.group_crops_by_frame_interval(frame_group_interval)
+
+        self.transform = transform
+        self.crop_per_id = int(crops_per_id)
+        self.desired_size = desired_size
+
+    def decode_car_image_name(self, image_path):
+        file_only = os.path.splitext(os.path.basename(image_path))[0]
+        parts = file_only.split('-')
+        video_name = parts[0]
+        track_id = int(parts[1])
+        frame_id = int(parts[2])
+        return video_name, track_id, frame_id
+
+    def group_crops_by_frame_interval(self, frame_group_interval):
+        self.car_paths_by_id_time = {}
+        self.car_id_to_class_id = {}
+        class_count = 0
+        for car_id in self.car_id_im_paths:
+            current_frame_start = None
+            frame_groups = {}
+            group_count = 0
+            current_group = []
+            self.car_id_im_paths[car_id] = sorted(self.car_id_im_paths[car_id])
+            for im_file in self.car_id_im_paths[car_id]:
+                _, _, frame_id = self.decode_car_image_name(im_file)
+                if current_frame_start is None:
+                    current_frame_start = frame_id
+                else:
+                    if frame_id > current_frame_start + frame_group_interval:
+                        frame_groups[group_count] = current_group
+                        current_group = []
+                        current_frame_start = frame_id
+                        group_count+=1
+                current_group.append((frame_id, im_file))
+            if len(frame_groups) >= 2:
+                self.car_paths_by_id_time[car_id] = frame_groups
+                self.car_id_to_class_id[car_id] = class_count
+                class_count += 1
+            else:
+                print('skipped car id = {} for only one time groups'.format(car_id))
+            group_count += 1
+
+    def __len__(self):
+        return len(self.car_paths_by_id_time)
+
+    def __getitem__(self, set_id):
+        # 1. get car id
+        car_id = self.car_paths_by_id_time.keys()[set_id]
+        im_groups = self.car_paths_by_id_time[car_id]
+        group_ids = im_groups.keys()
+        random.shuffle(group_ids)
+        # 2. two halves from two time periods
+        sample_half_1 = [random.choice(im_groups[group_ids[0]])[1] for _ in range(self.crop_per_id)]
+        sample_half_2 = [random.choice(im_groups[group_ids[1]])[1] for _ in range(self.crop_per_id)]
+        sample = sample_half_1+sample_half_2
+        ims = []
+        for im_path in sample:
+            im_bgr = cv2.imread(im_path)
+            im_rgb = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+            im = cv2.resize(im_rgb, (self.desired_size[1], self.desired_size[0]))
+            ims.append(im)
+        time_group_ids = [group_ids[0]]*self.crop_per_id + [group_ids[1]]*self.crop_per_id
+        sample = {'images': ims, 'time_group_ids':time_group_ids, 'class_id': [self.car_id_to_class_id[car_id]]*len(sample)}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
         return sample
 
 

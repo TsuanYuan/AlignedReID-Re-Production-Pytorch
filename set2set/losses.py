@@ -105,6 +105,19 @@ def euclidean_dist(x, y):
   dist = dist.clamp(min=1e-12).sqrt()  # for numerical stability
   return dist
 
+def car_loss(id_loss_fun, triplet_loss_fun, global_feat, logits, car_ids, time_group_ids):
+
+    # shape [N, N]
+    dist_mat = euclidean_dist(global_feat, global_feat)
+    dist_ap, dist_an, p_inds, n_inds = car_hard_example_mining(
+        dist_mat, car_ids, time_group_ids, return_inds=True)
+
+    p_labels = car_ids[p_inds]
+    n_labels = car_ids[n_inds]
+    tri_loss = triplet_loss_fun(dist_ap, dist_an)
+    id_loss = id_loss_fun(logits, car_ids)
+
+    return tri_loss, id_loss, torch.mean(dist_ap), torch.mean(dist_an), p_labels, n_labels
 
 def global_loss(tri_loss, global_feat, labels, normalize_feature=True):
   """
@@ -149,11 +162,7 @@ def triplet_loss_func(feature, labels, ranking_loss, margin=0.2):
     dist_ap, dist_an, p_inds, n_inds = hard_example_mining(
         dist_mat, labels, return_inds=True)
     loss_row = dist_ap + margin - dist_an
-    #loss_ids = loss_row.gt(0).detach()
-    #loss = torch.sum(loss_row[loss_ids])
     loss = torch.sum(loss_row[loss_row > 0])
-    #y = Variable(dist_an.data.new().resize_as_(dist_an.data).fill_(1))
-    #loss = ranking_loss(dist_an, dist_ap, y)
     return loss, torch.mean(dist_ap), torch.mean(dist_an)
 
 def fixed_th_loss_func(feature, pids, th, margin_pos, margin_neg):
@@ -200,6 +209,50 @@ def hard_example_mining(dist_mat, labels, return_inds=False):
     is_pos = labels.expand(N, N).eq(labels.expand(N, N).t())
     is_neg = labels.expand(N, N).ne(labels.expand(N, N).t())
 
+    # `dist_ap` means distance(anchor, positive)
+    # both `dist_ap` and `relative_p_inds` with shape [N, 1]
+    dist_ap, relative_p_inds = torch.max(
+    dist_mat[is_pos].contiguous().view(N, -1), 1, keepdim=True)
+    # `dist_an` means distance(anchor, negative)
+    # both `dist_an` and `relative_n_inds` with shape [N, 1]
+    dist_an, relative_n_inds = torch.min(
+    dist_mat[is_neg].contiguous().view(N, -1), 1, keepdim=True)
+    # shape [N]
+    dist_ap = dist_ap.squeeze(1)
+    dist_an = dist_an.squeeze(1)
+
+    if return_inds:
+        # shape [N, N]
+        ind = (labels.new().resize_as_(labels)
+               .copy_(torch.arange(0, N).long())
+               .unsqueeze( 0).expand(N, N))
+        # shape [N, 1]
+        p_inds = torch.gather(
+          ind[is_pos].contiguous().view(N, -1), 1, relative_p_inds.data)
+        n_inds = torch.gather(
+          ind[is_neg].contiguous().view(N, -1), 1, relative_n_inds.data)
+        # shape [N]
+        p_inds = p_inds.squeeze(1)
+        n_inds = n_inds.squeeze(1)
+        return dist_ap, dist_an, p_inds, n_inds
+
+    return dist_ap, dist_an
+
+def car_hard_example_mining(dist_mat, labels, group_ids, return_inds=False):
+    """For each anchor, find the hardest positive and negative sample.
+     only cars of the same labels are compared of group ids
+    """
+
+    assert len(dist_mat.size()) == 2
+    assert dist_mat.size(0) == dist_mat.size(1)
+    N = dist_mat.size(0)
+
+    # shape [N, N]
+    same_labels = labels.expand(N, N).eq(labels.expand(N, N).t())
+    same_groups = group_ids.expand(N, N).eq(group_ids.expand(N, N).t())
+    diff_groups = group_ids.expand(N, N).ne(group_ids.expand(N, N).t())
+    is_pos = same_labels & same_groups
+    is_neg = same_labels & diff_groups
     # `dist_ap` means distance(anchor, positive)
     # both `dist_ap` and `relative_p_inds` with shape [N, 1]
     dist_ap, relative_p_inds = torch.max(
@@ -450,7 +503,27 @@ class TripletLossK(nn.Module):
         return element_loss, max_same_d, min_diff_d, p_pids, n_pids
 
 
+class CarLoss(nn.Module):
+    """loss function for car data set.
+       multi-task softmax loss on car_id and triplet loss on time groups
+       """
 
+    def __init__(self, margin, id_loss_weight):
+        super(CarLoss, self).__init__()
+        self.margin = margin
+        self.car_id_loss = nn.CrossEntropyLoss()
+        self.time_group_loss = TripletLoss(margin=margin)
+        self.id_loss_weight = id_loss_weight
+
+    def forward(self, feature, logits, car_ids, time_group_ids):
+        feature_size = list(feature.size())
+        #car_ids_expand = car_ids.expand(feature_size[0:2]).contiguous().view(-1)
+        #feature_expand = feature.view(feature_size[0] * feature_size[1], -1)
+        tri_loss, id_loss, max_same_d, min_diff_d, p_pids, n_pids = car_loss(self.car_id_loss, self.time_group_loss,
+                                                                        feature, logits, car_ids, time_group_ids)
+        # mc_loss = self.id_loss(pids_expand, logits)
+        sum_loss = tri_loss + self.id_loss_weight*id_loss
+        return sum_loss, tri_loss, id_loss, max_same_d, min_diff_d, p_pids, n_pids
 
 class PairLoss(nn.Module):
     """Weighted avearge loss.
