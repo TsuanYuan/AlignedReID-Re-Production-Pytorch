@@ -35,8 +35,9 @@ def get_descriptors_in_split(model_path, split_data, data_folder, device_id, bat
             image = utils.crop_pad_fixed_aspect_ratio(image)
             image = cv2.resize(image, (128, 256))
             images.append(image)
-        descriptor_batch = model.compute_features_on_batch(numpy.array(images))
-        descriptors[video_track] = descriptor_batch
+        if len(images) > 0:
+            descriptor_batch = model.compute_features_on_batch(numpy.array(images))
+            descriptors[video_track] = descriptor_batch
         # images_batch = images_batch + images
         # track_batch.append(video_track)
         # if len(images_batch) >= batch_max or i == len(split_data) - 1:
