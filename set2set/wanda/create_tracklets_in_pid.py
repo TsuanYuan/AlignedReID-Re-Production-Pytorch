@@ -23,7 +23,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
     # 1. separate by camera and video
     crops_by_camera_video = {}
     for image_file in image_files:
-        channel, date, video_time, pid, frame_id = misc.decode_wcc_image_name(image_file)
+        channel, date, video_time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(image_file))
         cdv = str(channel)+'_'+str(date)+'_'+str(video_time)+'_'+str(pid)
         if cdv not in crops_by_camera_video:
             crops_by_camera_video[cdv] = []
