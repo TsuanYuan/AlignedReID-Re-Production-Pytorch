@@ -261,7 +261,7 @@ if __name__ == '__main__':
     parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
-    parser.add_argument('--softmax_loss_weight', type=float, default=0.01, help="ratio of softmax loss in total loss")
+    parser.add_argument('--softmax_loss_weight', type=float, default=0.1, help="ratio of softmax loss in total loss")
     parser.add_argument('--frame_group_interval', type=int, default=128, help="interval of frame index to group frames")
 
     args = parser.parse_args()
