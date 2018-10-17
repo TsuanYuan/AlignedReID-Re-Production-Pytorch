@@ -45,7 +45,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
                 else:
                     if pid not in tracklets_collections:
                         tracklets_collections[pid] = []
-                    tracklets_collections[pid].append(current_track)
+                    tracklets_collections[pid].append(list(current_track))
                     current_track = []
     return tracklets_collections
 
