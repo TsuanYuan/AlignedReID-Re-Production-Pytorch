@@ -149,13 +149,13 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
          num_epochs=200, gpu_ids=(), margin=0.1, num_workers=8,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50, id_loss_weight=0.01,
-         desired_size = (128,128)):
+         desired_size = (128,128), frame_group_interval=128):
     composed_transforms = transforms.Compose([
                                               transforms_reid.Rescale(desired_size),  # not change the pixel range to [0,1.0]
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-    car_id_dataset = DataLoader.ReIDCarDataset(data_folder,transform=composed_transforms,
+    car_id_dataset = DataLoader.ReIDCarDataset(data_folder,transform=composed_transforms, frame_group_interval=frame_group_interval,
                                                crops_per_id=sample_size, desired_size=desired_size)
     num_classes = len(car_id_dataset)
     if not torch.cuda.is_available():
@@ -262,16 +262,17 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--softmax_loss_weight', type=float, default=0.01, help="ratio of softmax loss in total loss")
+    parser.add_argument('--frame_group_interval', type=int, default=128, help="interval of frame index to group frames")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, frame_interval={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr)))
+                   str(args.lr), str(args.frame_group_interval)))
 
     torch.backends.cudnn.benchmark = False
 
     main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
-         optimizer_name=args.optimizer, base_lr=args.lr, num_workers=args.num_data_workers)
+         optimizer_name=args.optimizer, base_lr=args.lr, num_workers=args.num_data_workers, frame_group_interval=args.frame_group_interval)
