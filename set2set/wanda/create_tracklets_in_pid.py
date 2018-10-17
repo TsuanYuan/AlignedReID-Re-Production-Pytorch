@@ -47,6 +47,7 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, track
                         tracklets_collections[pid] = []
                     tracklets_collections[pid].append(list(current_track))
                     current_track = []
+                    current_frame_id = frame_id
     return tracklets_collections
 
 
