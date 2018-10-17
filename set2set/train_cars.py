@@ -158,6 +158,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     car_id_dataset = DataLoader.ReIDCarDataset(data_folder,transform=composed_transforms, frame_group_interval=frame_group_interval,
                                                crops_per_id=sample_size, desired_size=desired_size)
     num_classes = len(car_id_dataset)
+    print "num_classes are {}".format(str(num_classes))
     if not torch.cuda.is_available():
         gpu_ids = None
     # if model_type == 'mgn':

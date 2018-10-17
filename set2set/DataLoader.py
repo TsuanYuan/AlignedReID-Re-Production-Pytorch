@@ -249,6 +249,7 @@ class ReIDCarDataset(Dataset):
         self.car_paths_by_id_time = {}
         self.car_id_to_class_id = {}
         class_count = 0
+        skip_count = 0
         for car_id in self.car_id_im_paths:
             current_frame_start = None
             frame_groups = {}
@@ -271,8 +272,9 @@ class ReIDCarDataset(Dataset):
                 self.car_id_to_class_id[car_id] = class_count
                 class_count += 1
             else:
-                print('skipped car id = {} for only one time groups'.format(car_id))
+                skip_count += 1
             group_count += 1
+        print('skipped {} classes and remains {} classes for only one time groups'.format(str(skip_count), str(class_count)))
 
     def __len__(self):
         return len(self.car_paths_by_id_time)
