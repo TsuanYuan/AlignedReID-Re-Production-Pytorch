@@ -46,14 +46,12 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
             centroids = pickle.load(fp)
             labels = pickle.load(fp)
             inertia = pickle.load(fp)
-            best_n_iter = pickle.load(fp)
     else:
-        centroids, labels, inertia, best_n_iter = k_means(descriptors, num_clusters, max_iter=30000, n_jobs=10)
+        centroids, labels, inertia = k_means(descriptors, num_clusters, max_iter=30000, n_jobs=10)
         with open(output_cluster_result_file, 'wb') as fp:
             pickle.dump(centroids, fp, pickle.HIGHEST_PROTOCOL)
             pickle.dump(labels, fp, pickle.HIGHEST_PROTOCOL)
             pickle.dump(inertia, fp, pickle.HIGHEST_PROTOCOL)
-            pickle.dump(best_n_iter, fp, pickle.HIGHEST_PROTOCOL)
 
     output_plot_folder = os.path.join(output_folder, 'plots')
     if not os.path.isdir(output_plot_folder):
