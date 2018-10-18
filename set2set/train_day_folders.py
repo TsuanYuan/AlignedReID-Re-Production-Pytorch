@@ -162,11 +162,11 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     #reid_data_concat = DataLoader.ConcatDayDataset(reid_datasets, batch_size, data_size_factor=data_size_factor)
     pid_one_day_dataset = DataLoader.ReIDSameIDOneDayDataset(data_folder, transform=composed_transforms,
                                                              crops_per_id=sample_size, desired_size=desired_size)
-
+    num_classes = len(pid_one_day_dataset)
     if not torch.cuda.is_available():
         gpu_ids = None
     if model_type == 'mgn':
-        model = Model.MGNModel()
+        model = Model.MGNModel(num_classes=num_classes)
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
     elif model_type == 'plain':
@@ -192,7 +192,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         model_p = model
 
     min_lr = 1e-9
-    num_classes = len(pid_one_day_dataset)
+
     metric_loss_function = losses.TripletLossK(margin=margin)
     softmax_loss_func = losses.MultiClassLoss(num_classes=num_classes)
 
