@@ -13,6 +13,8 @@ import shutil
 
 
 def match(track_folder, plots_folder, output_folder, num_clusters, force_clustering=False):
+    if os.path.isdir(output_folder) == False:
+        os.makedirs(output_folder)
     output_feature_file = os.path.join(output_folder, 'all_features.res')
     if os.path.isfile(output_feature_file):
         print 'feature per track file exist {} will skip reading pkl files'.format(output_feature_file)
