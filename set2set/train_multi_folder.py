@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset
+from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset
 import argparse
 import os
 import datetime
@@ -152,7 +152,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, reid_same_day=False):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
@@ -168,7 +168,11 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
     reid_datasets = []
     for data_folder in data_folders:
         if os.path.isdir(data_folder):
-            reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+            if reid_same_day:
+                reid_dataset = ReIDSameIDOneDayDataset(data_folder,transform=composed_transforms,
+                                                crops_per_id=sample_size)
+            else:
+                reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
@@ -276,7 +280,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Transform folder Dataset. Each folder is of one ID")
+    parser = argparse.ArgumentParser(description="multi training set training")
 
     parser.add_argument('folder_list_file', type=str, help="index of training folders, each folder contains multiple pid folders")
     parser.add_argument('model_file', type=str, help="the model file")
@@ -293,16 +297,17 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
+    parser.add_argument('--reid_same_day', action='store_true', default=False, help="whether to put same pair same day constrain on reid training")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), args.model_type))
+                   str(args.lr), args.model_type, str(args.reid_same_day)))
 
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss)
+         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, reid_same_day=args.reid_same_day)
