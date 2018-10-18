@@ -167,6 +167,8 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         gpu_ids = None
     if model_type == 'mgn':
         model = Model.MGNModel(num_classes=num_classes)
+    elif model_type == 'mgnc':
+        model = Model.MGNModelCompact(num_classes=num_classes)
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
     elif model_type == 'plain':
@@ -264,7 +266,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--start_decay', type=int, default=50, help="epoch to start learning rate decay")
     parser.add_argument('--num_workers', type=int, default=4, help="num of data batching workers")
-    parser.add_argument('--model_type', type=str, default='mgn', help="model_type")
+    parser.add_argument('--model_type', type=str, default='mgnc', help="model_type")
     parser.add_argument('--optimizer', type=str, default='sgd', help="optimizer to use")
     parser.add_argument('--loss', type=str, default='triplet', help="loss to use")
     parser.add_argument('--lr', type=float, default=0.005, help="learning rate")
@@ -276,8 +278,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, desired_aspect={}, softmax_loss_weight={}'.
-          format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
+    print('  sample_size={}, batch_size={},  modeltype={}, loss={}, optimizer={}, lr={}, desired_aspect={}, softmax_loss_weight={}'.
+          format(str(args.sample_size), str(args.batch_size), str(args.model_type), str(args.loss), str(args.optimizer),
                    str(args.lr), str(args.desired_aspect), str(args.softmax_loss_weight)))
 
     torch.backends.cudnn.benchmark = False
