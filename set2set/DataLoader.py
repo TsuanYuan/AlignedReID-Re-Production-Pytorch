@@ -218,7 +218,7 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
 class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, desired_size=(256, 128)):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -228,6 +228,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
         self.person_id_dates = self.create_pid_same_day_data(root_dir)
         self.transform = transform
         self.crops_per_id = crops_per_id
+        self.desired_size = desired_size
 
     def create_pid_same_day_data(self, root_dir):
         sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]
@@ -263,7 +264,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
         for im_path in im_paths_sample:
             im_bgr = cv2.imread(im_path)
             im_rgb = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-            im, w_h_ratio = crop_pad_fixed_aspect_ratio(im_rgb)
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(im_rgb, desired_size=self.desired_size)
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
