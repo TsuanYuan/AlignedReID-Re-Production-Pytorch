@@ -18,7 +18,7 @@ from struct_format import utils
 from evaluate import misc
 
 
-def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=200, tracklet_length_max=128):
+def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=512, tracklet_length_max=128):
     image_files = glob.glob(os.path.join(pid_folder_path, "*.jpg"))
     # 1. separate by camera and video
     crops_by_camera_video = {}
