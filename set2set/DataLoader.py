@@ -233,12 +233,16 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
     def create_pid_same_day_data(self, root_dir):
         sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]
         person_id_dates = {}
+        self.person_id_2_class_id = {}
+        class_id_count = 0
         for sub_folder in sub_folders:
             jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
             for jpg_file in jpgs:
                 channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(jpg_file))
                 if pid not in person_id_dates:
                     person_id_dates[pid] = collections.defaultdict(list)
+                    self.person_id_2_class_id[int(pid)] = class_id_count
+                    class_id_count += 1
                 person_id_dates[pid][date].append(jpg_file)
 
         return person_id_dates
@@ -267,7 +271,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
         channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(im_paths_sample[0]))
-        sample = {'images': ims, 'person_id': person_id, 'date': date}
+        sample = {'images': ims, 'person_id': self.person_id_2_class_id[pid], 'date': date}
 
         if self.transform:
             sample['images'] = self.transform(sample['images'])

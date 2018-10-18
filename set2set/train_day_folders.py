@@ -147,7 +147,7 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', num_workers=8,
+         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', num_workers=8, softmax_loss_weight=0,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50, desired_size=(256, 128)):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -192,19 +192,15 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         model_p = model
 
     min_lr = 1e-9
-    if loss_name == 'triplet':
-        loss_function = losses.TripletLossK(margin=margin)
-    elif loss_name == 'pair':
-        loss_function = losses.PairLoss(margin=margin)
-    else:
-        raise Exception('unknown loss name')
+    num_classes = len(pid_one_day_dataset)
+    metric_loss_function = losses.TripletLossK(margin=margin)
+    softmax_loss_func = losses.MultiClassLoss(num_classes=num_classes)
 
     dataloader = torch.utils.data.DataLoader(pid_one_day_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=num_workers)
     for epoch in range(num_epochs):
-        sum_loss = 0
+        sum_loss, sum_metric_loss = 0, 0
         for i_batch, sample_batched in enumerate(dataloader):
-
             # stair case adjust learning rate
             if i_batch ==0:
                 adjust_lr_exp(
@@ -232,16 +228,21 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
             else:
                 features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
-            loss,dist_pos, dist_neg, _, _ = loss_function(outputs, person_ids)
+            metric_loss,dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
+            actual_size = images_5d.size()
+            pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+            softmax_loss = softmax_loss_func(pids_expand.cuda(device=gpu_ids[0]), logits)
+            loss = metric_loss + softmax_loss_weight * softmax_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             sum_loss+=loss.data.cpu().numpy()
+            sum_metric_loss+= metric_loss.data.cpu().numpy()
             time_str = datetime.datetime.now().ctime()
             if i_batch==len(dataloader)-1:
-                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={} sum_loss_epoch={}"\
+                log_str = "{}: epoch={}, iter={}, train_loss={}, dist_pos={}, dist_neg={}, sum_metric_loss={}, sum_loss_epoch={}"\
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
-                            str(dist_neg.data.cpu().numpy()), str(sum_loss))
+                            str(dist_neg.data.cpu().numpy()), str(sum_metric_loss), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
                     save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
@@ -270,13 +271,14 @@ if __name__ == '__main__':
     parser.add_argument('--desired_aspect', type=int, default=2, help="crop aspect ratio")
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
+    parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  data_folder={0}'.format(args.data_folder))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, desired_aspect={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, desired_aspect={}, softmax_loss_weight={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), str(args.desired_aspect)))
+                   str(args.lr), str(args.desired_aspect), str(args.softmax_loss_weight)))
 
     torch.backends.cudnn.benchmark = False
     if args.desired_aspect == 2:
@@ -288,4 +290,4 @@ if __name__ == '__main__':
     main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
          optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, num_workers=args.num_workers,
-         desired_size=desired_size)
+         desired_size=desired_size, softmax_loss_weight=args.softmax_loss_weight)
