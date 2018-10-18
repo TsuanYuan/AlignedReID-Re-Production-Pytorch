@@ -233,7 +233,6 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
     def create_pid_same_day_data(self, root_dir):
         sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]
         person_id_dates = {}
-        skip_count = 0
         for sub_folder in sub_folders:
             jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
             for jpg_file in jpgs:
@@ -241,8 +240,7 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
                 if pid not in person_id_dates:
                     person_id_dates[pid] = collections.defaultdict(list)
                 person_id_dates[pid][date].append(jpg_file)
-            else:
-                skip_count += 1
+
         return person_id_dates
 
     def __len__(self):

@@ -8,7 +8,7 @@ import glob
 import os
 import pickle
 import numpy
-from sklearn.cluster import k_means
+from sklearn.cluster import k_means, MiniBatchKMeans
 import shutil
 
 
@@ -47,7 +47,11 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
             labels = pickle.load(fp)
             inertia = pickle.load(fp)
     else:
-        centroids, labels, inertia = k_means(descriptors, num_clusters, max_iter=30000, n_jobs=10)
+        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=0, batch_size=256, max_iter=10).fit(descriptors)
+        labels = kmeans.labels_
+        centroids = kmeans.cluster_centers_
+        inertia = kmeans.inertia_
+        # centroids, labels, inertia = k_means(descriptors, num_clusters, max_iter=30000, n_jobs=10)
         with open(output_cluster_result_file, 'wb') as fp:
             pickle.dump(centroids, fp, pickle.HIGHEST_PROTOCOL)
             pickle.dump(labels, fp, pickle.HIGHEST_PROTOCOL)
