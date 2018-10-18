@@ -51,7 +51,7 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
         labels = kmeans.labels_
         centroids = kmeans.cluster_centers_
         inertia = kmeans.inertia_
-        # centroids, labels, inertia = k_means(descriptors, num_clusters, max_iter=30000, n_jobs=10)
+        # centroids, labels, inertia = k_means(descriptors, num_clusters, max_iter=30, n_jobs=10, algorithm="elkan")
         with open(output_cluster_result_file, 'wb') as fp:
             pickle.dump(centroids, fp, pickle.HIGHEST_PROTOCOL)
             pickle.dump(labels, fp, pickle.HIGHEST_PROTOCOL)
