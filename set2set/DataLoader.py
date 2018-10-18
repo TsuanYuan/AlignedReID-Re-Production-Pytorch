@@ -271,11 +271,12 @@ class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
         channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(im_paths_sample[0]))
-        sample = {'images': ims, 'person_id': self.person_id_2_class_id[pid], 'date': date}
 
+        sample = {'images': ims}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
-        sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
+        class_id = self.person_id_2_class_id[person_id]
+        sample['person_id'] = torch.from_numpy(numpy.array([int(class_id)]))
         sample['date'] = torch.from_numpy(numpy.array([int(date)]))
         return sample
 
