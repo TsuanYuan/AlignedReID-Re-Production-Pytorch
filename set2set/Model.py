@@ -668,6 +668,113 @@ class PCBModel(nn.Module):
     return feat, logits
 
 
+
+class MGNModelCompact(nn.Module):
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128):
+        super(MGNModelCompact, self).__init__()
+        if base_model == 'resnet50':
+            self.base = resnet50_with_layers(pretrained=True)
+            planes = 2048
+        elif base_model == 'resnet50se':
+            self.base = se_resnet.se_resnet50_with_layers(pretrained=True)
+            planes = 2048
+        else:
+            raise RuntimeError("unknown base model!")
+
+        self.global_final_conv = nn.Conv2d(planes, local_conv_out_channels, 1)
+
+        self.level2_strips = 6
+        self.level2_planes = 512
+        self.level2_conv_list = nn.ModuleList()
+        for k in range(self.level2_strips):
+            self.level2_conv_list.append(nn.Sequential(
+                nn.Conv2d(self.level2_planes, local_conv_out_channels, 1)
+            ))
+
+        self.level3_strips = 4
+        self.level3_planes = 1024
+        self.level3_conv_list = nn.ModuleList()
+        for k in range(self.level3_strips):
+            self.level3_conv_list.append(nn.Sequential(
+                nn.Conv2d(self.level3_planes, local_conv_out_channels, 1)
+            ))
+
+        if num_classes is not None:
+            self.fc = nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes)
+            init.normal_(self.fc.weight, std=0.001)
+            init.constant_(self.fc.bias, 0)
+
+        self.num_classes = num_classes
+
+    def compute_stripe_feature_list(self, x):
+        # shape [N, C, H, W]
+        feat_final, feat_l3, feat_l2 = self.base(x)
+        feat_shorten = self.global_final_conv((feat_final))
+        global_feat = F.max_pool2d(feat_shorten, feat_shorten.size()[2:])
+        global_feat = torch.squeeze(global_feat)
+        local_feat_list = []
+        logits_list = []
+        stripe_s2 = float(feat_l2.size(2)) / self.level2_strips
+
+        for i in range(self.level2_strips):
+            # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s2 * i))
+            stripe_end = int(min(np.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
+            sh = stripe_end - stripe_start
+            local_feat = F.max_pool2d(
+                feat_l2[:, :, stripe_start: stripe_end, :], (sh, feat_l2.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.level2_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat)
+            if hasattr(self, 'fc_list'):
+                logits_list.append(self.fc_list[i](local_feat))
+
+        stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
+        for i in range(self.level3_strips):
+            # shape [N, C, 1, 1]
+            stripe_start = int(round(stripe_s3 * i))
+            stripe_end = int(min(np.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
+            sh = stripe_end - stripe_start
+            local_feat = F.max_pool2d(
+                feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))
+            # shape [N, c, 1, 1]
+            local_feat = self.level3_conv_list[i](local_feat)
+            # shape [N, c]
+            local_feat = local_feat.view(local_feat.size(0), -1)
+            local_feat_list.append(local_feat)
+            if hasattr(self, 'parts_fc_list'):
+                logits_list.append(self.parts_fc_list[i + self.level2_strips](local_feat))
+        if len(global_feat.size()) == 1:
+            global_feat = global_feat.unsqueeze(0)
+        local_feat_list.append(global_feat)
+
+        return local_feat_list
+
+    def concat_stripe_features(self, x):
+        local_feat_list = self.compute_stripe_feature_list(x)
+        condensed_feat = torch.cat(local_feat_list, dim=1)
+        if self.num_classes is not None:
+            logits = self.fc(torch.squeeze(condensed_feat))
+        else:
+            logits = None
+        return condensed_feat, logits
+
+    def forward(self, x):
+        """
+    Returns:
+      global_feat: shape [N, C]
+      local_feat: shape [N, H, c]
+    """
+        condensed_feat, logits = self.concat_stripe_features(x)
+        if len(condensed_feat.size()) == 1: # in case of single feature
+            condensed_feat = condensed_feat.unsqueeze(0)
+        feat = F.normalize(condensed_feat, p=2, dim=1)
+        return feat, logits
+
+
 class MGNModel(nn.Module):
     def __init__(self,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=128):
