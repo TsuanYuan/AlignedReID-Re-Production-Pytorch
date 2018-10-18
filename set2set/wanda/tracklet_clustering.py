@@ -47,7 +47,7 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
             labels = pickle.load(fp)
             inertia = pickle.load(fp)
     else:
-        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=0, batch_size=256, max_iter=10).fit(descriptors)
+        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=0, batch_size=256, max_iter=20).fit(descriptors)
         labels = kmeans.labels_
         centroids = kmeans.cluster_centers_
         inertia = kmeans.inertia_
@@ -61,7 +61,7 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
     if not os.path.isdir(output_plot_folder):
         os.makedirs(output_plot_folder)
     for video_track, label in zip(video_tracks, labels):
-        no_pid_figure_file = os.path.join(plots_folder, video_track+'-nopid.jpg')
+        no_pid_figure_file = os.path.join(plots_folder, video_track.split('-')[0], video_track+'-nopid.jpg')
         if not os.path.isfile(no_pid_figure_file):
             print 'cannot find figure file {}'.format(no_pid_figure_file)
         else:
