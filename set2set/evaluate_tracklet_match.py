@@ -47,7 +47,14 @@ def update_tracklet_with_path(folder, tracklet):
         updated_tracklet.append((frame_id, updated_crop_file))
     return updated_tracklet
 
-def load_track_ground_truth(folder, track_gt_file):
+
+def sample_tracks(tracklets, sample_size):
+    if len(tracklets) > sample_size:
+        ids = numpy.round(numpy.linspace(0, len(tracklets)-1, sample_size)).astype(int)
+        tracklets = numpy.array(tracklets)[ids].tolist()
+    return tracklets
+
+def load_track_ground_truth(folder, track_gt_file, sample_size):
     tid_2_pid = {}
     tid_count = 0
     tracklets_data = {}
@@ -55,6 +62,7 @@ def load_track_ground_truth(folder, track_gt_file):
         d = pickle.load(fp)
     for k in d:
         tracklets = d[k]
+        tracklets = sample_tracks(tracklets, sample_size)
         for tracklet in tracklets:
             if len(tracklet) == 0:
                 continue
@@ -171,6 +179,9 @@ def evaluate_merges(track_features, tid_2_pid, output_curve_file):
 
     print "output track roc curves to {0}".format(output_curve_file)
 
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -185,12 +196,15 @@ if __name__ == '__main__':
     parser.add_argument('--output_file', type=str, default='/tmp/track_merge_curves.pkl',
                         help='output of track merge roc')
 
+    parser.add_argument('--sample_track_size', type=int, default=16,
+                        help='num of tracks per pid')
+
     args = parser.parse_args()
     print('parameters:')
     print('  data_folder={0}'.format(args.folder))
-
+    print('  sample_track_size={}'.format(int(args.sample_track_size)))
     track_ground_truth_file = os.path.join(args.folder, 'tracklets.pkl')
-    tracklet_data, tid2pid = load_track_ground_truth(args.folder, track_ground_truth_file)
+    tracklet_data, tid2pid = load_track_ground_truth(args.folder, track_ground_truth_file, args.sample_track_size)
 
     model_files, exts, options = [], [], []
     with open(args.model_list_file, 'r') as fp:
@@ -207,7 +221,7 @@ if __name__ == '__main__':
         if os.path.isfile(track_feature_file):
             print 'track feature file {} exist. load existing features'.format(track_feature_file)
             with open(track_feature_file, 'rb') as fp:
-                tracklet_representations = pickle.load(fp)
+                tracklets_by_options[k] = pickle.load(fp)
         else:
             feature_extractor = tracklet_utils.FeatureExtractor(model_path=model_file, device_ids=args.gpu_ids,
                                                                 aggregate=option)
