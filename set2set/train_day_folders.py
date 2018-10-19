@@ -14,7 +14,6 @@ from torchvision import transforms
 import transforms_reid, Model
 import losses
 from torch.autograd import Variable
-from torch.nn.parallel import DataParallel
 
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
@@ -37,34 +36,6 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
   if not os.path.isdir(os.path.dirname(os.path.abspath(ckpt_file))):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
-
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
-  """Load state_dict's of modules/optimizers from file.
-  Args:
-    modules_optims: A list, which members are either torch.nn.optimizer
-      or torch.nn.Module.
-    ckpt_file: The file path.
-    load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
-      to cpu type.
-  """
-  map_location = (lambda storage, loc: storage) if load_to_cpu else None
-  ckpt = torch.load(ckpt_file, map_location=map_location)
-  if skip_fc:
-    print('skip fc layers when loading the model!')
-  for m, sd in zip(modules_optims, ckpt['state_dicts']):
-    if m is not None:
-      if skip_fc:
-        for k in sd.keys():
-          if k.find('fc') >= 0:
-            sd.pop(k, None)
-      if hasattr(m, 'param_groups'):
-        m.load_state_dict(sd)
-      else:
-        m.load_state_dict(sd, strict=False)
-  if verbose:
-    print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
-      ckpt_file, ckpt['ep'], ckpt['scores']))
-  return ckpt['ep'], ckpt['scores']
 
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
@@ -147,8 +118,8 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', num_workers=8, softmax_loss_weight=0,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50, desired_size=(256, 128)):
+         num_epochs=200, gpu_ids=None, margin=0.1, num_workers=8, softmax_loss_weight=0, resume=False,
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50, desired_size=(256, 128), num_stripes=6):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((desired_size[0]+16, desired_size[1]+8)),  # not change the pixel range to [0,1.0]
@@ -166,33 +137,10 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     if not torch.cuda.is_available():
         gpu_ids = None
 
-    if model_type == 'mgn':
-        model = Model.MGNModel(num_classes=num_classes)
-    elif model_type == 'mgnc':
-        model = Model.MGNModelCompact(num_classes=num_classes)
-    elif model_type == 'se':
-        model = Model.MGNModel(base_model='resnet50se')
-    elif model_type == 'plain':
-        model = Model.PlainModel(num_classes=num_classes)
-    else:
-        raise Exception('unknown model type {}'.format(model_type))
-    if len(gpu_ids)>=0:
-        model = model.cuda(device=gpu_ids[0])
-    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    model_folder = os.path.split(model_file)[0]
-    if not os.path.isdir(model_folder):
-        os.makedirs(model_folder)
-    print('model path is {0}'.format(model_file))
-    if os.path.isfile(model_file):
-        if args.resume:
-            load_ckpt([model], model_file, skip_fc=True)
-        else:
-            print('model file {0} already exist, will overwrite it.'.format(model_file))
-
-    if len(gpu_ids) > 0:
-        model_p = DataParallel(model, device_ids=gpu_ids)
-    else:
-        model_p = model
+    # model and optimizer
+    model_p, optimizer, single_model = Model.load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr,
+                                                                  weight_decay, num_classes, model_type,
+                                                                  num_stripes, resume=resume)
 
     min_lr = 1e-9
 
@@ -229,7 +177,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                     person_ids = person_ids.cuda(device=gpu_ids[0])
                     features, logits = model_p(Variable(images.cuda(device=gpu_ids[0], async=True), volatile=False)) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
-                features, logits = model(Variable(images))
+                features, logits = model_p(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
             metric_loss,dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
             actual_size = images_5d.size()
@@ -248,8 +196,8 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                             str(dist_neg.data.cpu().numpy()), str(sum_metric_loss), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
-                    save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
-                save_ckpt([model],  epoch, log_str, model_file)
+                    save_ckpt([single_model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
+                save_ckpt([single_model],  epoch, log_str, model_file)
             i_batch += 1
     print('model saved to {0}'.format(model_file))
 
@@ -292,5 +240,5 @@ if __name__ == '__main__':
         raise Exception('unknown aspect ratio {}'.format(str(args.desired_aspect)))
     main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
-         optimizer_name=args.optimizer, base_lr=args.lr, loss_name=args.loss, num_workers=args.num_workers,
-         desired_size=desired_size, softmax_loss_weight=args.softmax_loss_weight)
+         optimizer_name=args.optimizer, base_lr=args.lr, num_workers=args.num_workers,
+         desired_size=desired_size, softmax_loss_weight=args.softmax_loss_weight, resume = args.resume)

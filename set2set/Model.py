@@ -9,12 +9,60 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 import numpy as np
+import os
 from torch.autograd import Variable
 from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
 from parts_models import se_resnet
+from torch.nn.parallel import DataParallel
+
+
+def init_optim(optim, params, lr, weight_decay, eps=1e-8):
+    if optim == 'adam':
+        return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
+    elif optim == 'sgd':
+        return torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
+    elif optim == 'rmsprop':
+        return torch.optim.RMSprop(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
+    else:
+        raise KeyError("Unsupported optim: {}".format(optim))
+
+
+def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False, skip_merge=False):
+    """Load state_dict's of modules/optimizers from file.
+    Args:
+      modules_optims: A list, which members are either torch.nn.optimizer
+        or torch.nn.Module.
+      ckpt_file: The file path.
+      load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
+        to cpu type.
+    """
+    map_location = (lambda storage, loc: storage) if load_to_cpu else None
+    ckpt = torch.load(ckpt_file, map_location=map_location)
+    if skip_fc:
+        print('skip fc layers when loading the model!')
+    if skip_merge:
+        print('skip merge layers when loading the model!')
+    for m, sd in zip(modules_optims, ckpt['state_dicts']):
+        if m is not None:
+            if skip_fc:
+                for k in sd.keys():
+                    if k.find('fc') >= 0:
+                        sd.pop(k, None)
+            if skip_merge:
+                for k in sd.keys():
+                    if k.find('merge_layer') >= 0:
+                        sd.pop(k, None)
+            if hasattr(m, 'param_groups'):
+                m.load_state_dict(sd)
+            else:
+                m.load_state_dict(sd, strict=False)
+    if verbose:
+        print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
+            ckpt_file, ckpt['ep'], ckpt['scores']))
+    return ckpt['ep'], ckpt['scores']
 
 
 def create_model(model_type, num_classes=None, num_stripes=None):
@@ -37,6 +85,32 @@ def create_model(model_type, num_classes=None, num_stripes=None):
         raise Exception('unknown model type {}'.format(model_type))
 
     return model
+
+
+def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes,
+                         resume=False, skip_fc=True, skip_merge=True):
+
+    model = create_model(model_type, num_classes=num_classes, num_stripes=num_stripes)
+    if len(gpu_ids) >= 0:
+        model = model.cuda(device=gpu_ids[0])
+
+    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
+    model_folder = os.path.split(model_file)[0]
+    if not os.path.isdir(model_folder):
+        os.makedirs(model_folder)
+    print('model path is {0}'.format(model_file))
+    if os.path.isfile(model_file):
+        if resume:
+            load_ckpt([model], model_file, skip_fc=skip_fc, skip_merge=skip_merge)
+        else:
+            print('model file {0} already exist, will overwrite it.'.format(model_file))
+
+    if len(gpu_ids) > 0:
+        model_p = DataParallel(model, device_ids=gpu_ids)
+    else:
+        model_p = model
+
+    return model_p, optimizer, model
 
 
 def stop_gradient_on_module(m):

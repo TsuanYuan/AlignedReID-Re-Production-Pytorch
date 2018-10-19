@@ -14,7 +14,9 @@ import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, MGNWithHead, MGNWithParts
+from Model import load_ckpt
 import misc
+
 
 class Model_Types(Enum):
     Plain = 0
@@ -29,6 +31,7 @@ class Model_Types(Enum):
     LIMB_EXTRA = 9
     LIMB_ONLY = 10
     PCB_3 =11
+
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128):
@@ -159,41 +162,6 @@ class AppearanceModelForward(object):
 
     def get_model_type(self):
         return self.model_type
-
-
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False, skip_merge=False):
-    """Load state_dict's of modules/optimizers from file.
-    Args:
-      modules_optims: A list, which members are either torch.nn.optimizer
-        or torch.nn.Module.
-      ckpt_file: The file path.
-      load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
-        to cpu type.
-    """
-    map_location = (lambda storage, loc: storage) if load_to_cpu else None
-    ckpt = torch.load(ckpt_file, map_location=map_location)
-    if skip_fc:
-        print('skip fc layers when loading the model!')
-    if skip_merge:
-        print('skip merge layers when loading the model!')
-    for m, sd in zip(modules_optims, ckpt['state_dicts']):
-        if m is not None:
-            if skip_fc:
-                for k in sd.keys():
-                    if k.find('fc') >= 0:
-                        sd.pop(k, None)
-            if skip_merge:
-                for k in sd.keys():
-                    if k.find('merge_layer') >= 0:
-                        sd.pop(k, None)
-            if hasattr(m, 'param_groups'):
-                m.load_state_dict(sd)
-            else:
-                m.load_state_dict(sd, strict=False)
-    if verbose:
-        print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
-            ckpt_file, ckpt['ep'], ckpt['scores']))
-    return ckpt['ep'], ckpt['scores']
 
 
 if __name__ == '__main__':
