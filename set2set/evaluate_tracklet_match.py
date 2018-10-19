@@ -56,6 +56,8 @@ def load_track_ground_truth(folder, track_gt_file):
     for k in d:
         tracklets = d[k]
         for tracklet in tracklets:
+            if len(tracklet) == 0:
+                continue
             updated_tracklet = update_tracklet_with_path(folder, tracklet)
             tracklets_data[tid_count] = updated_tracklet
             tid_2_pid[tid_count] = int(k)
@@ -186,7 +188,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('parameters:')
     print('  data_folder={0}'.format(args.folder))
-    print('  aggregate={}'.format(args.aggregate))
 
     track_ground_truth_file = os.path.join(args.folder, 'tracklets.pkl')
     tracklet_data, tid2pid = load_track_ground_truth(args.folder, track_ground_truth_file)
@@ -198,7 +199,7 @@ if __name__ == '__main__':
             model_files.append(parts[0])
             exts.append(parts[1])
             options.append(parts[2])
-
+    print "  compare model files {} \n exts {}\n options {}".format(str(model_files), str(exts), str(options))
     tracklets_by_options = {}
     for model_file, ext, option in zip(model_files, exts, options):
         k = ext+'_'+option
@@ -208,7 +209,7 @@ if __name__ == '__main__':
             with open(track_feature_file, 'rb') as fp:
                 tracklet_representations = pickle.load(fp)
         else:
-            feature_extractor = tracklet_utils.FeatureExtractor(model_path=args.model_path, device_ids=args.gpu_ids,
+            feature_extractor = tracklet_utils.FeatureExtractor(model_path=model_file, device_ids=args.gpu_ids,
                                                                 aggregate=option)
             tracklets_by_options[k] = get_track_representations(tracklet_data, feature_extractor)
             with open(track_feature_file, 'wb') as fp:

@@ -68,6 +68,8 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc
 def create_model(model_type, num_classes=None, num_stripes=None):
     if model_type == 'mgn':
         model = MGNModel(num_classes=num_classes)
+    elif model_type == 'mgnc':
+        model = MGNModelCompact(num_classes=num_classes)
     elif model_type == 'se':
         model = MGNModel(num_classes=num_classes, base_model='resnet50se')
     elif model_type == 'plain':

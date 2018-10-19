@@ -28,6 +28,8 @@ class FeatureExtractor(object):
     def compute_single_feature(self, image_list):
         features = self.compute_features_on_batch(image_list)
         if self.mode == 'median':
+            if features.size == 0:
+                x = 0
             x = numpy.median(features, axis=0)
             feature = x / (numpy.linalg.norm(x)+0.0000001)
         elif self.mode == 'mean':
