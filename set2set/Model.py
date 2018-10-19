@@ -704,7 +704,7 @@ class MGNModelCompact(nn.Module):
             self.fc = nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes)
             init.normal_(self.fc.weight, std=0.001)
             init.constant_(self.fc.bias, 0)
-
+            self.drop = nn.Dropout(p=0.2)
         self.num_classes = num_classes
 
     def compute_stripe_feature_list(self, x):
@@ -754,10 +754,10 @@ class MGNModelCompact(nn.Module):
         return local_feat_list
 
     def concat_stripe_features(self, x):
-        local_feat_list = self.compute_stripe_feature_list(x)
-        condensed_feat = torch.cat(local_feat_list, dim=1)
+        self.local_feat_list = self.compute_stripe_feature_list(x)
+        condensed_feat = torch.cat(self.local_feat_list, dim=1)
         if self.num_classes is not None:
-            logits = self.fc(torch.squeeze(condensed_feat))
+            logits = self.drop(self.fc(torch.squeeze(condensed_feat)))
         else:
             logits = None
         return condensed_feat, logits
@@ -897,6 +897,23 @@ class MGNModel(nn.Module):
             condensed_feat = condensed_feat.unsqueeze(0)
         feat = F.normalize(condensed_feat, p=2, dim=1)
         return feat, logits
+
+
+
+class MGNSelfAtten(MGNModelCompact):
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=256):
+        super(MGNSelfAtten, self).__init__(num_classes=num_classes, base_model=base_model,
+                                           local_conv_out_channels=local_conv_out_channels)
+        self.attention_fc = nn.Linear((self.level2_strips+self.level3_strips+1)*local_conv_out_channels, (self.level2_strips+self.level3_strips+1))
+        init.normal_(self.attention_fc.weight, std=0.001)
+        init.constant_(self.attention_fc.bias, 0)
+
+    def forward(self, x):
+        concat_feat, logits = self.concat_stripe_features(x)
+        attention_weights = self.attention_fc(concat_feat)
+        final_feat = sum([self.local_feat_list[i]*attention_weights[i] for i in range(len(self.local_feat_list))])
+        return final_feat, logits
 
 
 class MGNWithHead(MGNModel):
