@@ -70,6 +70,8 @@ def create_model(model_type, num_classes=None, num_stripes=None):
         model = MGNModel(num_classes=num_classes)
     elif model_type == 'mgnc':
         model = MGNModelCompact(num_classes=num_classes)
+    elif model_type == 'mgnsa':
+        model = MGNSelfAtten(num_classes=num_classes)
     elif model_type == 'se':
         model = MGNModel(num_classes=num_classes, base_model='resnet50se')
     elif model_type == 'plain':
@@ -777,10 +779,9 @@ class MGNModelCompact(nn.Module):
             ))
 
         if num_classes is not None:
-            self.fc = nn.Sequential(nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes),
-                                    nn.Dropout(p=0.5))
-            init.normal_(self.fc[0].weight, std=0.001)
-            init.constant_(self.fc[0].bias, 0)
+            self.fc = nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes)
+            init.normal_(self.fc.weight, std=0.001)
+            init.constant_(self.fc.bias, 0)
 
         self.num_classes = num_classes
 
@@ -971,9 +972,7 @@ class MGNModel(nn.Module):
         feat = F.normalize(condensed_feat, p=2, dim=1)
         return feat, logits
 
-
-
-class MGNSelfAtten(MGNModelCompact):
+class MGNSelfAtten(MGNModel):
     def __init__(self,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=256):
         super(MGNSelfAtten, self).__init__(num_classes=num_classes, base_model=base_model,
@@ -984,7 +983,7 @@ class MGNSelfAtten(MGNModelCompact):
 
     def forward(self, x):
         concat_feat, logits = self.concat_stripe_features(x)
-        attention_weights = self.attention_fc(concat_feat)
+        attention_weights = torch.clamp(self.attention_fc(concat_feat),min=0.0, max=10.0)
         final_feat = sum([self.local_feat_list[i]*attention_weights[i] for i in range(len(self.local_feat_list))])
         return final_feat, logits
 
