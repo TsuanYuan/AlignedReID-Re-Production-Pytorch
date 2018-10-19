@@ -49,7 +49,7 @@ def match(track_folder, plots_folder, output_folder, num_clusters, force_cluster
             labels = pickle.load(fp)
             inertia = pickle.load(fp)
     else:
-        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=0, batch_size=256, max_iter=20).fit(descriptors)
+        kmeans = MiniBatchKMeans(n_clusters=num_clusters, random_state=0, batch_size=256, max_iter=200).fit(descriptors)
         labels = kmeans.labels_
         centroids = kmeans.cluster_centers_
         inertia = kmeans.inertia_
