@@ -701,20 +701,20 @@ class MGNModelCompact(nn.Module):
             ))
 
         if num_classes is not None:
-            self.fc = nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes)
-            init.normal_(self.fc.weight, std=0.001)
-            init.constant_(self.fc.bias, 0)
-            self.drop = nn.Dropout(p=0.2)
+            self.fc = nn.Sequential(nn.Linear(local_conv_out_channels*(self.level2_strips+self.level3_strips+1), num_classes),
+                                    nn.Dropout(p=0.5))
+            init.normal_(self.fc[0].weight, std=0.001)
+            init.constant_(self.fc[0].bias, 0)
+
         self.num_classes = num_classes
 
     def compute_stripe_feature_list(self, x):
         # shape [N, C, H, W]
         feat_final, feat_l3, feat_l2 = self.base(x)
         feat_shorten = self.global_final_conv((feat_final))
-        global_feat = F.max_pool2d(feat_shorten, feat_shorten.size()[2:])
+        global_feat = F.avg_pool2d(feat_shorten, feat_shorten.size()[2:])
         global_feat = torch.squeeze(global_feat)
         local_feat_list = []
-        logits_list = []
         stripe_s2 = float(feat_l2.size(2)) / self.level2_strips
 
         for i in range(self.level2_strips):
@@ -722,15 +722,13 @@ class MGNModelCompact(nn.Module):
             stripe_start = int(round(stripe_s2 * i))
             stripe_end = int(min(np.ceil(stripe_s2 * (i + 1)), feat_l2.size(2)))
             sh = stripe_end - stripe_start
-            local_feat = F.max_pool2d(
+            local_feat = F.avg_pool2d(
                 feat_l2[:, :, stripe_start: stripe_end, :], (sh, feat_l2.size(-1)))
             # shape [N, c, 1, 1]
             local_feat = self.level2_conv_list[i](local_feat)
             # shape [N, c]
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat)
-            if hasattr(self, 'fc_list'):
-                logits_list.append(self.fc_list[i](local_feat))
 
         stripe_s3 = float(feat_l3.size(2)) / self.level3_strips
         for i in range(self.level3_strips):
@@ -738,15 +736,14 @@ class MGNModelCompact(nn.Module):
             stripe_start = int(round(stripe_s3 * i))
             stripe_end = int(min(np.ceil(stripe_s3 * (i + 1)), feat_l3.size(2)))
             sh = stripe_end - stripe_start
-            local_feat = F.max_pool2d(
+            local_feat = F.avg_pool2d(
                 feat_l3[:, :, stripe_start: stripe_end, :], (sh, feat_l3.size(-1)))
             # shape [N, c, 1, 1]
             local_feat = self.level3_conv_list[i](local_feat)
             # shape [N, c]
             local_feat = local_feat.view(local_feat.size(0), -1)
             local_feat_list.append(local_feat)
-            if hasattr(self, 'parts_fc_list'):
-                logits_list.append(self.parts_fc_list[i + self.level2_strips](local_feat))
+
         if len(global_feat.size()) == 1:
             global_feat = global_feat.unsqueeze(0)
         local_feat_list.append(global_feat)
@@ -757,7 +754,7 @@ class MGNModelCompact(nn.Module):
         self.local_feat_list = self.compute_stripe_feature_list(x)
         condensed_feat = torch.cat(self.local_feat_list, dim=1)
         if self.num_classes is not None:
-            logits = self.drop(self.fc(torch.squeeze(condensed_feat)))
+            logits = self.fc(torch.squeeze(condensed_feat))
         else:
             logits = None
         return condensed_feat, logits
