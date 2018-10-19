@@ -974,7 +974,7 @@ class MGNModel(nn.Module):
 
 class MGNSelfAtten(MGNModel):
     def __init__(self,
-                 num_classes=None, base_model='resnet50', local_conv_out_channels=256):
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128):
         super(MGNSelfAtten, self).__init__(num_classes=num_classes, base_model=base_model,
                                            local_conv_out_channels=local_conv_out_channels)
         self.attention_fc = nn.Linear((self.level2_strips+self.level3_strips+1)*local_conv_out_channels, (self.level2_strips+self.level3_strips+1))
