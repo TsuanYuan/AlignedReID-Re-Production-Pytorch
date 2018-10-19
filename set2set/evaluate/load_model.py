@@ -134,6 +134,7 @@ class AppearanceModelForward(object):
         return global_feats
 
     def compute_features_on_batch(self, image_batch, keypoints=None):
+        image_batch = numpy.array(image_batch)
         n = image_batch.shape[0]
         global_feats = None
         for i in range(0, n, self.batch_max):
