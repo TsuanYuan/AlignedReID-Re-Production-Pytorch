@@ -956,8 +956,8 @@ class MGNModel(nn.Module):
         return local_feat_list, logits
 
     def concat_stripe_features(self, x):
-        local_feat_list, logits = self.compute_stripe_feature_list(x)
-        condensed_feat = torch.cat(local_feat_list, dim=1)
+        self.local_feat_list, logits = self.compute_stripe_feature_list(x)
+        condensed_feat = torch.cat(self.local_feat_list, dim=1)
         return condensed_feat, logits
 
     def forward(self, x):
@@ -971,6 +971,7 @@ class MGNModel(nn.Module):
             condensed_feat = condensed_feat.unsqueeze(0)
         feat = F.normalize(condensed_feat, p=2, dim=1)
         return feat, logits
+
 
 class MGNSelfAtten(MGNModel):
     def __init__(self,
