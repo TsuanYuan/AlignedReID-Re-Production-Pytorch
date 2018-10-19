@@ -4,17 +4,17 @@ Quan Yuan
 2018-09-05
 """
 
-
-
 import os
 import numpy
 import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 from enum import Enum
+import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, MGNWithHead, MGNWithParts
+import misc
 
 class Model_Types(Enum):
     Plain = 0
@@ -31,7 +31,7 @@ class Model_Types(Enum):
     PCB_3 =11
 
 class AppearanceModelForward(object):
-    def __init__(self, model_path, device_ids=(0,)):
+    def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
@@ -96,7 +96,9 @@ class AppearanceModelForward(object):
         else:
             raise Exception("unknown model type!")
 
+        self.desired_size = desired_size
         self.device_ids = device_ids
+        self.batch_max = batch_max
         self.model_ws = DataParallel(model, device_ids=device_ids)
         # load the model
         load_ckpt([model], model_path, skip_fc=True)
@@ -111,7 +113,15 @@ class AppearanceModelForward(object):
     def get_num_gpus(self):
         return len(self.device_ids)
 
-    def compute_features_on_batch(self, image_batch, keypoints=None):
+    def normalize_images(self, images):
+        normalized_images = []
+        for image in images:
+            image_normalized = misc.crop_pad_fixed_aspect_ratio(image, desired_size=self.desired_size)
+            image_normalized = cv2.resize(image_normalized, (self.desired_size[1], self.desired_size[0]))
+            normalized_images.append(image_normalized)
+        return numpy.array(normalized_images)
+
+    def compute_batch_within_limit(self, image_batch, keypoints):
         patches = []
         for image in image_batch:
             patch = image / 255.0
@@ -121,6 +131,18 @@ class AppearanceModelForward(object):
             patches.append(patch)
         patches = numpy.asarray(patches)
         global_feats = self.extract_feature(patches, keypoints=keypoints)
+        return global_feats
+
+    def compute_features_on_batch(self, image_batch, keypoints=None):
+        n = image_batch.shape[0]
+        global_feats = None
+        for i in range(0, n, self.batch_max):
+            images = image_batch[i:i+self.batch_max,:,:,:]
+            features = self.compute_batch_within_limit(images, keypoints=keypoints)
+            if global_feats is None:
+                global_feats = features
+            else:
+                global_feats = numpy.concatenate((global_feats, features), axis=0)
         return global_feats
 
     def extract_feature(self, ims, keypoints=None):

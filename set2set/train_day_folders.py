@@ -165,6 +165,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
     num_classes = len(pid_one_day_dataset)
     if not torch.cuda.is_available():
         gpu_ids = None
+
     if model_type == 'mgn':
         model = Model.MGNModel(num_classes=num_classes)
     elif model_type == 'mgnc':
