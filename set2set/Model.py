@@ -985,7 +985,7 @@ class MGNSelfAtten(MGNModel):
     def forward(self, x):
         concat_feat, logits = self.concat_stripe_features(x)
         attention_weights = torch.clamp(self.attention_fc(concat_feat),min=0.0, max=10.0)
-        final_feat = sum([self.local_feat_list[i]*attention_weights[i] for i in range(len(self.local_feat_list))])
+        final_feat = sum([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))])
         return final_feat, logits
 
 
