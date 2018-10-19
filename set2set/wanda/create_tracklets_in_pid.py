@@ -35,17 +35,18 @@ def split_tracklets_of_one_pid(pid_folder_path, frame_interval_gap_th=512, track
         frame_data = sorted(frame_data, key=lambda k: k[0])
         current_frame_id = None
         current_track = []
-        pid = int(cdv.split('_')[-1])
         for frame_id, image_file in frame_data:
             if current_frame_id is None:
                 current_frame_id = frame_id
+                current_track = [(frame_id, image_file)]
             else:
                 if frame_id - current_frame_id <= frame_interval_gap_th and len(current_track) < tracklet_length_max:
                     current_track.append((frame_id, image_file))
                 else:
                     tracklets_collections.append(list(current_track))
-                    current_track = []
                     current_frame_id = frame_id
+                    current_track = [(frame_id, image_file)]
+
     return tracklets_collections
 
 
