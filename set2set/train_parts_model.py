@@ -15,7 +15,7 @@ import transforms_reid, Model
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
-from evaluate import load_model
+
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
   """Save state_dict's of modules/optimizers to file.
@@ -149,6 +149,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
     else:
         torch.cuda.set_device(gpu_ids[0])
 
+
     if parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
@@ -173,6 +174,9 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
         pose_ids = (2,)
         model = Model.PoseReIDModel(pose_ids=pose_ids, no_global=True)
         print "head only model!"
+    elif parts_type=='mgnsa':
+        model = Model.MGNSelfAtten(num_classes=None)
+        print "mgn self attention model!"
     else:
         raise Exception("unknown parts definition {}".format(parts_type))
     print "parts type is {}".format(parts_type)
@@ -186,7 +190,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
     print('model path is {0}'.format(model_file))
     if os.path.isfile(model_file):
         if args.resume:
-            load_model.load_ckpt([model], model_file, skip_fc=True, skip_merge=skip_merge)
+            Model.load_ckpt([model], model_file, skip_fc=True, skip_merge=skip_merge)
         else:
             print('model file {0} already exist, will overwrite it.'.format(model_file))
 
@@ -244,6 +248,8 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
                     features = model_p(Variable(images.cuda(device=gpu_ids[0], async=True)), keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
                 features = model(Variable(images), keypoints)
+            if len(features) == 0:  # in case with logits outputs
+                features = features[0]
             outputs = features.view([actual_size[0], sample_size, -1])
             loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids)
             optimizer.zero_grad()
