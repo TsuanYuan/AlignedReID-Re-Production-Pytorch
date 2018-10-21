@@ -76,28 +76,30 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
 
 def tracklet_train_features(train_features, train_files):
     tracklet_features = {}
-    for train_feature, train_file in zip(train_features, train_files):
-        # decode ch00002_20181006161838_474_328.jpg
-        pid = int(train_file.split('/')[-2])
-        if pid not in tracklet_features:
-            tracklet_features[pid] = []
-        tracklet_features[pid].append(train_feature)
+    for train_feature_per_person, train_file_per_person in zip(train_features, train_files):
+        for train_file, train_feature in zip(train_file_per_person, train_feature_per_person):
+            # decode ch00002_20181006161838_474_328.jpg
+            pid = int(train_file.split('/')[-2])
+            if pid not in tracklet_features:
+                tracklet_features[pid] = []
+            tracklet_features[pid].append(train_feature)
     return tracklet_features
 
 def tracklet_test_features(test_features, test_files):
     tracklet_features = {}
     tracklet_to_pid = {}
-    for test_feature, test_file in zip(test_features, test_files):
-        # decode ch00002_20181006161838_474_328.jpg
-        file_only = os.path.basename(test_file)
-        pid = int(test_file.split('/')[-2])
-        tracklet_id = int(file_only.split('_')[2])
-        if tracklet_id not in tracklet_features:
-            tracklet_features[tracklet_id] = []
-            tracklet_to_pid[tracklet_id] = pid
-        if pid != tracklet_to_pid[tracklet_id]:
-            print 'tracket {} mapped to two different pids {} and {}'.format(str(tracklet_id), str(pid), str(tracklet_to_pid[tracklet_id]))
-        tracklet_features[tracklet_id].append(test_feature)
+    for test_feature_per_person, test_file_per_person in zip(test_features, test_files):
+        for test_file, test_feature in zip(test_file_per_person, test_feature_per_person):
+            # decode ch00002_20181006161838_474_328.jpg
+            file_only = os.path.basename(test_file)
+            pid = int(test_file.split('/')[-2])
+            tracklet_id = int(file_only.split('_')[2])
+            if tracklet_id not in tracklet_features:
+                tracklet_features[tracklet_id] = []
+                tracklet_to_pid[tracklet_id] = pid
+            if pid != tracklet_to_pid[tracklet_id]:
+                print 'tracket {} mapped to two different pids {} and {}'.format(str(tracklet_id), str(pid), str(tracklet_to_pid[tracklet_id]))
+            tracklet_features[tracklet_id].append(test_feature)
     return tracklet_features, tracklet_to_pid
 
 if __name__ == "__main__":
