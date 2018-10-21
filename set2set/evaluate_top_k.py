@@ -76,7 +76,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
 
 def tracklet_train_features(train_features, train_files):
     tracklet_features = {}
-    for train_file, train_feature in zip(train_features, train_files):
+    for train_feature, train_file in zip(train_features, train_files):
         # decode ch00002_20181006161838_474_328.jpg
         pid = int(train_file.split('/')[-2])
         if pid not in tracklet_features:
@@ -87,7 +87,7 @@ def tracklet_train_features(train_features, train_files):
 def tracklet_test_features(test_features, test_files):
     tracklet_features = {}
     tracklet_to_pid = {}
-    for test_file, test_feature in zip(test_features, test_files):
+    for test_feature, test_file in zip(test_features, test_files):
         # decode ch00002_20181006161838_474_328.jpg
         file_only = os.path.basename(test_file)
         pid = int(test_file.split('/')[-2])
