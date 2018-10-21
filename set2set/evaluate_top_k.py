@@ -136,6 +136,6 @@ if __name__ == "__main__":
     test_features, test_files = process_folder(args.test_folder, model, args.force_compute, args.ext, -1, args.batch_max)
     train_features, train_files = process_folder(args.train_folder, model, args.force_compute, args.ext, -1, args.batch_max)
 
-    train_pid_features, train_pids = tracklet_train_features(train_features, train_files)
+    train_pid_features = tracklet_train_features(train_features, train_files)
     tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
     compute_top_k(tracklet_features, tracklet_to_pid, train_features, args.match_option)
