@@ -46,7 +46,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
     tracklet_ids = tracklet_features.keys()
     tracklet_to_pid_dists = {}
     for tracklet_id in tracklet_ids:
-        tracklet_feature = tracklet_features[tracklet_id]
+        tracklet_feature = numpy.array(tracklet_features[tracklet_id])
         tracklet_to_pid_dists[tracklet_id] = {}
         for pid in train_features:
             pid_feature = train_features[pid]
