@@ -138,4 +138,4 @@ if __name__ == "__main__":
 
     train_pid_features = tracklet_train_features(train_features, train_files)
     tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
-    compute_top_k(tracklet_features, tracklet_to_pid, train_features, args.match_option)
+    compute_top_k(tracklet_features, tracklet_to_pid, train_pid_features, args.match_option)
