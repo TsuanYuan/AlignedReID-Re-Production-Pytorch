@@ -13,9 +13,8 @@ import datetime
 from torchvision import transforms
 import transforms_reid, Model
 import losses
-from evaluate import load_model
 from torch.autograd import Variable
-from torch.nn.parallel import DataParallel
+
 
 
 def save_ckpt(modules_optims, ep, scores, ckpt_file):
@@ -39,33 +38,6 @@ def save_ckpt(modules_optims, ep, scores, ckpt_file):
       os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
   torch.save(ckpt, ckpt_file)
 
-def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True, skip_fc=False):
-  """Load state_dict's of modules/optimizers from file.
-  Args:
-    modules_optims: A list, which members are either torch.nn.optimizer
-      or torch.nn.Module.
-    ckpt_file: The file path.
-    load_to_cpu: Boolean. Whether to transform tensors in modules/optimizers
-      to cpu type.
-  """
-  map_location = (lambda storage, loc: storage) if load_to_cpu else None
-  ckpt = torch.load(ckpt_file, map_location=map_location)
-  if skip_fc:
-    print('skip fc layers when loading the model!')
-  for m, sd in zip(modules_optims, ckpt['state_dicts']):
-    if m is not None:
-      if skip_fc:
-        for k in sd.keys():
-          if k.find('fc') >= 0:
-            sd.pop(k, None)
-      if hasattr(m, 'param_groups'):
-        m.load_state_dict(sd)
-      else:
-        m.load_state_dict(sd, strict=False)
-  if verbose:
-    print('Resume from ckpt {}, \nepoch {}, \nscores {}'.format(
-      ckpt_file, ckpt['ep'], ckpt['scores']))
-  return ckpt['ep'], ckpt['scores']
 
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
@@ -136,39 +108,7 @@ def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep, min_lr):
     print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
 
 
-def init_optim(optim, params, lr, weight_decay, eps=1e-8):
-    if optim == 'adam':
-        return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
-    elif optim == 'sgd':
-        return torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    elif optim == 'rmsprop':
-        return torch.optim.RMSprop(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    else:
-        raise KeyError("Unsupported optim: {}".format(optim))
 
-def load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes):
-
-    model = Model.create_model(model_type, num_classes=num_classes, num_stripes=num_stripes)
-    if len(gpu_ids) >= 0:
-        model = model.cuda(device=gpu_ids[0])
-
-    optimizer = init_optim(optimizer_name, model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    model_folder = os.path.split(model_file)[0]
-    if not os.path.isdir(model_folder):
-        os.makedirs(model_folder)
-    print('model path is {0}'.format(model_file))
-    if os.path.isfile(model_file):
-        if args.resume:
-            load_model.load_ckpt([model], model_file, skip_fc=True, skip_merge=True)
-        else:
-            print('model file {0} already exist, will overwrite it.'.format(model_file))
-
-    if len(gpu_ids) > 0:
-        model_p = DataParallel(model, device_ids=gpu_ids)
-    else:
-        model_p = model
-
-    return model_p, optimizer, model
 
 def main(data_folder, index_file, model_file, sample_size, batch_size, model_type='plain', num_stripes=None, same_day_camera=False,
          num_epochs=200, gpu_ids=None, margin=0.1, loss_name='ranking', ignore_pid_file=None, softmax_loss_ratio=0.2, num_data_workers=8,
@@ -206,7 +146,7 @@ def main(data_folder, index_file, model_file, sample_size, batch_size, model_typ
     dataloader = torch.utils.data.DataLoader(reid_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=num_data_workers)
     # model and optimizer
-    model_p, optimizer, single_model = load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes)
+    model_p, optimizer, single_model = Model.load_model_optimizer(model_file, optimizer_name, gpu_ids, base_lr, weight_decay, num_classes, model_type, num_stripes)
     # parameters and l,osses
     start_decay = 50
     min_lr = 1e-9
