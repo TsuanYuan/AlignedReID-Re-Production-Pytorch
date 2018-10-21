@@ -142,5 +142,5 @@ def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, lo
     descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute,
                                                          batch_max=batch_max,load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th,
                                                          same_sample_size=same_sampel_size)
-    save_joint_descriptors(descriptors_for_encoders, crop_files)
+    save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
     return descriptors_for_encoders, crop_files
