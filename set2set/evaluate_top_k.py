@@ -7,6 +7,7 @@ Quan Yuan
 import os
 import numpy
 import argparse
+import sklearn
 from evaluate import feature_compute
 
 
@@ -42,7 +43,36 @@ def process_folder(data_folder, model, force_compute, ext, sample_size, batch_ma
     return features_per_person, crops_file_list
 
 def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option):
-    pass
+    tracklet_ids = tracklet_features.keys()
+    tracklet_to_pid_dists = {}
+    for tracklet_id in tracklet_ids:
+        tracklet_feature = tracklet_features[tracklet_id]
+        tracklet_to_pid_dists[tracklet_id] = {}
+        for pid in train_features:
+            pid_feature = train_features[pid]
+            if match_option == 'ten_percent':
+                dist_matrix = sklearn.metrics.pairwise_distances(pid_feature, tracklet_feature, metric='cosine')
+                tracklet_to_pid_dists[tracklet_id][pid] = numpy.percentile(dist_matrix, 10)
+            elif match_option == 'median':
+                tracklet_median = feature_compute.median_feature(tracklet_feature)
+                pid_median = feature_compute.median_feature(pid_feature)
+                tracklet_to_pid_dists[tracklet_id][pid] =  1 - numpy.dot(tracklet_median, pid_median)
+
+    top1, top5 = 0, 0
+    for tracklet_id in tracklet_to_pid_dists:
+        pid_list = numpy.array(tracklet_to_pid_dists[tracklet_id].keys())
+        dist_list = numpy.array(tracklet_to_pid_dists[tracklet_id].values())
+        sort_ids = numpy.argsort(dist_list)
+        if pid_list[sort_ids[0]] == tracklet_to_pid[tracklet_id]:
+            top1 += 1
+        if tracklet_to_pid[tracklet_id] in pid_list[sort_ids[0:5]].tolist():
+            top5 += 1
+    n = len(tracklet_to_pid_dists)
+    top1 /= float(n)
+    top5 /= float(n)
+    print "top 1 of tracklet pid matching with option {} is {}".format(match_option, str(top1))
+    print "top 5 of tracklet pid matching with option {} is {}".format(match_option, str(top5))
+
 
 def tracklet_train_features(train_features, train_files):
     tracklet_features = {}
@@ -82,20 +112,8 @@ if __name__ == "__main__":
     parser.add_argument('model_path', type=str,
                         help='the model path')
 
-    parser.add_argument('--config_file', type=str, default='',
-                        help='the config file of parameters')
-
     parser.add_argument('--ext', type=str, default='dsc',
                         help='the ext to dump descirptor files')
-
-    parser.add_argument('--min_frame_interval', type=int, default=-1,
-                        help='the min frame intervals between a same pair')
-
-    parser.add_argument('--max_frame_interval', type=int, default=10000000,
-                        help='the max frame intervals between a same pair')
-
-    parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
-                        help='whether to dump tough pairs')
 
     parser.add_argument('--force_compute', action='store_true', default=False,
                         help='whether to force compute features')

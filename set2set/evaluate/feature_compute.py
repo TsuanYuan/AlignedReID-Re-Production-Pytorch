@@ -12,6 +12,12 @@ from load_model import AppearanceModelForward, Model_Types
 import misc
 
 
+def median_feature(features):
+    x = numpy.median(features, axis=0)
+    feature = x / (numpy.linalg.norm(x) + 0.0000001)
+    return feature
+
+
 def load_experts(experts_file, device_ids):
     models, exts = [], []
 
