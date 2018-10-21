@@ -248,7 +248,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
                     features = model_p(Variable(images.cuda(device=gpu_ids[0], async=True)), keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
                 features = model(Variable(images), keypoints)
-            if len(features) == 0:  # in case with logits outputs
+            if len(features) > 1:  # in case with logits outputs
                 features = features[0]
             outputs = features.view([actual_size[0], sample_size, -1])
             loss,dist_pos, dist_neg,p_pids,n_pids = loss_function(outputs, person_ids)
