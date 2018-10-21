@@ -7,7 +7,7 @@ Quan Yuan
 import os
 import numpy
 import argparse
-import sklearn
+import sklearn.metrics
 from evaluate import feature_compute
 
 
@@ -49,9 +49,9 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
         tracklet_feature = numpy.array(tracklet_features[tracklet_id])
         tracklet_to_pid_dists[tracklet_id] = {}
         for pid in train_features:
-            pid_feature = train_features[pid]
+            pid_feature = numpy.array(train_features[pid])
             if match_option == 'ten_percent':
-                dist_matrix = sklearn.metrics.pairwise_distances(pid_feature, tracklet_feature, metric='cosine')
+                dist_matrix = sklearn.metrics.pairwise.pairwise_distances(pid_feature, tracklet_feature, metric='cosine')
                 tracklet_to_pid_dists[tracklet_id][pid] = numpy.percentile(dist_matrix, 10)
             elif match_option == 'median':
                 tracklet_median = feature_compute.median_feature(tracklet_feature)
