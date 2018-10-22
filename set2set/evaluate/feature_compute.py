@@ -136,11 +136,21 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr = feature_arr / numpy.sqrt(float(len(descriptors)))
         feature_arr.tofile(descriptor_file)
 
+def save_array_descriptors(descriptors_for_encoders, crop_files, ext):
+    n = descriptors_for_encoders.shape[0]
+    assert(len(crop_files)==n)
+    for i, crop_file in range(0, n):
+        descriptor = descriptors_for_encoders[i,:]
+        no_ext, _ = os.path.splitext(crop_file)
+        descriptor_file = no_ext + '.' + ext
+        descriptor.tofile(descriptor_file)
+
 
 def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, load_keypoints, keypoints_score_th, same_sampel_size):
 
     descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute,
                                                          batch_max=batch_max,load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th,
                                                          same_sample_size=same_sampel_size)
-    save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
+    save_array_descriptors(descriptors_for_encoders, crop_files, ext)
+    #save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
     return descriptors_for_encoders, crop_files
