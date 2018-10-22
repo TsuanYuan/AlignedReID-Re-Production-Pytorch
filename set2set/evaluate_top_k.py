@@ -115,7 +115,8 @@ def tracklet_train_features(train_features, train_files):
             pid = int(train_file.split('/')[-2])
             if pid not in tracklet_features:
                 tracklet_features[pid] = []
-            tracklet_features[pid].append(train_feature)
+            if len(train_feature.shape) > 0:
+                tracklet_features[pid].append(train_feature)
     return tracklet_features
 
 def tracklet_test_features(test_features, test_files):
