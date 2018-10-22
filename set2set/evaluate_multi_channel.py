@@ -161,6 +161,9 @@ if __name__ == "__main__":
     parser.add_argument('--load_keypoints', action='store_true', default=False,
                         help='whether to load keypoints for pose model')
 
+    parser.add_argument('--keep_fc', action='store_true', default=False,
+                        help='whether to keep loading fc layers')
+
     parser.add_argument('--keypoints_score_th', type=float, default=0.0,
                         help='threshold of keypoints quality')
 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
 
     same_pair_requirements = Same_Pair_Requirements(min_frame_interval=args.min_frame_interval, max_frame_interval=args.max_frame_interval, must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
-    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
+    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids, skip_fc=(not args.keep_fc))
 
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))

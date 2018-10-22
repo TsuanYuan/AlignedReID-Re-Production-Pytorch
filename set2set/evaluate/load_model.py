@@ -35,7 +35,7 @@ class Model_Types(Enum):
     MGN_SELF_ATTEN = 12
 
 class AppearanceModelForward(object):
-    def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128):
+    def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
@@ -109,7 +109,7 @@ class AppearanceModelForward(object):
         self.batch_max = batch_max
         self.model_ws = DataParallel(model, device_ids=device_ids)
         # load the model
-        load_ckpt([model], model_path, skip_fc=True)
+        load_ckpt([model], model_path, skip_fc=skip_fc)
         # Set eval mode.
         # Force all BN layers to use global mean and variance, also disable
         # dropout.
