@@ -119,12 +119,12 @@ def init_optim(optim, params, lr, weight_decay, eps=1e-8):
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
          num_epochs=200, gpu_ids=None, margin=0.1, num_workers=8, softmax_loss_weight=0, resume=False,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 50, desired_size=(256, 128), num_stripes=6):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 250, desired_size=(256, 128), num_stripes=6):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale((desired_size[0]+16, desired_size[1]+8)),  # not change the pixel range to [0,1.0]
                                               transforms_reid.RandomCrop(desired_size),
-                                              transforms_reid.RandomBlockMask(8),
+                                              #transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
