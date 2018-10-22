@@ -80,7 +80,7 @@ def process_test(data_folder, model, force_compute, ext, sample_size, batch_max,
                     features_per_track[track_id].append(descriptors)
                     crops_file_list[track_id].append(crop_files)
                     if (len(crops_file_list) + 1) % 100 == 0:
-                        print "finished {} pid folders".format(str(len(crops_file_list) + 1))
+                        print "finished {} track ids".format(str(len(crops_file_list) + 1))
                 if track_id not in tracklet_to_pid:
                     tracklet_to_pid[track_id] = pid
     print "finish feature computing on {}".format(data_folder)
@@ -182,7 +182,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print "options are ext={}, force_compute={}, batch_max={}, sample_size={}, match_option={}".format(args.ext, str(args.force_compute), str(args.batch_max),
-                                                                                                       str(args.sampel_size), args.match_options)
+                                                                                                       str(args.sample_size), args.match_option)
     start_time = time.time()
     model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
