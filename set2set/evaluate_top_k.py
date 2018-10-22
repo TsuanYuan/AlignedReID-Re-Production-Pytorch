@@ -8,6 +8,7 @@ import os
 import numpy
 import argparse
 import sklearn.metrics
+import time
 from evaluate import feature_compute
 
 
@@ -131,7 +132,7 @@ if __name__ == "__main__":
                         help='options to get top k result')
 
     args = parser.parse_args()
-
+    start_time = time.time()
     model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
     test_features, test_files = process_folder(args.test_folder, model, args.force_compute, args.ext, -1, args.batch_max)
@@ -140,3 +141,6 @@ if __name__ == "__main__":
     train_pid_features = tracklet_train_features(train_features, train_files)
     tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
     compute_top_k(tracklet_features, tracklet_to_pid, train_pid_features, args.match_option)
+    finish_time = time.time()
+    elapsed = finish_time - start_time
+    print 'total time = {0}'.format(str(elapsed))
