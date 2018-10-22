@@ -53,31 +53,19 @@ def best_keypoints(keypoints):
                 best_kp = kp
     return best_kp
 
-
-def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
+def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = None, batch_max=128, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
-    p = person_folder
-    crop_files = glob.glob(os.path.join(p, '*.jpg'))
-    if len(crop_files) == 0:
-        return numpy.array([]), []
-
-    files_from_files, files_from_gpus, descriptors_from_files, descriptors_from_gpus = [], [], [], []
-    ims, kps = [], []
-    keypoints = {}
-    if load_keypoints:
-        keypoint_file = os.path.join(person_folder, 'keypoints.pkl')
-        with open(keypoint_file, 'rb') as fp:
-            keypoints = pickle.load(fp)
-
-    if same_sample_size > 0:
-        sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
-        sample_ids = numpy.unique(sample_ids)
-        crop_files = numpy.array(crop_files)[sample_ids].tolist()
-
     if model.get_model_type()== Model_Types.PCB_3 or model.get_model_type()== Model_Types.PCB_6:
         desired_size = (384, 128)
     else:
         desired_size = (256, 128)
+
+    files_from_files, files_from_gpus, descriptors_from_files, descriptors_from_gpus = [], [], [], []
+    ims, kps = [], []
+    keypoints = {}
+    if keypoint_file is not None:
+        with open(keypoint_file, 'rb') as fp:
+            keypoints = pickle.load(fp)
 
     for i, crop_file in enumerate(crop_files):
         descriptor_file = crop_file[:-4] + '.' + ext
@@ -92,7 +80,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
             if w_h_ratio > w_h_quality_th or im_bgr.shape[0] < min_crop_h:  # a crop that is too wide, possibly a partial crop of head only or too small
                 skip_reading = True
 
-            if load_keypoints and (not skip_reading):
+            if keypoint_file is not None and (not skip_reading):
                 file_only = os.path.basename(crop_file)
                 if file_only not in keypoints:  # no keypoints detected on this crop image
                     skip_reading = True
@@ -112,7 +100,7 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 files_from_gpus.append(crop_file)
 
         if len(ims) > 0 and (len(ims) == batch_max or i == len(crop_files)-1):
-            if load_keypoints and (model.get_model_type() == Model_Types.HEAD_POSE or model.get_model_type() == Model_Types.LIMB_POSE
+            if keypoint_file is not None and (model.get_model_type() == Model_Types.HEAD_POSE or model.get_model_type() == Model_Types.LIMB_POSE
                                    or model.get_model_type() == Model_Types.HEAD_ONLY or model.get_model_type() == Model_Types.HEAD_POSE_REWEIGHT
                                    or model.get_model_type() == Model_Types.HEAD_EXTRA or model.get_model_type() == Model_Types.LIMB_ONLY
                                    or model.get_model_type() == Model_Types.LIMB_EXTRA):
@@ -127,6 +115,26 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
     else:
         return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
 
+def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
+                  same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
+    p = person_folder
+    crop_files = glob.glob(os.path.join(p, '*.jpg'))
+    if len(crop_files) == 0:
+        return numpy.array([]), []
+
+    if same_sample_size > 0:
+        sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
+        sample_ids = numpy.unique(sample_ids)
+        crop_files = numpy.array(crop_files)[sample_ids].tolist()
+    if load_keypoints:
+        keypoint_file = os.path.join(person_folder, 'keypoints.pkl')
+    else:
+        keypoint_file = None
+
+    return encode_image_files(crop_files, model, ext, force_compute, keypoint_file=keypoint_file, batch_max=batch_max,
+                       keypoints_score_th=keypoints_score_th,
+                       same_sample_size=same_sample_size, w_h_quality_th=w_h_quality_th, min_crop_h=min_crop_h)
+
 
 def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
     for descriptors, crop_file in zip(descriptors_for_encoders, crop_files):
@@ -140,7 +148,7 @@ def save_array_descriptors(descriptors_for_encoders, crop_files, ext):
     n = descriptors_for_encoders.shape[0]
     assert(len(crop_files)==n)
     for i in range(n):
-        crop_file = crop_files[n]
+        crop_file = crop_files[i]
         descriptor = descriptors_for_encoders[i,:]
         no_ext, _ = os.path.splitext(crop_file)
         descriptor_file = no_ext + '.' + ext
@@ -154,4 +162,12 @@ def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, lo
                                                          same_sample_size=same_sampel_size)
     save_array_descriptors(descriptors_for_encoders, crop_files, ext)
     #save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
+    return descriptors_for_encoders, crop_files
+
+def load_descriptor_list_on_files(image_files, model, ext, force_compute, batch_max, keypoint_file, keypoints_score_th, same_sampel_size):
+
+    descriptors_for_encoders, crop_files = encode_image_files(image_files, model, ext, force_compute, keypoint_file=keypoint_file,
+                                                         batch_max=batch_max, keypoints_score_th=keypoints_score_th,
+                                                         same_sample_size=same_sampel_size)
+    save_array_descriptors(descriptors_for_encoders, crop_files, ext)
     return descriptors_for_encoders, crop_files

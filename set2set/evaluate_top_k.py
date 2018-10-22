@@ -5,20 +5,29 @@ Quan Yuan
 """
 
 import os
+import glob
 import numpy
 import argparse
 import sklearn.metrics
 import time
 from evaluate import feature_compute
+import collections
 
+def decode_track_id(image_file):
+    # decode ch00002_20181006161838_474_328.jpg
+    file_only = os.path.basename(image_file)
+    parts = file_only.split('_')
+    tracklet_id = parts[0] + '_' + parts[1] + '_' + parts[2]
+    return tracklet_id
 
 def process_folder(data_folder, model, force_compute, ext, sample_size, batch_max, down_sample=False):
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list, crops_file_list = [], [], [], []
 
     for sub_folder in sub_folders:
-        if os.path.isdir(os.path.join(data_folder, sub_folder)) and sub_folder.isdigit() :
-            descriptors, crop_files = feature_compute.load_descriptor_list(os.path.join(data_folder, sub_folder), model, ext,
+        pid_folder = os.path.join(data_folder, sub_folder)
+        if os.path.isdir(pid_folder) and sub_folder.isdigit() :
+            descriptors, crop_files = feature_compute.load_descriptor_list(pid_folder, model, ext,
                                                                            force_compute=force_compute, batch_max=batch_max,
                                                                            load_keypoints=False, keypoints_score_th=0,
                                                                            same_sampel_size=sample_size)
@@ -42,6 +51,41 @@ def process_folder(data_folder, model, force_compute, ext, sample_size, batch_ma
         return
     print "finish feature computing on {}".format(data_folder)
     return features_per_person, crops_file_list
+
+
+def group_tracklet_files(data_folder):
+    tracklet_crops = collections.defaultdict(list)
+    crop_files = glob.glob(os.path.join(data_folder, '*.jpg'))
+    for crop_file in crop_files:
+        tracklet_id = decode_track_id(crop_file)
+        tracklet_crops[tracklet_id].append(crop_file)
+    return tracklet_crops
+
+
+def process_test(data_folder, model, force_compute, ext, sample_size, batch_max, down_sample=False):
+    sub_folders = os.listdir(data_folder)
+    features_per_track, crops_file_list = collections.defaultdict(list), collections.defaultdict(list)
+    tracklet_to_pid = {}
+    for sub_folder in sub_folders:
+        pid_folder = os.path.join(data_folder, sub_folder)
+        pid = int(sub_folder)
+        if os.path.isdir(pid_folder) and sub_folder.isdigit() :
+            tracklet_files = group_tracklet_files(pid_folder)
+            for track_id in tracklet_files:
+                descriptors, crop_files = feature_compute.load_descriptor_list_on_files(tracklet_files[track_id], model, ext,
+                                                                           force_compute=force_compute, batch_max=batch_max,
+                                                                           keypoint_file=None, keypoints_score_th=0,
+                                                                           same_sampel_size=sample_size)
+                if len(descriptors) > 1:
+                    features_per_track[track_id].append(descriptors)
+                    crops_file_list[track_id].append(crop_files)
+                    if (len(crops_file_list) + 1) % 100 == 0:
+                        print "finished {} pid folders".format(str(len(crops_file_list) + 1))
+                if track_id not in tracklet_to_pid:
+                    tracklet_to_pid[track_id] = pid
+    print "finish feature computing on {}".format(data_folder)
+    return features_per_track, crops_file_list, tracklet_to_pid
+
 
 def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option):
     tracklet_ids = tracklet_features.keys()
@@ -104,6 +148,8 @@ def tracklet_test_features(test_features, test_files):
             tracklet_features[tracklet_id].append(test_feature)
     return tracklet_features, tracklet_to_pid
 
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -128,19 +174,24 @@ if __name__ == "__main__":
     parser.add_argument('--batch_max', type=int, default=128,
                         help='batch size to compute reid features')
 
+    parser.add_argument('--sample_size', type=int, default=32,
+                        help='down sample tracklet size to compute reid features')
+
     parser.add_argument('--match_option', type=str, default='ten_percent',
                         help='options to get top k result')
 
     args = parser.parse_args()
+    print "options are ext={}, force_compute={}, batch_max={}, sample_size={}, match_option={}".format(args.ext, str(args.force_compute), str(args.batch_max),
+                                                                                                       str(args.sampel_size), args.match_options)
     start_time = time.time()
     model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
-    test_features, test_files = process_folder(args.test_folder, model, args.force_compute, args.ext, -1, args.batch_max)
-    train_features, train_files = process_folder(args.train_folder, model, args.force_compute, args.ext, -1, args.batch_max)
+    test_features, test_files, tracklet_to_pid = process_test(args.test_folder, model, args.force_compute, args.ext, args.sample_size, args.batch_max)
+    train_features, train_files = process_folder(args.train_folder, model, args.force_compute, args.ext, args.sample_size, args.batch_max)
 
     train_pid_features = tracklet_train_features(train_features, train_files)
-    tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
-    compute_top_k(tracklet_features, tracklet_to_pid, train_pid_features, args.match_option)
+    #tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
+    compute_top_k(test_features, tracklet_to_pid, train_pid_features, args.match_option)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))
