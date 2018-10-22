@@ -13,7 +13,8 @@ from enum import Enum
 import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
-from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, MGNWithHead, MGNWithParts
+from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, \
+    MGNWithHead, MGNWithParts, MGNSelfAtten
 from Model import load_ckpt
 import misc
 
@@ -31,7 +32,7 @@ class Model_Types(Enum):
     LIMB_EXTRA = 9
     LIMB_ONLY = 10
     PCB_3 =11
-
+    MGN_SELF_ATTEN = 12
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128):
@@ -39,7 +40,11 @@ class AppearanceModelForward(object):
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
 
-        if model_file.find('mgn') >= 0:
+        if model_file.find('mgn_self_atten') >= 0:
+            model = MGNSelfAtten().cuda(device=device_ids[0])
+            self.model_type = Model_Types.MGN_SELF_ATTEN
+            print "use mgn self atten model"
+        elif model_file.find('mgn') >= 0:
             model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
             print "use mgn model"

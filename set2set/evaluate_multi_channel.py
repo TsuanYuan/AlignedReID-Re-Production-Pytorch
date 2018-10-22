@@ -189,6 +189,7 @@ if __name__ == "__main__":
     else:
         process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids,
                 same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval)
+    print "evaluated model {}".format(args.model_path)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))

@@ -1049,7 +1049,6 @@ class MGNWithHead(MGNModel):
         return feat
 
 
-
 class MGNWithParts(MGNModel):
     def __init__(self, pose_ids, attention_weight = False,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=128):
