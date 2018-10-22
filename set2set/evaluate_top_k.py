@@ -62,7 +62,7 @@ def group_tracklet_files(data_folder):
     return tracklet_crops
 
 
-def process_test(data_folder, model, force_compute, ext, sample_size, batch_max, down_sample=False):
+def process_test(data_folder, model, force_compute, ext, sample_size, batch_max):
     sub_folders = os.listdir(data_folder)
     features_per_track, crops_file_list = collections.defaultdict(list), collections.defaultdict(list)
     tracklet_to_pid = {}
