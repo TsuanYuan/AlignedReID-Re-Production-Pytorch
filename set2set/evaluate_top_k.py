@@ -93,7 +93,8 @@ def tracklet_test_features(test_features, test_files):
             # decode ch00002_20181006161838_474_328.jpg
             file_only = os.path.basename(test_file)
             pid = int(test_file.split('/')[-2])
-            tracklet_id = int(file_only.split('_')[2])
+            parts = file_only.split('_')
+            tracklet_id = parts[0]+'_'+parts[1]+'_'+parts[2]
             if tracklet_id not in tracklet_features:
                 tracklet_features[tracklet_id] = []
                 tracklet_to_pid[tracklet_id] = pid
