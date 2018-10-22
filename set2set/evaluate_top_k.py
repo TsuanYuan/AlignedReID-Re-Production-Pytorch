@@ -36,19 +36,7 @@ def process_folder(data_folder, model, force_compute, ext, sample_size, batch_ma
                 crops_file_list.append(crop_files)
                 if (len(crops_file_list) + 1) % 100 == 0:
                     print "finished {} pid folders".format(str(len(crops_file_list) + 1))
-    # avoid bias towards person of long tracks
-    if down_sample:
-        mean_len = sum([len(crop_files) for crop_files in crops_file_list]) / max(1, len(crops_file_list))
-        len_limit = int(mean_len * 1.5)
-        for i, crop_files in enumerate(crops_file_list):
-            if len(crop_files) > len_limit:
-                sample_ids = numpy.round(numpy.linspace(0, len(crop_files) - 1, len_limit)).astype(int)
-                crops_file_list[i] = numpy.array(crop_files)[sample_ids]
-                features_per_person[i] = numpy.array(features_per_person[i])[sample_ids, :]
-            else:
-                crops_file_list[i] = numpy.array(crop_files)
-                features_per_person[i] = numpy.array(features_per_person[i])
-        return
+
     print "finish feature computing on {}".format(data_folder)
     return features_per_person, crops_file_list
 
@@ -91,7 +79,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
     tracklet_ids = tracklet_features.keys()
     tracklet_to_pid_dists = {}
     for tracklet_id in tracklet_ids:
-        tracklet_feature = numpy.array(tracklet_features[tracklet_id])
+        tracklet_feature = numpy.squeeze(numpy.array(tracklet_features[tracklet_id]))
         tracklet_to_pid_dists[tracklet_id] = {}
         for pid in train_features:
             pid_feature = numpy.array(train_features[pid])
@@ -99,7 +87,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
                 dist_matrix = sklearn.metrics.pairwise.pairwise_distances(pid_feature, tracklet_feature, metric='cosine')
                 tracklet_to_pid_dists[tracklet_id][pid] = numpy.percentile(dist_matrix, 10)
             elif match_option == 'median':
-                tracklet_median = feature_compute.median_feature(tracklet_feature)
+                tracklet_median = feature_compute.median_feature(numpy.squeeze(tracklet_feature))
                 pid_median = feature_compute.median_feature(pid_feature)
                 tracklet_to_pid_dists[tracklet_id][pid] =  1 - numpy.dot(tracklet_median, pid_median)
 
