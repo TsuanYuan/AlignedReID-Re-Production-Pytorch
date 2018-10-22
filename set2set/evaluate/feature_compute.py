@@ -139,7 +139,8 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
 def save_array_descriptors(descriptors_for_encoders, crop_files, ext):
     n = descriptors_for_encoders.shape[0]
     assert(len(crop_files)==n)
-    for i, crop_file in range(0, n):
+    for i in range(n):
+        crop_file = crop_files[n]
         descriptor = descriptors_for_encoders[i,:]
         no_ext, _ = os.path.splitext(crop_file)
         descriptor_file = no_ext + '.' + ext
