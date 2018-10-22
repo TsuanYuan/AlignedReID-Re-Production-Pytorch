@@ -77,7 +77,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
         skip_reading = False
         if os.path.isfile(descriptor_file) and (not force_compute):
             descriptor = numpy.fromfile(descriptor_file, dtype=numpy.float32)
-            descriptors_from_files.append(descriptor.reshape((descriptor.size, 1)))
+            descriptors_from_files.append(descriptor) #.reshape((1,descriptor.size)))
             files_from_files.append(crop_file)
         else:
             im_bgr = cv2.imread(crop_file)
@@ -118,7 +118,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
     if len(descriptors_from_gpus) + len(descriptors_from_files) == 0:
         return numpy.array([]), []
     else:
-        return numpy.concatenate((descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
+        return numpy.squeeze(numpy.array(descriptors_from_files + descriptors_from_gpus)), files_from_files+files_from_gpus
 
 def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
@@ -146,6 +146,8 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr.tofile(descriptor_file)
 
 def save_array_descriptors(descriptors_for_encoders, crop_files, ext):
+    if len(descriptors_for_encoders.shape) == 1:
+        descriptors_for_encoders = descriptors_for_encoders.reshape((1, descriptors_for_encoders.size))
     n = descriptors_for_encoders.shape[0]
     assert(len(crop_files)==n)
     for i in range(n):
@@ -161,14 +163,17 @@ def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, lo
     descriptors_for_encoders, crop_files = encode_folder(person_folder, model, ext, force_compute,
                                                          batch_max=batch_max,load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th,
                                                          same_sample_size=same_sampel_size)
-    save_array_descriptors(descriptors_for_encoders, crop_files, ext)
+    if len(crop_files) > 0:
+        save_array_descriptors(descriptors_for_encoders, crop_files, ext)
     #save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
     return descriptors_for_encoders, crop_files
 
-def load_descriptor_list_on_files(image_files, model, ext, force_compute, batch_max, keypoint_file, keypoints_score_th, same_sampel_size):
+def load_descriptor_list_on_files(image_files, model, ext, force_compute, batch_max, keypoint_file, keypoints_score_th, same_sampel_size,
+                                  w_h_quality_th=0.90, min_crop_h=96):
 
     descriptors_for_encoders, crop_files = encode_image_files(image_files, model, ext, force_compute, keypoint_file=keypoint_file,
                                                          batch_max=batch_max, keypoints_score_th=keypoints_score_th,
-                                                         same_sample_size=same_sampel_size)
-    save_array_descriptors(descriptors_for_encoders, crop_files, ext)
+                                                         same_sample_size=same_sampel_size, w_h_quality_th=w_h_quality_th, min_crop_h=min_crop_h)
+    if len(crop_files) > 0:
+        save_array_descriptors(descriptors_for_encoders, crop_files, ext)
     return descriptors_for_encoders, crop_files

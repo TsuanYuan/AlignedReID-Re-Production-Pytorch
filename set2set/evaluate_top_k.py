@@ -75,8 +75,8 @@ def process_test(data_folder, model, force_compute, ext, sample_size, batch_max)
                 descriptors, crop_files = feature_compute.load_descriptor_list_on_files(tracklet_files[track_id], model, ext,
                                                                            force_compute=force_compute, batch_max=batch_max,
                                                                            keypoint_file=None, keypoints_score_th=0,
-                                                                           same_sampel_size=sample_size)
-                if len(descriptors) > 1:
+                                                                           same_sampel_size=sample_size, w_h_quality_th=100, min_crop_h=1)
+                if len(crop_files) > 1:
                     features_per_track[track_id].append(descriptors)
                     crops_file_list[track_id].append(crop_files)
                     if (len(crops_file_list) + 1) % 100 == 0:
