@@ -975,17 +975,21 @@ class MGNModel(nn.Module):
 
 class MGNSelfAtten(MGNModel):
     def __init__(self,
-                 num_classes=None, base_model='resnet50', local_conv_out_channels=128):
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128, sum_weights=True):
         super(MGNSelfAtten, self).__init__(num_classes=num_classes, base_model=base_model,
                                            local_conv_out_channels=local_conv_out_channels)
         self.attention_fc = nn.Linear((self.level2_strips+self.level3_strips+1)*local_conv_out_channels, (self.level2_strips+self.level3_strips+1))
         init.normal_(self.attention_fc.weight, std=0.001)
         init.constant_(self.attention_fc.bias, 0)
+        self.sum_weights = sum_weights
 
     def forward(self, x, key_points=None):
         concat_feat, logits = self.concat_stripe_features(x)
         attention_weights = torch.clamp(self.attention_fc(concat_feat),min=0.0, max=10.0)
-        feat = sum([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))])
+        if self.sum_weights:
+            feat = sum([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))])
+        else:
+            feat = torch.cat([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))], dim=1)
         final_feat = F.normalize(feat, p=2, dim=1)
         return final_feat, logits
 
