@@ -15,7 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from load_model import AppearanceModelForward
 import compute_feature_alignedReid
 from struct_format import utils
-import cv2
+
 
 def get_descriptors_in_split(model, split_data, data_folder, batch_max=128):
     descriptors = {}
