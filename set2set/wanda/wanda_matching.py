@@ -89,7 +89,7 @@ def load_pid_descriptor(pid_folder):
     return pid_desc
 
 
-def video_track_match(pid_folder, track_folder, output_folder, sample_size=8):
+def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, track_batch_size=2000):
     cid_desc_files = glob.glob(os.path.join(pid_folder, '*.pkl'))
     track_desc_files = glob.glob(os.path.join(track_folder, '*.pkl'))
     pid_top_matches = {}
@@ -98,48 +98,54 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8):
             track_desc = pickle.load(fp)
         if len(track_desc) == 0:
             continue
-        vt_descriptors = numpy.array([v[numpy.round(numpy.linspace(0, v.shape[0]-1, sample_size)).astype(int),:] for k, v in track_desc.iteritems() ])
-        vt_names = numpy.array([k for k, v in track_desc.iteritems()])
-        vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
-        dist_100 = {}
-        pid_100 = {}
-        for cid_desc_file in cid_desc_files:
-            with open(cid_desc_file, 'rb') as fp:
-                cid_desc = pickle.load(fp)
-            cids = numpy.array(cid_desc.keys())
-            if len(cids) == 0:
-                continue
-            cid_dist = distance(numpy.array(cid_desc).reshape((-1, vt_descriptors.shape[1])), vt_descriptors,
-                                sample_size=sample_size)
-
-            for k in range(cid_dist.shape[1]): # track id
-                sort_ids = numpy.argsort(cid_dist[:,k])
-                top_ids = sort_ids[:100]
-                track_name = vt_names[k]
-                # merge with existing top 100 and pick 100 out of 200
-                if track_name in pid_100:
-                    matching_pids = numpy.concatenate((cids[top_ids], numpy.array(pid_100[track_name])))
-                    top_dist = numpy.concatenate((cid_dist[top_ids,k], numpy.array(dist_100[track_name])))
-                else:
-                    matching_pids = cids[top_ids]
-                    top_dist = cid_dist[top_ids,k]
-                sort_ids = numpy.argsort(top_dist)
-                top_ids = sort_ids[:100]
-
-                pid_100[track_name] = matching_pids[top_ids]
-                dist_100[track_name] = top_dist[top_ids]
-            # for cid in cids[cid_range[0]:cid_range[1]]:
-            # cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
-            # cids_now = cids[cid_range[0]:cid_range[1]]
+        vt_names_in_file = numpy.array(track_desc.keys())
+        nvt = len(vt_names_in_file)
+        for vi in range(0, nvt, track_batch_size):
+            vtids = numpy.array(range(vi, min(nvt, vi+track_batch_size)))
+            vt_names = vt_names_in_file[vtids]
+            vt_descriptors = numpy.array([track_desc[k][numpy.round(numpy.linspace(0, v.shape[0]-1, sample_size)).astype(int),:] for k in vt_names ])
+            # vt_names = numpy.array([k for k, v in track_desc.iteritems()])
+            vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             dist_100 = {}
             pid_100 = {}
-        for track_name in pid_100:
-            if track_name not in pid_top_matches:
-                pid_top_matches[track_name] = {}
-            pid_top_matches[track_name]['pids'] = pid_100[track_name]
-            pid_top_matches[track_name]['scores'] = 1 - dist_100[track_name]
-        if len(pid_top_matches) == 0:
-            continue
+            for cid_desc_file in cid_desc_files:
+                with open(cid_desc_file, 'rb') as fp:
+                    cid_desc = pickle.load(fp)
+                cids = numpy.array(cid_desc.keys())
+                if len(cids) == 0:
+                    continue
+                cid_desc_n = [cid_desc[cid][numpy.round(numpy.linspace(0, cid_desc[cid].shape[0]-1, sample_size)).astype(int)] for cid in cids]
+                cid_dist = distance(numpy.concatenate(cid_desc_n, axis=0), vt_descriptors,
+                                    sample_size=sample_size)
+
+                for k in range(cid_dist.shape[1]): # track id
+                    sort_ids = numpy.argsort(cid_dist[:,k])
+                    top_ids = sort_ids[:100]
+                    track_name = vt_names[k]
+                    # merge with existing top 100 and pick 100 out of 200
+                    if track_name in pid_100:
+                        matching_pids = numpy.concatenate((cids[top_ids], numpy.array(pid_100[track_name])))
+                        top_dist = numpy.concatenate((cid_dist[top_ids,k], numpy.array(dist_100[track_name])))
+                    else:
+                        matching_pids = cids[top_ids]
+                        top_dist = cid_dist[top_ids,k]
+                    sort_ids = numpy.argsort(top_dist)
+                    top_ids = sort_ids[:100]
+
+                    pid_100[track_name] = matching_pids[top_ids]
+                    dist_100[track_name] = top_dist[top_ids]
+                # for cid in cids[cid_range[0]:cid_range[1]]:
+                # cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
+                # cids_now = cids[cid_range[0]:cid_range[1]]
+                dist_100 = {}
+                pid_100 = {}
+            for track_name in pid_100:
+                if track_name not in pid_top_matches:
+                    pid_top_matches[track_name] = {}
+                pid_top_matches[track_name]['pids'] = pid_100[track_name]
+                pid_top_matches[track_name]['scores'] = 1 - dist_100[track_name]
+            if len(pid_top_matches) == 0:
+                continue
         output_file = os.path.join(output_folder, os.path.splitext(os.path.basename(track_desc_file))[0]+'_pid' + '.match')
         with open(output_file, 'wb') as fp:
             pickle.dump(pid_top_matches, fp, protocol=pickle.HIGHEST_PROTOCOL)
@@ -160,7 +166,7 @@ if __name__ == "__main__":
     args = ap.parse_args()
     if args.t2p:
         print "match from tracklet to pids"
-        video_track_match(args.pid_folder, args.track_folder, args.output_folder, sample_size=args.sampel_size)
+        video_track_match(args.pid_folder, args.track_folder, args.output_folder, sample_size=args.sample_size)
     else:
         print "match from pids to tracklets"
         pid_track_match(args.pid_folder, args.track_folder, args.cid2pid_file, args.output_folder,
