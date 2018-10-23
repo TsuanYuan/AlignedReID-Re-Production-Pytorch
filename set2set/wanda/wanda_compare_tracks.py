@@ -34,11 +34,10 @@ def get_descriptors_in_split(model, split_data, data_folder, batch_max=128):
                 crop_ready = False
             if crop_ready:
                 image = utils.read_one_image(data_file, offset)
-                image = utils.crop_pad_fixed_aspect_ratio(image)
-                image = cv2.resize(image, (128, 256))
                 images.append(image)
             if len(images) >= batch_max or count == len(crop_pairs)-1:
-                descriptor_batch = model.compute_features_on_batch(numpy.array(images))
+                images_normalized = model.normalize_images(images)
+                descriptor_batch = model.compute_features_on_batch(images_normalized)
                 if video_track not in descriptors:
                     descriptors[video_track] = descriptor_batch
                 else:
