@@ -23,30 +23,29 @@ def get_descriptors_in_split(model_path, split_data, data_folder, device_id, bat
     #images_batch = []
     #track_batch = []
     for i, video_track in enumerate(split_data.keys()):
-        line = split_data[video_track]
+        crop_pairs = split_data[video_track]
         images = []
-        for p in line:
+        count = 0
+        for p in crop_pairs:
             file_name, offset = p
-            data_file = os.path.join(data_folder,file_name)
+            data_file = os.path.join(data_folder, file_name)
+            crop_ready = True
             if not os.path.isfile(data_file):
                 print 'fail to load data file {}'.format(data_file)
-                continue
-            image = utils.read_one_image(data_file, offset)
-            image = utils.crop_pad_fixed_aspect_ratio(image)
-            image = cv2.resize(image, (128, 256))
-            images.append(image)
-        if len(images) > 0:
-            descriptor_batch = model.compute_features_on_batch(numpy.array(images))
-            descriptors[video_track] = descriptor_batch
-        # images_batch = images_batch + images
-        # track_batch.append(video_track)
-        # if len(images_batch) >= batch_max or i == len(split_data) - 1:
-        #     if len(images_batch) > 0:
-        #         descriptor_batch = model.compute_features_on_batch(numpy.array(images_batch))
-        #         for j, kid in enumerate(track_batch):
-        #             descriptors[kid] = descriptor_batch[j * sample_size:(j + 1) * sample_size, :]
-        #     images_batch = []
-        #     track_batch = []
+                crop_ready = False
+            if crop_ready:
+                image = utils.read_one_image(data_file, offset)
+                image = utils.crop_pad_fixed_aspect_ratio(image)
+                image = cv2.resize(image, (128, 256))
+                images.append(image)
+            if len(images) >= batch_max or count == len(crop_pairs)-1:
+                descriptor_batch = model.compute_features_on_batch(numpy.array(images))
+                if video_track not in descriptors:
+                    descriptors[video_track] = descriptor_batch
+                else:
+                    descriptors[video_track] = numpy.concatenate((descriptor_batch, descriptors[video_track]), axis=0)
+            count += 1
+
         if (i+1) % 100 == 0:
             print "finished computing descriptor of pid/track_id {} out of {}".format(str(i+1), str(len(split_data)))
     return descriptors
