@@ -32,7 +32,7 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
                                                                         force_compute=force_compute, batch_max=batch_max,
                                                                            load_keypoints=load_keypoints, keypoints_score_th=keypoints_score_th,
                                                                            same_sampel_size=same_sample_size)
-            if len(descriptors) > 1:
+            if len(descriptors.shape) > 1:
                 features_per_person.append(descriptors)
                 crops_file_list.append(crop_files)
                 if (len(crops_file_list)+1)%100 == 0:
@@ -167,6 +167,10 @@ if __name__ == "__main__":
     parser.add_argument('--keypoints_score_th', type=float, default=0.0,
                         help='threshold of keypoints quality')
 
+    parser.add_argument('--crop_aspect_ratio', type=float, default=2.0,
+                        help='aspect ratio of crops')
+
+
     args = parser.parse_args()
     if len(args.config_file) > 0: #  config files overwrites parameters
         args = ioutils.parse_config(args, args.config_file)
@@ -177,7 +181,14 @@ if __name__ == "__main__":
 
     same_pair_requirements = Same_Pair_Requirements(min_frame_interval=args.min_frame_interval, max_frame_interval=args.max_frame_interval, must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
-    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids, skip_fc=(not args.keep_fc))
+    if args.crop_aspect_ratio == 2.0:
+        desired_size = (256, 128)
+    elif args.crop_aspect_ratio == 3.0:
+        desired_size = (384, 128)
+    else:
+        raise Exception('unknown aspect ratio {}'.format(str(args.crop_aspect_ratio)))
+    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids,
+                                                   skip_fc=(not args.keep_fc), desired_size=desired_size)
 
     if len(args.ignore_ids) > 0:
         print 'ignore ids {0}'.format(str(args.ignore_ids))

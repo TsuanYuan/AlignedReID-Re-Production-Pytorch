@@ -108,13 +108,11 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
 
 
 def tracklet_train_features(train_features, train_files):
-    tracklet_features = {}
+    tracklet_features = collections.defaultdict(list)
     for train_feature_per_person, train_file_per_person in zip(train_features, train_files):
         for train_file, train_feature in zip(train_file_per_person, train_feature_per_person):
             # decode ch00002_20181006161838_474_328.jpg
             pid = int(train_file.split('/')[-2])
-            if pid not in tracklet_features:
-                tracklet_features[pid] = []
             if len(train_feature.shape) > 0:
                 tracklet_features[pid].append(train_feature)
     return tracklet_features
@@ -136,7 +134,6 @@ def tracklet_test_features(test_features, test_files):
                 print 'tracket {} mapped to two different pids {} and {}'.format(str(tracklet_id), str(pid), str(tracklet_to_pid[tracklet_id]))
             tracklet_features[tracklet_id].append(test_feature)
     return tracklet_features, tracklet_to_pid
-
 
 
 if __name__ == "__main__":
