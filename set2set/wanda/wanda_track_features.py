@@ -26,7 +26,7 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     video_track_split = utils.load_list_of_unknown_tracks_split(args.index_file, args.start_line, args.last_line, args.sample_size)
-    model = load_model.AppearanceModelForward(args.model_path, sys_device_ids=((args.gpu_id,),))
+    model = load_model.AppearanceModelForward(args.model_path, device_ids=(args.gpu_id,))
     track_features = wanda_compare_tracks.get_descriptors_in_split(model, video_track_split, args.data_folder,
                                                                    args.batch_max)
     if not os.path.isdir(args.output_folder):
