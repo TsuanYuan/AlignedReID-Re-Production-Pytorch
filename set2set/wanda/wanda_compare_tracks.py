@@ -42,6 +42,7 @@ def get_descriptors_in_split(model, split_data, data_folder, batch_max=128):
                     descriptors[video_track] = descriptor_batch
                 else:
                     descriptors[video_track] = numpy.concatenate((descriptor_batch, descriptors[video_track]), axis=0)
+                images = []
             count += 1
 
         if (i+1) % 100 == 0:
