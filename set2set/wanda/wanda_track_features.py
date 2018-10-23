@@ -26,7 +26,8 @@ if __name__ == "__main__":
     args = ap.parse_args()
 
     video_track_split = utils.load_list_of_unknown_tracks_split(args.index_file, args.start_line, args.last_line, args.sample_size)
-    track_features = wanda_compare_tracks.get_descriptors_in_split(args.model_path, video_track_split, args.data_folder, args.gpu_id)
+    track_features = wanda_compare_tracks.get_descriptors_in_split(args.model_path, video_track_split, args.data_folder,
+                                                                   args.gpu_id, args.batch_max)
     if not os.path.isdir(args.output_folder):
         os.makedirs(args.output_folder)
     output_file = os.path.join(args.output_folder, "{}_{}_track_feature.pkl".format(str(args.start_line), str(args.last_line)))
