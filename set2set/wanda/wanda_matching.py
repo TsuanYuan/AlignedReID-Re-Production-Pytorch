@@ -89,7 +89,7 @@ def load_pid_descriptor(pid_folder):
     return pid_desc
 
 
-def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, track_batch_size=2000):
+def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, track_batch_size=2000, search_vt_names=None):
     cid_desc_files = glob.glob(os.path.join(pid_folder, '*.pkl'))
     track_desc_files = glob.glob(os.path.join(track_folder, '*.pkl'))
     pid_top_matches = {}
@@ -99,13 +99,17 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, tr
         if len(track_desc) == 0:
             continue
         vt_names_in_file = numpy.array(track_desc.keys())
+        if search_vt_names is not None:
+            vt_names_in_file = [search_vt_name for search_vt_name in search_vt_names if search_vt_name in vt_names_in_file]
         nvt = len(vt_names_in_file)
         for vi in range(0, nvt, track_batch_size):
             vtids = numpy.array(range(vi, min(nvt, vi+track_batch_size)))
             vt_names = vt_names_in_file[vtids]
-            vt_descriptors = numpy.array([track_desc[k][numpy.round(numpy.linspace(0, track_desc[k].shape[0]-1, sample_size)).astype(int),:] for k in vt_names ])
+            vt_descriptors = numpy.array(
+                [track_desc[k][numpy.round(numpy.linspace(0, track_desc[k].shape[0] - 1, sample_size)).astype(int), :]
+                 for k in vt_names])
             # vt_names = numpy.array([k for k, v in track_desc.iteritems()])
-            vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
+            # vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             dist_100 = {}
             pid_100 = {}
             for cid_desc_file in cid_desc_files:
@@ -163,9 +167,13 @@ if __name__ == "__main__":
     ap.add_argument("--last_cid", type=int, help="last cid to process", default=5000000)
     ap.add_argument("--sample_size", type=int, help="num per track", default=16)
     ap.add_argument("--t2p", action='store_true', help="match from tracklet to pid", default=False)
+    ap.add_argument("--search_vt_file", type=str, help="tracklet name to find", default=None)
     args = ap.parse_args()
     if args.t2p:
         print "match from tracklet to pids"
+        if args.search_vt_file is not None:
+            with open(args.search_vt_file, 'r') as fp:
+                search_vts = [k.strip() for k in fp.readlines()]
         video_track_match(args.pid_folder, args.track_folder, args.output_folder, sample_size=args.sample_size)
     else:
         print "match from pids to tracklets"
