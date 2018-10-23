@@ -22,6 +22,7 @@ if __name__ == "__main__":
     ap.add_argument("--start_line", type=int, help="line to start", default=0)
     ap.add_argument("--last_line", type=int, help="last line to process", default=300000)
     ap.add_argument("--sample_size", type=int, help="num per track", default=8)
+    ap.add_argument("--batch_max", type=int, help="num crops per batch", default=128)
     args = ap.parse_args()
 
     video_track_split = utils.load_list_of_unknown_tracks_split(args.index_file, args.start_line, args.last_line, args.sample_size)
