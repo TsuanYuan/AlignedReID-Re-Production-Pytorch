@@ -105,9 +105,9 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, tr
         for vi in range(0, nvt, track_batch_size):
             vtids = numpy.array(range(vi, min(nvt, vi+track_batch_size)))
             vt_names = vt_names_in_file[vtids]
-            vt_descriptors = numpy.array(
+            vt_descriptors = numpy.concatenate(
                 [track_desc[k][numpy.round(numpy.linspace(0, track_desc[k].shape[0] - 1, sample_size)).astype(int), :]
-                 for k in vt_names])
+                 for k in vt_names], axis=0)
             # vt_names = numpy.array([k for k, v in track_desc.iteritems()])
             # vt_descriptors = vt_descriptors.reshape((-1, vt_descriptors.shape[2]))
             dist_100 = {}
