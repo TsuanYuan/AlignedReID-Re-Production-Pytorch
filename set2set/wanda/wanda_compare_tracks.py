@@ -17,8 +17,7 @@ import compute_feature_alignedReid
 from struct_format import utils
 import cv2
 
-def get_descriptors_in_split(model_path, split_data, data_folder, device_id, batch_max=128):
-    model = AppearanceModelForward(model_path, sys_device_ids=((device_id,),))
+def get_descriptors_in_split(model, split_data, data_folder, batch_max=128):
     descriptors = {}
     #images_batch = []
     #track_batch = []
