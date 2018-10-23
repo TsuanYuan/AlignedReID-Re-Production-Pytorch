@@ -83,6 +83,8 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
         tracklet_to_pid_dists[tracklet_id] = {}
         for pid in train_features:
             pid_feature = numpy.array(train_features[pid])
+            if len(pid_feature)<=0:
+                continue
             if match_option == 'ten_percent':
                 dist_matrix = sklearn.metrics.pairwise.pairwise_distances(pid_feature, tracklet_feature, metric='cosine')
                 tracklet_to_pid_dists[tracklet_id][pid] = numpy.percentile(dist_matrix, 10)

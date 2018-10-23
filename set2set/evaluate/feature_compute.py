@@ -120,6 +120,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
     else:
         return numpy.squeeze(numpy.concatenate(descriptors_from_gpus+descriptors_from_files)), files_from_files+files_from_gpus
 
+
 def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_keypoints=False, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
     p = person_folder
