@@ -381,8 +381,7 @@ class ReIDKeypointsDataset(Dataset):
 class ReIDAppearanceDataset(Dataset):
     """ReID dataset."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8, with_roi=False,
-                 original_ar=False):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, desired_size=(256, 128)):
         """
         Args:
             root_dir (string): Directory with all the images.
@@ -407,8 +406,7 @@ class ReIDAppearanceDataset(Dataset):
 
         self.transform = transform
         self.crop_per_id = crops_per_id
-        self.original_ar = original_ar # whether to use fixed aspect ratio
-        self.with_roi = with_roi
+        self.desired_size = desired_size
 
     def __len__(self):
         return len(self.person_id_im_paths)
@@ -423,24 +421,15 @@ class ReIDAppearanceDataset(Dataset):
         w_h_ratios = []
         for im_path in im_paths_sample:
 
-            im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path))
-            basename, _ = os.path.splitext(im_path)
-            json_path = basename+'.json'
-            if not self.with_roi:
-                w_h_ratio = 0.5
-            elif os.path.isfile(json_path) and self.with_roi:
-                data = json.load(open(json_path, 'r'))
-                w_h_ratio = data['box'][2]/float(data['box'][3])
-
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(io.imread(im_path), desired_size=self.desired_size)
             w_h_ratios.append(w_h_ratio)
             ims.append(im)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-        sample = {'images': ims, 'w_h_ratios':w_h_ratios, 'person_id': person_id}
+        sample = {'images': ims, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
-        sample['w_h_ratios'] = torch.from_numpy(numpy.array(w_h_ratios))
         return sample
 
 

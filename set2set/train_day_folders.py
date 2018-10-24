@@ -16,7 +16,7 @@ from torch.autograd import Variable
 
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, num_workers=8, softmax_loss_weight=0, resume=False,
+         num_epochs=200, gpu_ids=None, margin=0.1, num_workers=8, softmax_loss_weight=0, resume=False, same_day=False,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, start_decay = 250, desired_size=(256, 128), num_stripes=6):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -29,9 +29,14 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
 
     #reid_datasets = DataLoader.create_list_of_days_datasets(data_folder, transform=composed_transforms, crops_per_id=sample_size)
     #reid_data_concat = DataLoader.ConcatDayDataset(reid_datasets, batch_size, data_size_factor=data_size_factor)
-    pid_one_day_dataset = DataLoader.ReIDSameIDOneDayDataset(data_folder, transform=composed_transforms,
+    if same_day:
+        pid_one_day_dataset = DataLoader.ReIDSameIDOneDayDataset(data_folder, transform=composed_transforms,
+                                                             crops_per_id=sample_size, desired_size=desired_size)
+    else:
+        pid_one_day_dataset = DataLoader.ReIDAppearanceDataset(data_folder, transform=composed_transforms,
                                                              crops_per_id=sample_size, desired_size=desired_size)
     num_classes = len(pid_one_day_dataset)
+    print 'num_classes = {}'.format(str(num_classes))
     if not torch.cuda.is_available():
         gpu_ids = None
 
@@ -121,6 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('--class_th', type=float, default=0.2, help="class threshold")
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
+    parser.add_argument('--same_day', action='store_true', default=False, help="same day loader")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -138,5 +144,5 @@ if __name__ == '__main__':
         raise Exception('unknown aspect ratio {}'.format(str(args.desired_aspect)))
     main(args.data_folder, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, start_decay=args.start_decay,
-         optimizer_name=args.optimizer, base_lr=args.lr, num_workers=args.num_workers,
+         optimizer_name=args.optimizer, base_lr=args.lr, num_workers=args.num_workers, same_day=args.same_day,
          desired_size=desired_size, softmax_loss_weight=args.softmax_loss_weight, resume = args.resume)
