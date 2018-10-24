@@ -102,7 +102,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
         if pid_list[sort_ids[0]] == tracklet_to_pid[tracklet_id]:
             top1 += 1
         else:
-            top1_missed_list.append((tracklet_id, tracklet_to_pid[tracklet_id]))
+            top1_missed_list.append((tracklet_id, pid_list[sort_ids[0]], tracklet_to_pid[tracklet_id]))
         if tracklet_to_pid[tracklet_id] in pid_list[sort_ids[0:5]].tolist():
             top5 += 1
     n = len(tracklet_to_pid_dists)
@@ -114,8 +114,8 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
         os.makedirs(dump_folder)
     dump_file = os.path.join(dump_folder, 'missed_top1.txt')
     with open(dump_file, 'w') as fp:
-        for missed_tracklet, pid in top1_missed_list:
-            fp.write('{} {}\n'.format(missed_tracklet, str(pid)))
+        for missed_tracklet, pid_output, ground_truth_pid in top1_missed_list:
+            fp.write('{} {} {}\n'.format(missed_tracklet, str(pid_output), str(ground_truth_pid)))
     print "missed top1 tracklets were dumped to {}".format(dump_file)
 
 def tracklet_train_features(train_features, train_files):
