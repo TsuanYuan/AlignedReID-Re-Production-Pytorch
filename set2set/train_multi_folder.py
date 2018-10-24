@@ -18,7 +18,7 @@ from torch.nn.parallel import DataParallel
 
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
-         num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01,
+         num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, reid_same_day=True):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
@@ -87,7 +87,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
     n_set = len(reid_datasets)
     dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
-                                             shuffle=True, num_workers=4) for set_id in range(n_set)]
+                                             shuffle=True, num_workers=num_data_workers) for set_id in range(n_set)]
     dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
     for epoch in range(num_epochs):
@@ -171,6 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', action='store_true', default=False, help="whether to resume from existing ckpt")
     parser.add_argument('--reid_same_day', action='store_false', default=True, help="whether to put same pair same day constrain on reid training")
     parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
+    parser.add_argument('--num_data_workers', type=int, default=4, help="num of data batching workers")
 
     args = parser.parse_args()
     print('training_parameters:')
@@ -182,5 +183,5 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
          optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, reid_same_day=args.reid_same_day)
