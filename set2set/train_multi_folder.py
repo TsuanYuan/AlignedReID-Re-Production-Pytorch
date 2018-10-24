@@ -127,10 +127,10 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
                 features, logits = model(Variable(images))
             outputs = features.view([actual_size[0], sample_size, -1])
             metric_loss, dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
-            actual_size = images_5d.size()
-            pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
-            softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
             if softmax_loss_weight > 0:
+                actual_size = images_5d.size()
+                pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+                softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
                 loss = metric_loss + softmax_loss_weight * softmax_loss
             else:
                 loss = metric_loss
@@ -175,9 +175,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), args.model_type, str(args.reid_same_day)))
+                   str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight)))
 
     torch.backends.cudnn.benchmark = False
 
