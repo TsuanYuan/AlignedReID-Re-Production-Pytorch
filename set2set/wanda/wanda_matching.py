@@ -174,7 +174,9 @@ if __name__ == "__main__":
         if args.search_vt_file is not None:
             with open(args.search_vt_file, 'r') as fp:
                 search_vts = [k.strip() for k in fp.readlines()]
-        video_track_match(args.pid_folder, args.track_folder, args.output_folder, sample_size=args.sample_size)
+        else:
+            search_vts = None
+        video_track_match(args.pid_folder, args.track_folder, args.output_folder, sample_size=args.sample_size, search_vt_names=search_vts)
     else:
         print "match from pids to tracklets"
         pid_track_match(args.pid_folder, args.track_folder, args.cid2pid_file, args.output_folder,
