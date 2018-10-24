@@ -392,7 +392,9 @@ class ReIDAppearanceDataset(Dataset):
         self.root_dir = root_dir
         subfolders = os.listdir(root_dir)
         self.person_id_im_paths = {}
+        self.person_id_2_class_id = {}
         skip_count = 0
+        class_id_count = 0
         for item in subfolders:
             path = os.path.join(root_dir, item)
             if os.path.isdir(path) and item.isdigit():
@@ -400,6 +402,8 @@ class ReIDAppearanceDataset(Dataset):
                 jpgs = glob.glob(os.path.join(path, '*.jpg'))
                 if len(jpgs) >= crops_per_id:
                     self.person_id_im_paths[person_id] = jpgs
+                    self.person_id_2_class_id[person_id] = class_id_count
+                    class_id_count += 1
                 else:
                     skip_count+=1
         print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),str(len(subfolders)), str(crops_per_id)))
@@ -429,7 +433,7 @@ class ReIDAppearanceDataset(Dataset):
         sample = {'images': ims, 'person_id': person_id}
         if self.transform:
             sample['images'] = self.transform(sample['images'])
-        sample['person_id'] = torch.from_numpy(numpy.array([person_id]))
+        sample['person_id'] = torch.from_numpy(numpy.array([self.person_id_2_class_id[person_id]]))
         return sample
 
 
