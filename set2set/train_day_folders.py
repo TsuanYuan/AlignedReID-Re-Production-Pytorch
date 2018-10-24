@@ -16,26 +16,7 @@ import losses
 from torch.autograd import Variable
 
 
-def save_ckpt(modules_optims, ep, scores, ckpt_file):
-  """Save state_dict's of modules/optimizers to file.
-  Args:
-    modules_optims: A list, which members are either torch.nn.optimizer
-      or torch.nn.Module.
-    ep: the current epoch number
-    scores: the performance of current model
-    ckpt_file: The file path.
-  Note:
-    torch.save() reserves device type and id of tensors to save, so when
-    loading ckpt, you have to inform torch.load() to load these tensors to
-    cpu or your desired gpu, if you change devices.
-  """
-  state_dicts = [m.state_dict() for m in modules_optims]
-  ckpt = dict(state_dicts=state_dicts,
-              ep=ep,
-              scores=scores)
-  if not os.path.isdir(os.path.dirname(os.path.abspath(ckpt_file))):
-      os.makedirs(os.path.dirname(os.path.abspath(ckpt_file)))
-  torch.save(ckpt, ckpt_file)
+
 
 
 def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
