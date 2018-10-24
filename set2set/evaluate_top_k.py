@@ -112,10 +112,11 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
     print "top 5 of tracklet pid matching with option {} is {}".format(match_option, str(top5))
     if os.path.isdir(dump_folder) == False:
         os.makedirs(dump_folder)
-    dump_file = os.path.join(dump_folder, 'mised_top1.txt')
+    dump_file = os.path.join(dump_folder, 'missed_top1.txt')
     with open(dump_file, 'w') as fp:
         for missed_tracklet, pid in top1_missed_list:
             fp.write('{} {}\n'.format(missed_tracklet, str(pid)))
+    print "missed top1 tracklets were dumped to {}".format(dump_file)
 
 def tracklet_train_features(train_features, train_files):
     tracklet_features = collections.defaultdict(list)
