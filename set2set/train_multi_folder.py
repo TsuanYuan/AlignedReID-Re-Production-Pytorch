@@ -130,7 +130,10 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             actual_size = images_5d.size()
             pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
             softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
-            loss = metric_loss + softmax_loss_weight * softmax_loss
+            if softmax_loss_weight > 0:
+                loss = metric_loss + softmax_loss_weight * softmax_loss
+            else:
+                loss = metric_loss
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
