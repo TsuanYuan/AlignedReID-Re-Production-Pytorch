@@ -28,20 +28,25 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-    data_folders = []
+    data_folders, data_loader_names = [], []
     with open(index_file) as f:
         for line in f:
-            data_folders.append(line.strip())
+            parts = line.strip().split()
+            data_folders.append(parts[0])
+            data_loader_names.append(parts[1])
+
     reid_datasets = []
     softmax_loss_functions = []
-    for data_folder in data_folders:
+    for data_folder, data_loader_name in zip(data_folders, data_loader_names):
         if os.path.isdir(data_folder):
-            if reid_same_day:
+            if data_loader_name.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
-            else:
+            elif data_loader_name.find('all')>=0:
                 reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
                                                 crops_per_id=sample_size)
+            else:
+                raise Exception('unknown data loader name {}'.format(data_loader_name))
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
