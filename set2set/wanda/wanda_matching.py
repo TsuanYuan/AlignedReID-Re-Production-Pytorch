@@ -18,6 +18,8 @@ def distance(single_set_descriptor, multi_set_descriptors, sample_size):
     dm1 = numpy.squeeze(numpy.median(dm, axis=2))
     dm2 = dm1.reshape((n_s, sample_size, n_sets))
     d = numpy.squeeze(numpy.median(dm2, axis=1))
+    if len(d.shape)==1:
+        d = numpy.expand_dims(d,1)
     return d
 
 
@@ -75,6 +77,8 @@ def pid_track_match(pid_folder, track_folder, cid2pid_file, output_folder, cid_r
         if len(pid_top_matches) == 0:
             continue
         output_file = os.path.join(output_folder, os.path.splitext(os.path.basename(cid_desc_file))[0]+'_'+str(cid_range[0]) + '.match')
+        if os.path.isdir(output_folder) == False:
+            os.makedirs(output_folder)
         with open(output_file, 'wb') as fp:
             pickle.dump(pid_top_matches, fp, protocol=pickle.HIGHEST_PROTOCOL)
         print "pid matching results are dumped to {0}".format(output_file)
@@ -100,7 +104,7 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, tr
             continue
         vt_names_in_file = numpy.array(track_desc.keys())
         if search_vt_names is not None:
-            vt_names_in_file = [search_vt_name for search_vt_name in search_vt_names if search_vt_name in vt_names_in_file]
+            vt_names_in_file = numpy.array([search_vt_name for search_vt_name in search_vt_names if search_vt_name in vt_names_in_file])
         nvt = len(vt_names_in_file)
         for vi in range(0, nvt, track_batch_size):
             vtids = numpy.array(range(vi, min(nvt, vi+track_batch_size)))
@@ -141,8 +145,7 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, tr
                 # for cid in cids[cid_range[0]:cid_range[1]]:
                 # cid_desc_n = [cid_desc[cid] for cid in cids[cid_range[0]:cid_range[1]]]
                 # cids_now = cids[cid_range[0]:cid_range[1]]
-                dist_100 = {}
-                pid_100 = {}
+
             for track_name in pid_100:
                 if track_name not in pid_top_matches:
                     pid_top_matches[track_name] = {}
@@ -151,6 +154,8 @@ def video_track_match(pid_folder, track_folder, output_folder, sample_size=8, tr
             if len(pid_top_matches) == 0:
                 continue
         output_file = os.path.join(output_folder, os.path.splitext(os.path.basename(track_desc_file))[0]+'_pid' + '.match')
+        if os.path.isdir(output_folder) == False:
+            os.makedirs(output_folder)
         with open(output_file, 'wb') as fp:
             pickle.dump(pid_top_matches, fp, protocol=pickle.HIGHEST_PROTOCOL)
         print "pid matching results are dumped to {0}".format(output_file)
