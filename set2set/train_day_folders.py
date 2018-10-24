@@ -7,95 +7,12 @@ import torch.utils.data, torch.optim
 import torch.backends.cudnn
 import DataLoader
 import argparse
-import os
 import datetime
 
 from torchvision import transforms
 import transforms_reid, Model
 import losses
 from torch.autograd import Variable
-
-
-
-
-
-def adjust_lr_staircase(optimizer, base_lr, ep, decay_at_epochs, factor):
-    """Multiplied by a factor at the BEGINNING of specified epochs. All
-    parameters in the optimizer share the same learning rate.
-
-    Args:
-      optimizer: a pytorch `Optimizer` object
-      base_lr: starting learning rate
-      ep: current epoch, ep >= 1
-      decay_at_epochs: a list or tuple; learning rate is multiplied by a factor
-        at the BEGINNING of these epochs
-      factor: a number in range (0, 1)
-
-    Example:
-      base_lr = 1e-3
-      decay_at_epochs = [51, 101]
-      factor = 0.1
-      It means the learning rate starts at 1e-3 and is multiplied by 0.1 at the
-      BEGINNING of the 51'st epoch, and then further multiplied by 0.1 at the
-      BEGINNING of the 101'st epoch, then stays unchanged till the end of
-      training.
-
-    NOTE:
-      It is meant to be called at the BEGINNING of an epoch.
-    """
-    assert ep >= 1, "Current epoch number should be >= 1"
-
-    if ep not in decay_at_epochs:
-        return
-
-    ind = decay_at_epochs[ep]
-    g = None
-    for g in optimizer.param_groups:
-        g['lr'] = base_lr * factor ** ind
-    print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
-
-
-def adjust_lr_exp(optimizer, base_lr, ep, total_ep, start_decay_at_ep, min_lr):
-    """Decay exponentially in the later phase of training. All parameters in the
-    optimizer share the same learning rate.
-
-    Args:
-      optimizer: a pytorch `Optimizer` object
-      base_lr: starting learning rate
-      ep: current epoch, ep >= 1
-      total_ep: total number of epochs to train
-      start_decay_at_ep: start decaying at the BEGINNING of this epoch
-
-    Example:
-      base_lr = 2e-4
-      total_ep = 300
-      start_decay_at_ep = 201
-      It means the learning rate starts at 2e-4 and begins decaying after 200
-      epochs. And training stops after 300 epochs.
-
-    NOTE:
-      It is meant to be called at the BEGINNING of an epoch.
-    """
-    assert ep >= 1, "Current epoch number should be >= 1"
-
-    if ep < start_decay_at_ep:
-        return
-    g = None
-    for g in optimizer.param_groups:
-        g['lr'] = max((base_lr * (0.001 ** (float(ep + 1 - start_decay_at_ep)
-                                            / (total_ep + 1 - start_decay_at_ep)))), min_lr)
-    print('=====> lr adjusted to {:.10f}'.format(g['lr']).rstrip('0'))
-
-
-def init_optim(optim, params, lr, weight_decay, eps=1e-8):
-    if optim == 'adam':
-        return torch.optim.Adam(params, lr=lr, eps=eps, weight_decay=weight_decay)
-    elif optim == 'sgd':
-        return torch.optim.SGD(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    elif optim == 'rmsprop':
-        return torch.optim.RMSprop(params, lr=lr, momentum=0.9, weight_decay=weight_decay)
-    else:
-        raise KeyError("Unsupported optim: {}".format(optim))
 
 
 def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
@@ -135,7 +52,7 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
         for i_batch, sample_batched in enumerate(dataloader):
             # stair case adjust learning rate
             if i_batch ==0:
-                adjust_lr_exp(
+                Model.adjust_lr_exp(
                     optimizer,
                     base_lr,
                     epoch + 1,
@@ -177,8 +94,8 @@ def main(data_folder, model_file, sample_size, batch_size, model_type='mgn',
                             str(dist_neg.data.cpu().numpy()), str(sum_metric_loss), str(sum_loss))
                 print(log_str)
                 if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
-                    save_ckpt([single_model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
-                save_ckpt([single_model],  epoch, log_str, model_file)
+                    Model.save_ckpt([single_model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
+                Model.save_ckpt([single_model],  epoch, log_str, model_file)
             i_batch += 1
     print('model saved to {0}'.format(model_file))
 

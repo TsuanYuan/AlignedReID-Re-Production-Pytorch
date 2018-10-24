@@ -30,6 +30,7 @@ def match(track_folder, track_plot_folder, pid_plot_folder, output_folder):
             print "{} matched top 10 pids are {}".format(str(video_track), str(track_match[video_track]['pids'][0:10]))
     print 'all plots are copied to cluster folder {}'.format(output_plot_folder)
 
+
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
