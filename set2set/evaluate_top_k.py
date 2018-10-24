@@ -75,7 +75,7 @@ def process_test(data_folder, model, force_compute, ext, sample_size, batch_max)
     return features_per_track, crops_file_list, tracklet_to_pid
 
 
-def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option):
+def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option, dump_folder='/tmp/online/'):
     tracklet_ids = tracklet_features.keys()
     tracklet_to_pid_dists = {}
     for tracklet_id in tracklet_ids:
@@ -94,12 +94,15 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
                 tracklet_to_pid_dists[tracklet_id][pid] =  1 - numpy.dot(tracklet_median, pid_median)
 
     top1, top5 = 0, 0
+    top1_missed_list = []
     for tracklet_id in tracklet_to_pid_dists:
         pid_list = numpy.array(tracklet_to_pid_dists[tracklet_id].keys())
         dist_list = numpy.array(tracklet_to_pid_dists[tracklet_id].values())
         sort_ids = numpy.argsort(dist_list)
         if pid_list[sort_ids[0]] == tracklet_to_pid[tracklet_id]:
             top1 += 1
+        else:
+            top1_missed_list.append(tracklet_id)
         if tracklet_to_pid[tracklet_id] in pid_list[sort_ids[0:5]].tolist():
             top5 += 1
     n = len(tracklet_to_pid_dists)
@@ -107,7 +110,12 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
     top5 /= float(n)
     print "top 1 of tracklet pid matching with option {} is {}".format(match_option, str(top1))
     print "top 5 of tracklet pid matching with option {} is {}".format(match_option, str(top5))
-
+    if os.path.isdir(dump_folder) == False:
+        os.makedirs(dump_folder)
+    dump_file = os.path.join(dump_folder, 'mised_top1.txt')
+    with open(dump_file, 'w') as fp:
+        for missed_tracklet in top1_missed_list:
+            fp.write(missed_tracklet+'\n')
 
 def tracklet_train_features(train_features, train_files):
     tracklet_features = collections.defaultdict(list)
