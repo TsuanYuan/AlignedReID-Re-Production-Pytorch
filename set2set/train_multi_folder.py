@@ -28,16 +28,20 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
-    data_folders, data_loader_names = [], []
+    data_folders, data_loader_names, ignore_paths = [], [], []
     with open(index_file) as f:
         for line in f:
             parts = line.strip().split()
             data_folders.append(parts[0])
             data_loader_names.append(parts[1])
+            if len(parts) > 2:
+                ignore_paths.append(parts[2])
+            else:
+                ignore_paths.append(None)
 
     reid_datasets = []
     softmax_loss_functions = []
-    for data_path, data_path_extra in zip(data_folders, data_loader_names):
+    for data_path, data_path_extra, ignore_path in zip(data_folders, data_loader_names, ignore_paths):
         if os.path.isdir(data_path):
             if data_path_extra.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
@@ -55,7 +59,11 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
         elif os.path.isfile(data_path): # training list in wanda or dfxtd case
             index_file = data_path
             data_folder = data_path_extra
-            reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=False,
+            ignore_pid_list = None
+            if ignore_path is not None:
+                with open(ignore_path, 'r') as fp:
+                    ignore_pid_list = [int(line.rstrip('\n')) for line in fp if len(line.rstrip('\n')) > 0]
+            reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=False, ignore_pid_list=ignore_pid_list,
                                                 sample_size=sample_size, index_format='list', desired_size=desired_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
