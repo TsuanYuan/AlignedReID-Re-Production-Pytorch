@@ -1,3 +1,6 @@
 [submodule "set2set/AlphaPoseFork"]
 	path = set2set/AlphaPoseFork
 	url = https://github.com/TsuanYuan/AlphaPose.git
+[submodule "set2set/maskrcnn"]
+	path = set2set/maskrcnn
+	url = https://github.com/TsuanYuan/maskrcnn-benchmark.git
