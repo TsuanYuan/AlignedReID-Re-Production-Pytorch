@@ -54,12 +54,15 @@ def process_test(data_folder, model, force_compute, ext, sample_size, batch_max)
     sub_folders = os.listdir(data_folder)
     features_per_track, crops_file_list = collections.defaultdict(list), collections.defaultdict(list)
     tracklet_to_pid = {}
+    tracklet_length = {}
     for sub_folder in sub_folders:
         pid_folder = os.path.join(data_folder, sub_folder)
         pid = int(sub_folder)
         if os.path.isdir(pid_folder) and sub_folder.isdigit() :
             tracklet_files = group_tracklet_files(pid_folder)
+
             for track_id in tracklet_files:
+                tracklet_length[track_id] = len(tracklet_files[track_id])
                 descriptors, crop_files = feature_compute.load_descriptor_list_on_files(tracklet_files[track_id], model, ext,
                                                                            force_compute=force_compute, batch_max=batch_max,
                                                                            keypoint_file=None, keypoints_score_th=0,
@@ -72,10 +75,10 @@ def process_test(data_folder, model, force_compute, ext, sample_size, batch_max)
                 if track_id not in tracklet_to_pid:
                     tracklet_to_pid[track_id] = pid
     print "finish feature computing on {}".format(data_folder)
-    return features_per_track, crops_file_list, tracklet_to_pid
+    return features_per_track, crops_file_list, tracklet_to_pid, tracklet_length
 
 
-def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option, dump_folder='/tmp/online/'):
+def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_option, tracklet_length, dump_folder='/tmp/online/'):
     tracklet_ids = tracklet_features.keys()
     tracklet_to_pid_dists = {}
     for tracklet_id in tracklet_ids:
@@ -93,7 +96,7 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
                 pid_median = feature_compute.median_feature(pid_feature)
                 tracklet_to_pid_dists[tracklet_id][pid] =  1 - numpy.dot(tracklet_median, pid_median)
 
-    top1, top5 = 0, 0
+    top1, top5, top1_wl, top5_wl, total_len = 0, 0, 0, 0, 0
     top1_missed_list = []
     for tracklet_id in tracklet_to_pid_dists:
         pid_list = numpy.array(tracklet_to_pid_dists[tracklet_id].keys())
@@ -101,15 +104,25 @@ def compute_top_k(tracklet_features, tracklet_to_pid, train_features, match_opti
         sort_ids = numpy.argsort(dist_list)
         if pid_list[sort_ids[0]] == tracklet_to_pid[tracklet_id]:
             top1 += 1
+            top1_wl += tracklet_length[tracklet_id]
         else:
             top1_missed_list.append((tracklet_id, pid_list[sort_ids[0]], tracklet_to_pid[tracklet_id]))
+        total_len += tracklet_length[tracklet_id]
         if tracklet_to_pid[tracklet_id] in pid_list[sort_ids[0:5]].tolist():
             top5 += 1
+            top5_wl += tracklet_length[tracklet_id]
+
     n = len(tracklet_to_pid_dists)
     top1 /= float(n)
     top5 /= float(n)
+    top1_wl /= float(total_len)
+    top5_wl /= float(total_len)
+
     print "top 1 of tracklet pid matching with option {} is {}".format(match_option, str(top1))
     print "top 5 of tracklet pid matching with option {} is {}".format(match_option, str(top5))
+    print "top 1 of crop count weighted pid matching with option {} is {}".format(match_option, str(top1_wl))
+    print "top 5 of crop count weighted pid matching with option {} is {}".format(match_option, str(top5_wl))
+
     if os.path.isdir(dump_folder) == False:
         os.makedirs(dump_folder)
     dump_file = os.path.join(dump_folder, 'missed_top1.txt')
@@ -183,12 +196,12 @@ if __name__ == "__main__":
     start_time = time.time()
     model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids)
 
-    test_features, test_files, tracklet_to_pid = process_test(args.test_folder, model, args.force_compute, args.ext, args.sample_size, args.batch_max)
+    test_features, test_files, tracklet_to_pid, tracklet_length = process_test(args.test_folder, model, args.force_compute, args.ext, args.sample_size, args.batch_max)
     train_features, train_files = process_folder(args.train_folder, model, args.force_compute, args.ext, args.sample_size, args.batch_max)
 
     train_pid_features = tracklet_train_features(train_features, train_files)
     #tracklet_features, tracklet_to_pid = tracklet_test_features(test_features, test_files)
-    compute_top_k(test_features, tracklet_to_pid, train_pid_features, args.match_option)
+    compute_top_k(test_features, tracklet_to_pid, train_pid_features, args.match_option, tracklet_length)
     finish_time = time.time()
     elapsed = finish_time - start_time
     print 'total time = {0}'.format(str(elapsed))
