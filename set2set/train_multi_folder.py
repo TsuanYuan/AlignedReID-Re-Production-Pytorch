@@ -22,8 +22,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, reid_same_day=True):
 
     composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((272, 136)),  # not change the pixel range to [0,1.0]
-                                              transforms_reid.RandomCrop((256, 128)),
+                                              transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
+                                              #transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
@@ -37,23 +37,25 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
     reid_datasets = []
     softmax_loss_functions = []
-    for data_path, data_path_name in zip(data_folders, data_loader_names):
+    for data_path, data_path_extra in zip(data_folders, data_loader_names):
         if os.path.isdir(data_path):
-            if data_path_name.find('same_day')>=0:
+            if data_path_extra.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
-            elif data_path_name.find('all')>=0:
+            elif data_path_extra.find('all')>=0:
                 reid_dataset = ReIDAppearanceDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             else:
-                raise Exception('unknown data loader name {}'.format(data_path_name))
+                raise Exception('unknown data loader name {}'.format(data_path_extra))
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
             softmax_loss_functions.append(softmax_loss_function)
             print "A total of {} classes are in the data set".format(str(num_classes))
         elif os.path.isfile(data_path): # training list in wanda or dfxtd case
-            reid_dataset = ReIDSingleFileCropsDataset(data_path, index_file, transform=composed_transforms, same_day_camera=False,
+            index_file = data_path
+            data_folder = data_path_extra
+            reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=False,
                                                 sample_size=sample_size, index_format='list', desired_size=desired_size)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
