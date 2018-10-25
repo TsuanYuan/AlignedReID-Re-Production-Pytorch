@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset
+from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset
 import argparse
 import os
 import datetime
@@ -17,7 +17,7 @@ from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 
 
-def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
+def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
          num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4,
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, reid_same_day=True):
 
@@ -37,23 +37,30 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
 
     reid_datasets = []
     softmax_loss_functions = []
-    for data_folder, data_loader_name in zip(data_folders, data_loader_names):
-        if os.path.isdir(data_folder):
-            if data_loader_name.find('same_day')>=0:
-                reid_dataset = ReIDSameIDOneDayDataset(data_folder,transform=composed_transforms,
+    for data_path, data_path_name in zip(data_folders, data_loader_names):
+        if os.path.isdir(data_path):
+            if data_path_name.find('same_day')>=0:
+                reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
-            elif data_loader_name.find('all')>=0:
-                reid_dataset = ReIDAppearanceDataset(data_folder,transform=composed_transforms,
+            elif data_path_name.find('all')>=0:
+                reid_dataset = ReIDAppearanceDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             else:
-                raise Exception('unknown data loader name {}'.format(data_loader_name))
+                raise Exception('unknown data loader name {}'.format(data_path_name))
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
             softmax_loss_functions.append(softmax_loss_function)
             print "A total of {} classes are in the data set".format(str(num_classes))
+        elif os.path.isfile(data_path): # training list in wanda or dfxtd case
+            reid_dataset = ReIDSingleFileCropsDataset(data_path, index_file, transform=composed_transforms, same_day_camera=False,
+                                                sample_size=sample_size, index_format='list', desired_size=desired_size)
+            reid_datasets.append(reid_dataset)
+            num_classes = len(reid_dataset)
+            softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
+            softmax_loss_functions.append(softmax_loss_function)
         else:
-            print 'cannot find data folder {}'.format(data_folder)
+            print 'cannot find data path {}'.format(data_path)
 
     if not torch.cuda.is_available():
         gpu_ids = None
@@ -133,6 +140,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn',
             outputs = features.view([actual_size[0], sample_size, -1])
             metric_loss, dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
             if softmax_loss_weight > 0:
+                raise Exception('Not implemented! need to implement multi-head mgn class first!')
                 actual_size = images_5d.size()
                 pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
                 softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
