@@ -48,18 +48,6 @@ def resize_original_aspect_ratio(im, desired_size=(256, 128)):
     return new_im
 
 
-# def decode_wcc_image_name(image_name):
-#     # decode ch00002_20180816102633_00005504_00052119.jpg
-#     image_base, _ = os.path.splitext(image_name)
-#     parts = image_base.split('_')
-#     channel = parts[0]
-#     date = parts[1][:8]
-#     time = parts[1][8:]
-#     pid = parts[2]
-#     frame_id = parts[3]
-#     return channel, date, time, pid, frame_id
-
-
 class ConcatDayDataset(ConcatDataset):
     """
     random select samples through
@@ -213,6 +201,8 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
         return sample
+
+
 
 
 class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
@@ -501,6 +491,106 @@ class ReIDMultiFolderAppearanceDataset(Dataset):
         sample['w_h_ratios'] = torch.from_numpy(numpy.array(w_h_ratios))
         return sample
 
+
+
+class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
+    """ReID dataset each batch coming from the same day."""
+
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(96, 96), head_box_extension=1.2):
+        """
+        Args:
+            person_id_data (string): dict with key of person pids.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.head_box_extension = 1.2
+        self.desired_size = desired_size
+        self.crops_per_id = crops_per_id
+        self.head_score_threshold = head_score_threshold
+        self.create_head_pid_data(root_dir)
+        self.transform = transform
+
+
+    def create_head_pid_data(self, root_folder):
+        subfolders = os.listdir(root_folder)
+        self.head_pid_image_records = collections.defaultdict(list)
+        skip_count = 0
+        for pid_folder in subfolders:
+            pid_path = os.path.join(root_folder, pid_folder)
+            if os.path.isdir(pid_path) and pid_folder.isdigit():
+                person_id = int(pid_folder)
+                jpgs = glob.glob(os.path.join(pid_path, '*.jpg'))
+                jpgs_with_good_head = []
+                for jpg in jpgs:
+                    head_json_file = os.path.splitext(jpg)[0]+'*.jhd'
+                    if os.path.isfile(head_json_file):
+                        with open(head_json_file, 'r') as fp:
+                            head_info = json.load(fp)
+                        head_boxes = head_info['head_boxes']
+                        head_scores = head_info['scores']
+                        n = len(head_boxes)
+                        if n > 0:
+                            valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > self.head_score_threshold]
+                            # debug only
+                            if len(valid_heads) > 1:
+                                head_debug = 0
+                            best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
+                            jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
+                if len(jpgs_with_good_head) >= self.crops_per_id:
+                    self.head_pid_image_records[person_id] = jpgs_with_good_head
+                else:
+                    skip_count += 1
+        print('skipped {0} out of {1} sets for the size are smaller than the sample_size={2}'.format(str(skip_count),
+                                                                                                     str(len(
+                                                                                                         subfolders)),
+                                                                                                     str(self.crops_per_id)))
+
+    def __len__(self):
+        return len(self.head_pid_image_records)
+
+    def enforce_boundary(self, corner_box, im_w, im_h):
+        corner_box[0] = min(max(int(round(corner_box[0])), 0), im_w - 1)
+        corner_box[2] = min(max(int(round(corner_box[2])), 0), im_w - 1)
+        corner_box[1] = min(max(int(round(corner_box[1])), 0), im_h - 1)
+        corner_box[3] = min(max(int(round(corner_box[3])), 0), im_h - 1)
+        return corner_box
+
+    def extend_box(self, corner_box):
+        box_w = corner_box[2] - corner_box[0]
+        box_h = corner_box[3] - corner_box[1]
+        radius = max([box_w, box_h])/2*self.head_box_extension
+        box_center = numpy.array((corner_box[0]+corner_box[2])/2, (corner_box[1]+corner_box[3])/2)
+        extended_corner_box = numpy.zeros(4)
+        extended_corner_box[0] = box_center[0] - radius
+        extended_corner_box[2] = box_center[0] + radius
+        extended_corner_box[1] = box_center[1] - radius
+        extended_corner_box[3] = box_center[1] + radius
+        return extended_corner_box
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.head_pid_image_records.keys()[set_id]
+        im_paths_with_head = self.head_pid_image_records[person_id]
+        random.shuffle(im_paths_with_head)
+        im_heads_sample = im_paths_with_head[0:min(self.crops_per_id, len(im_paths_with_head))]
+        ims = []
+        for im_path in im_heads_sample:
+            im_bgr = cv2.imread(im_path[0])
+            head_corner_box = self.extend_box(im_path[1])
+            head_corner_box = self.enforce_boundary(head_corner_box, im_bgr.shape[1], im_bgr.shape[0])
+            im_bgr_head = im_bgr[head_corner_box[1]:head_corner_box[3], head_corner_box[0]:head_corner_box[2], :]
+            im_rgb_head = cv2.cvtColor(im_bgr_head, cv2.COLOR_BGR2RGB)
+            # im_rgb_head = cv2.resize(im_rgb_head, (self.desired_size[1], self.desired_size[0]))
+            ims.append(im_rgb_head)
+            # import scipy.misc
+            # scipy.misc.imsave('/tmp/new_im.jpg', im)
+
+        sample = {'images': ims, 'person_id': person_id}
+
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
+        return sample
 
 # to load reID set to set matching data set
 class ReIDAppearanceSet2SetDataset(Dataset):

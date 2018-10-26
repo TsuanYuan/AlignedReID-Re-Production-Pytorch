@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset
+from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset, ReIDHeadAppearanceDataset
 import argparse
 import os
 import datetime
@@ -19,10 +19,20 @@ from torch.nn.parallel import DataParallel
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
          num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, reid_same_day=True):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False):
 
-    composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
-                                              transforms_reid.Rescale((256, 128)),  # not change the pixel range to [0,1.0]
+    if head_train:
+        assert desired_size[0] == desired_size[1]
+        rescale_ext = int(desired_size[0]*0.1)
+        composed_transforms = transforms.Compose([
+                                                  transforms_reid.Rescale((desired_size[0]+rescale_ext, desired_size[1]+rescale_ext)),
+                                                  transforms_reid.RandomCrop(desired_size),
+                                                  transforms_reid.PixelNormalize(),
+                                                  transforms_reid.ToTensor(),
+                                                  ])
+    else:
+        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+                                              transforms_reid.Rescale(desired_size),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.RandomBlockMask(8),
                                               transforms_reid.PixelNormalize(),
@@ -43,7 +53,10 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
     softmax_loss_functions = []
     for data_path, data_path_extra, ignore_path in zip(data_folders, data_loader_names, ignore_paths):
         if os.path.isdir(data_path):
-            if data_path_extra.find('same_day')>=0:
+            if head_train:
+                reid_dataset = ReIDHeadAppearanceDataset(data_path, transform=composed_transforms,
+                                                crops_per_id=sample_size)
+            elif data_path_extra.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
             elif data_path_extra.find('all')>=0:
@@ -139,7 +152,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
-            images = images_5d.view([actual_size[0]*sample_size,3,256,128])  # unfolder to 4-D
+            images = images_5d.view([actual_size[0]*sample_size,3,desired_size[0],desired_size[1]])  # unfolder to 4-D
 
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
@@ -151,10 +164,10 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
             metric_loss, dist_pos, dist_neg, _, _ = metric_loss_function(outputs, person_ids)
             if softmax_loss_weight > 0:
                 raise Exception('Not implemented! need to implement multi-head mgn class first!')
-                actual_size = images_5d.size()
-                pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
-                softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
-                loss = metric_loss + softmax_loss_weight * softmax_loss
+                # actual_size = images_5d.size()
+                # pids_expand = person_ids.expand(actual_size[0:2]).contiguous().view(-1)
+                # softmax_loss = softmax_loss_functions[set_id](pids_expand.cuda(device=gpu_ids[0]), logits)
+                # loss = metric_loss + softmax_loss_weight * softmax_loss
             else:
                 loss = metric_loss
             optimizer.zero_grad()
@@ -195,6 +208,7 @@ if __name__ == '__main__':
     parser.add_argument('--reid_same_day', action='store_false', default=True, help="whether to put same pair same day constrain on reid training")
     parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
     parser.add_argument('--num_data_workers', type=int, default=4, help="num of data batching workers")
+    parser.add_argument('--head_model', action='store_true', default=False, help="training head model with head parameters")
 
     args = parser.parse_args()
     print('training_parameters:')
