@@ -208,17 +208,17 @@ if __name__ == '__main__':
     parser.add_argument('--reid_same_day', action='store_false', default=True, help="whether to put same pair same day constrain on reid training")
     parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
     parser.add_argument('--num_data_workers', type=int, default=4, help="num of data batching workers")
-    parser.add_argument('--head_model', action='store_true', default=False, help="training head model with head parameters")
+    parser.add_argument('--head', action='store_true', default=False, help="training head model with head parameters")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight)))
+                   str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head)))
 
     torch.backends.cudnn.benchmark = False
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
-         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, reid_same_day=args.reid_same_day)
+         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head)
