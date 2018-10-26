@@ -496,14 +496,14 @@ class ReIDMultiFolderAppearanceDataset(Dataset):
 class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(96, 96), head_box_extension=1.2):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.25, desired_size=(96, 96), head_box_extension=1.2):
         """
         Args:
             person_id_data (string): dict with key of person pids.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.head_box_extension = 1.2
+        self.head_box_extension = head_box_extension
         self.desired_size = desired_size
         self.crops_per_id = crops_per_id
         self.head_score_threshold = head_score_threshold
@@ -522,7 +522,7 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
                 jpgs = glob.glob(os.path.join(pid_path, '*.jpg'))
                 jpgs_with_good_head = []
                 for jpg in jpgs:
-                    head_json_file = os.path.splitext(jpg)[0]+'*.jhd'
+                    head_json_file = os.path.splitext(jpg)[0]+'.jhd'
                     if os.path.isfile(head_json_file):
                         with open(head_json_file, 'r') as fp:
                             head_info = json.load(fp)
@@ -531,11 +531,12 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
                         n = len(head_boxes)
                         if n > 0:
                             valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > self.head_score_threshold]
-                            # debug only
-                            if len(valid_heads) > 1:
-                                head_debug = 0
-                            best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
-                            jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
+                            if len(valid_heads) > 0:
+                                # debug only
+                                if len(valid_heads) > 1:
+                                    head_debug = 0
+                                best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
+                                jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
                 if len(jpgs_with_good_head) >= self.crops_per_id:
                     self.head_pid_image_records[person_id] = jpgs_with_good_head
                 else:
@@ -553,13 +554,13 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
         corner_box[2] = min(max(int(round(corner_box[2])), 0), im_w - 1)
         corner_box[1] = min(max(int(round(corner_box[1])), 0), im_h - 1)
         corner_box[3] = min(max(int(round(corner_box[3])), 0), im_h - 1)
-        return corner_box
+        return corner_box.astype(int)
 
     def extend_box(self, corner_box):
         box_w = corner_box[2] - corner_box[0]
         box_h = corner_box[3] - corner_box[1]
         radius = max([box_w, box_h])/2*self.head_box_extension
-        box_center = numpy.array((corner_box[0]+corner_box[2])/2, (corner_box[1]+corner_box[3])/2)
+        box_center = numpy.array([(corner_box[0]+corner_box[2])/2, (corner_box[1]+corner_box[3])/2])
         extended_corner_box = numpy.zeros(4)
         extended_corner_box[0] = box_center[0] - radius
         extended_corner_box[2] = box_center[0] + radius
