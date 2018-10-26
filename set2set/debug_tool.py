@@ -3,7 +3,7 @@ utils for debug in pytorch training
 Quan Yuan
 2018-06-15
 """
-from torch.autograd import Variable
+import time
 import numpy
 import os
 import scipy.misc
@@ -13,6 +13,8 @@ def dump_images_in_batch(images_5d, output_folder, pids=None, name_tag=''):
     if not os.path.isdir(output_folder):
         os.makedirs(output_folder)
     s = images_5d_np.shape
+    if len(name_tag)==0:
+        name_tag = str(int(time.time()))
     for i in range(s[0]):
         for j in range(s[1]):
             image_chw = numpy.squeeze(images_5d_np[i,j,:,:,:])

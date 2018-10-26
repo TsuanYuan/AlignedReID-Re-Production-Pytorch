@@ -89,6 +89,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
         gpu_ids = None
     if head_train:
         model = Model.PlainModel(base_model='resnet34')
+        model_type = 'plain'
     elif model_type == 'mgn':
         model = Model.MGNModel()
     elif model_type == 'se':
