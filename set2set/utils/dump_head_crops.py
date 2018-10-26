@@ -90,4 +90,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     crop_heads(args.folder, args.output_folder, args.head_score_th, args.box_extension)
     print "output head crops to {}".format(args.output_folder)
-    
