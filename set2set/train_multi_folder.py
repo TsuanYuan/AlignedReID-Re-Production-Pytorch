@@ -150,8 +150,8 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
             # load batch data
             images_5d = sample_batched['images']  # [batch_id, crop_id, 3, 256, 128]
-            import debug_tool
-            debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d_head/')
+            #import debug_tool
+            #debug_tool.dump_images_in_batch(images_5d, '/tmp/images_5d_head/')
             person_ids = sample_batched['person_id']
             # w_h_ratios = sample_batched['w_h_ratios']
             actual_size = list(images_5d.size())
