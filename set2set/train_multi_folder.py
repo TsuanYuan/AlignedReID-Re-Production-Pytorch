@@ -87,7 +87,9 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
     if not torch.cuda.is_available():
         gpu_ids = None
-    if model_type == 'mgn':
+    if head_train:
+        model = Model.PlainModel(base_model='resnet34')
+    elif model_type == 'mgn':
         model = Model.MGNModel()
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
@@ -218,7 +220,15 @@ if __name__ == '__main__':
                    str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head)))
 
     torch.backends.cudnn.benchmark = False
+    if args.head:
+        desired_size = (64, 64)
+    elif args.desired_aspect == 2:
+        desired_size = (256, 128)
+    elif args.desired_aspect == 3:
+        desired_size = (384, 128)
+    else:
+        raise Exception('unknown aspect ratio {}'.format(str(args.desired_aspect)))
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
-         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers,
+         num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers, desired_size=desired_size,
          optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head)
