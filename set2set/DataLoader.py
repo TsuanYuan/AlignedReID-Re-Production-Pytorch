@@ -496,7 +496,7 @@ class ReIDMultiFolderAppearanceDataset(Dataset):
 class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.25, desired_size=(96, 96), head_box_extension=1.2):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(96, 96), head_box_extension=1.2):
         """
         Args:
             person_id_data (string): dict with key of person pids.
