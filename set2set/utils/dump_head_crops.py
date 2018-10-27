@@ -9,6 +9,7 @@ import glob
 import json
 import cv2
 import numpy
+import shutil
 
 def enforce_boundary(corner_box, im_w, im_h):
     corner_box[0] = min(max(int(round(corner_box[0])), 0), im_w - 1)
@@ -70,6 +71,9 @@ def crop_heads(input_folder, output_folder, head_score_threshold, box_extension)
                     os.makedirs(output_pid_folder)
                 output_image_file = os.path.join(output_pid_folder, os.path.basename(jpg_file))
                 cv2.imwrite(output_image_file, head_crop)
+                json_file = os.path.splitext(jhd_file)[0]+'.json'
+                dest_json = os.path.join(output_pid_folder, os.path.basename(json_file))
+                shutil.copyfile(json_file, dest_json)
         print "finished cropping heads from {}".format(pid_folder)
 
 
