@@ -181,7 +181,9 @@ if __name__ == "__main__":
 
     same_pair_requirements = Same_Pair_Requirements(min_frame_interval=args.min_frame_interval, max_frame_interval=args.max_frame_interval, must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
-    if args.crop_aspect_ratio == 2.0:
+    if args.crop_aspect_ratio == 1.0:
+        desired_size = (64, 64)
+    elif args.crop_aspect_ratio == 2.0:
         desired_size = (256, 128)
     elif args.crop_aspect_ratio == 3.0:
         desired_size = (384, 128)

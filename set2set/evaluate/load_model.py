@@ -33,6 +33,7 @@ class Model_Types(Enum):
     LIMB_ONLY = 10
     PCB_3 =11
     MGN_SELF_ATTEN = 12
+    HEAD_PLAIN = 13
 
 class AppearanceModelForward(object):
     def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
@@ -40,7 +41,10 @@ class AppearanceModelForward(object):
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
 
-        if model_file.find('mgn_self_atten') >= 0:
+        if model_file.find('head_plain') >= 0:
+            model = PlainModel(base_model='resnet34')
+            self.model_type = Model_Types.HEAD_PLAIN
+        elif model_file.find('mgn_self_atten') >= 0:
             model = MGNSelfAtten().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN_SELF_ATTEN
             print "use mgn self atten model"
