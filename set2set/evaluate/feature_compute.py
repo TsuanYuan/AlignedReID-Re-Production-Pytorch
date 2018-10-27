@@ -57,6 +57,8 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
     if model.get_model_type()== Model_Types.PCB_3 or model.get_model_type()== Model_Types.PCB_6:
         desired_size = (384, 128)
+    elif model.get_model_type()==Model_Types.HEAD_PLAIN:
+        desired_size=(64, 64)
     else:
         desired_size = (256, 128)
 

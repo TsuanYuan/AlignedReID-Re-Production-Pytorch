@@ -183,7 +183,7 @@ if __name__ == "__main__":
                                                     must_diff_camera=args.must_diff_camera, must_same_video=args.must_same_video, must_diff_video=args.must_diff_video, same_sample_size=args.same_sample_size)
     if args.crop_aspect_ratio == 1.0:
         desired_size = (64, 64)
-    if args.crop_aspect_ratio == 2.0:
+    elif args.crop_aspect_ratio == 2.0:
         desired_size = (256, 128)
     elif args.crop_aspect_ratio == 3.0:
         desired_size = (384, 128)
