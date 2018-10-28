@@ -45,9 +45,10 @@ class AppearanceModelForward(object):
             model = PlainModel(base_model='resnet34')
             self.model_type = Model_Types.HEAD_PLAIN
         elif model_file.find('mgn_self_atten') >= 0:
-            model = MGNSelfAtten().cuda(device=device_ids[0])
+            #model = MGNSelfAtten().cuda(device=device_ids[0])
+            model = MGNSelfAtten(sum_weights=False).cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN_SELF_ATTEN
-            print "use mgn self atten model"
+            print "use mgn self atten model with concat"
         elif model_file.find('mgn') >= 0:
             model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
