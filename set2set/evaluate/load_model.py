@@ -48,7 +48,6 @@ class AppearanceModelForward(object):
             self.model_type = Model_Types.ALPHA_MGN
             pose_model = AlphaPoseLoader(device_ids[0])
             self.aux_model_ws = DataParallel(pose_model, device_ids=device_ids)
-            load_ckpt([self.aux_model], aux_model_path)
             self.aux_model_ws.eval()
             
         elif model_file.find('head_plain') >= 0:
@@ -172,9 +171,9 @@ class AppearanceModelForward(object):
 
     def extract_feature(self, ims, keypoints=None):
         ims = Variable(torch.from_numpy(ims).float())
-        if self.aux_model is not None:
+        if self.aux_model_ws is not None:
             aux_feature = self.aux_model_ws(ims)
-            global_feat = self.aux_model_ws(ims, aux_feature)[0].data.cpu().numpy
+            global_feat = self.model_ws(ims, aux_feature)[0].data.cpu().numpy()
         elif keypoints is None:
             global_feat = self.model_ws(ims)[0].data.cpu().numpy()
         else:
