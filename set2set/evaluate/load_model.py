@@ -46,7 +46,7 @@ class AppearanceModelForward(object):
         if model_file.find('alpha_mgn') >= 0:
             model = MGNWithPoseLayer()
             self.model_type = Model_Types.ALPHA_MGN
-            pose_model = AlphaPoseLoader()
+            pose_model = AlphaPoseLoader(device_ids[0])
             self.aux_model = pose_model
         elif model_file.find('head_plain') >= 0:
             model = PlainModel(base_model='resnet34')
