@@ -50,7 +50,7 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
 
     pose_model = None
     if parts_type == 'pose_feature_attention':
-        pose_model = AlphaPoseLoader()
+        pose_model = AlphaPoseLoader.AlphaPoseLoader(gpu_ids[0])
         model = Model.MGNWithPoseLayer()
     elif parts_type=='limbs':
         pose_ids = (2,9,10,15,16)

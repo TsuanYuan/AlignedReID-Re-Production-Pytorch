@@ -17,8 +17,9 @@ class AlphaPoseLoader(nn.Module):
     def __init__(self, gpu_id):
         super(AlphaPoseLoader, self).__init__()
         model = createModel().cuda()
-        print('Loading pose model from {}'.format('./models/sppe/duc_se.pth'))
-        model.load_state_dict(torch.load('./models/sppe/duc_se.pth',map_location={'cuda:0': 'cuda:{}'.format(str(gpu_id))}))
+        sppe_model_path = '/mnt/soulfs/qyuan/models/3rd_party/sppe/duc_se.pth'
+        print('Loading pose model from {}'.format(sppe_model_path))
+        model.load_state_dict(torch.load(sppe_model_path, map_location={'cuda:0': 'cuda:{}'.format(str(gpu_id))}))
         model.eval()
         self.pyranet = model
 

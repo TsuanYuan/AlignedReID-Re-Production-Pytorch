@@ -1075,7 +1075,8 @@ class MGNWithPoseLayer(MGNModel):
 
     def forward(self, x, pose_feature=None):
         concat_feat, logits = self.concat_stripe_features(x)
-        attention_weights = torch.clamp(self.pose_attention_layer(pose_feature),min=0.0, max=10.0)
+        pose_feature_pooled = torch.squeeze(F.avg_pool2d(pose_feature, pose_feature.size()[2:]))
+        attention_weights = torch.clamp(self.pose_attention_layer(pose_feature_pooled),min=0.0, max=10.0)
         feat = torch.cat([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))], dim=1)
         final_feat = F.normalize(feat, p=2, dim=1)
         return final_feat, logits
