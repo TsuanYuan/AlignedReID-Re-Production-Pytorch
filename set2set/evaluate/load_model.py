@@ -47,7 +47,10 @@ class AppearanceModelForward(object):
             model = MGNWithPoseLayer()
             self.model_type = Model_Types.ALPHA_MGN
             pose_model = AlphaPoseLoader(device_ids[0])
-            self.aux_model = pose_model
+            self.aux_model_ws = DataParallel(pose_model, device_ids=device_ids)
+            load_ckpt([self.aux_model], aux_model_path)
+            self.aux_model_ws.eval()
+            
         elif model_file.find('head_plain') >= 0:
             model = PlainModel(base_model='resnet34')
             self.model_type = Model_Types.HEAD_PLAIN
@@ -127,10 +130,6 @@ class AppearanceModelForward(object):
         # dropout.
         self.model_ws.eval()
 
-        if self.aux_model is not None:
-            self.aux_model_ws = DataParallel(self.aux_model, device_ids=device_ids)
-            load_ckpt([self.aux_model], aux_model_path)
-            self.aux_model_ws.eval()
 
     def __del__(self):
         torch.cuda.empty_cache()
