@@ -41,7 +41,7 @@ class AppearanceModelForward(object):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
-        self.aux_model = None
+        self.aux_model_ws = None
 
         if model_file.find('alpha_mgn') >= 0:
             model = MGNWithPoseLayer()
@@ -49,7 +49,6 @@ class AppearanceModelForward(object):
             pose_model = AlphaPoseLoader(device_ids[0])
             self.aux_model_ws = DataParallel(pose_model, device_ids=device_ids)
             self.aux_model_ws.eval()
-            
         elif model_file.find('head_plain') >= 0:
             model = PlainModel(base_model='resnet34')
             self.model_type = Model_Types.HEAD_PLAIN
