@@ -134,6 +134,11 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
 
     if load_keypoints:
         keypoint_file = os.path.join(person_folder, 'keypoints.pkl')
+        if os.path.isfile(keypoint_file) == False:
+            pid_folder_only = os.path.basename(os.path.normpath(person_folder))
+            keypoint_file = os.path.join(person_folder, pid_folder_only+'_keypoints.pkl')
+            if os.path.isfile(keypoint_file) == False:
+                keypoint_file = None
     else:
         keypoint_file = None
 
