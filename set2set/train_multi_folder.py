@@ -212,7 +212,8 @@ if __name__ == '__main__':
     parser.add_argument('--softmax_loss_weight', type=float, default=0, help="weight of softmax loss in total loss")
     parser.add_argument('--num_data_workers', type=int, default=4, help="num of data batching workers")
     parser.add_argument('--head', action='store_true', default=False, help="training head model with head parameters")
-
+    parser.add_argument('--desired_aspect', type=int, default=2, help="crop aspect ratio")
+    
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
