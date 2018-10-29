@@ -1,0 +1,25 @@
+# config for evaluate wcc model
+
+
+# benchmark options
+min_frame_interval: 32
+max_frame_interval: 64
+must_same_day: True
+must_different_days: False
+must_same_camera: True
+must_diff_camera: False
+must_same_video: False
+must_diff_video: False
+same_sample_size: 128
+neg_folder_interval: 1
+load_keypoints: True
+
+# compute options
+force_compute: True
+batch_max: 128
+multi_folder: True
+
+keep_fc: False
+keypoints_score_th: 0.0
+crop_aspect_ratio: 2.0
+ext: "dsc"

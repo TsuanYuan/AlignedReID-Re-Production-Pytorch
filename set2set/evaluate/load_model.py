@@ -186,7 +186,7 @@ class AppearanceModelForward(object):
         return self.model_type
 
     def get_aux_model(self):
-        return self.aux_model
+        return self.aux_model_ws
 
 if __name__ == '__main__':
     import argparse, cv2
