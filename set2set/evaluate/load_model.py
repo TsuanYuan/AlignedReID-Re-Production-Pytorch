@@ -10,12 +10,12 @@ import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 from enum import Enum
-import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, \
-    MGNWithHead, MGNWithParts, MGNSelfAtten
+    MGNWithHead, MGNWithParts, MGNSelfAtten, MGNWithPoseLayer
 from Model import load_ckpt
+from AlphaPoseLoader import AlphaPoseLoader
 import misc
 
 
@@ -34,20 +34,29 @@ class Model_Types(Enum):
     PCB_3 =11
     MGN_SELF_ATTEN = 12
     HEAD_PLAIN = 13
+    ALPHA_MGN = 14
 
 class AppearanceModelForward(object):
-    def __init__(self, model_path, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
+    def __init__(self, model_path, aux_model_path = None, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
+        self.aux_model_ws = None
 
-        if model_file.find('head_plain') >= 0:
+        if model_file.find('alpha_mgn') >= 0:
+            model = MGNWithPoseLayer()
+            self.model_type = Model_Types.ALPHA_MGN
+            pose_model = AlphaPoseLoader(device_ids[0])
+            self.aux_model_ws = DataParallel(pose_model, device_ids=device_ids)
+            self.aux_model_ws.eval()
+        elif model_file.find('head_plain') >= 0:
             model = PlainModel(base_model='resnet34')
             self.model_type = Model_Types.HEAD_PLAIN
         elif model_file.find('mgn_self_atten') >= 0:
-            model = MGNSelfAtten().cuda(device=device_ids[0])
+            #model = MGNSelfAtten().cuda(device=device_ids[0])
+            model = MGNSelfAtten(sum_weights=False).cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN_SELF_ATTEN
-            print "use mgn self atten model"
+            print "use mgn self atten model with concat"
         elif model_file.find('mgn') >= 0:
             model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
@@ -119,6 +128,7 @@ class AppearanceModelForward(object):
         # dropout.
         self.model_ws.eval()
 
+
     def __del__(self):
         torch.cuda.empty_cache()
 
@@ -160,7 +170,10 @@ class AppearanceModelForward(object):
 
     def extract_feature(self, ims, keypoints=None):
         ims = Variable(torch.from_numpy(ims).float())
-        if keypoints is None:
+        if self.aux_model_ws is not None:
+            aux_feature = self.aux_model_ws(ims)
+            global_feat = self.model_ws(ims, aux_feature)[0].data.cpu().numpy()
+        elif keypoints is None:
             global_feat = self.model_ws(ims)[0].data.cpu().numpy()
         else:
             keypoints = Variable(torch.from_numpy(numpy.array(keypoints)).float())
@@ -172,6 +185,8 @@ class AppearanceModelForward(object):
     def get_model_type(self):
         return self.model_type
 
+    def get_aux_model(self):
+        return self.aux_model
 
 if __name__ == '__main__':
     import argparse, cv2

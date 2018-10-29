@@ -119,6 +119,9 @@ if __name__ == "__main__":
     parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',
                         help='whether to dump tough pairs')
 
+    parser.add_argument('--aux_model_path', type=str, default='/mnt/soulfs/qyuan/models/3rd_party/sppe/duc_se.pth',
+                        help='path of aux model')
+
     parser.add_argument('--force_compute', action='store_true', default=False,
                         help='whether to force compute features')
 
@@ -189,7 +192,7 @@ if __name__ == "__main__":
         desired_size = (384, 128)
     else:
         raise Exception('unknown aspect ratio {}'.format(str(args.crop_aspect_ratio)))
-    model = feature_compute.AppearanceModelForward(args.model_path, device_ids=args.device_ids,
+    model = feature_compute.AppearanceModelForward(args.model_path, aux_model_path=args.aux_model_path, device_ids=args.device_ids,
                                                    skip_fc=(not args.keep_fc), desired_size=desired_size)
 
     if len(args.ignore_ids) > 0:

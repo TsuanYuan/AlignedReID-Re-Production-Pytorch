@@ -11,7 +11,7 @@ import os
 import datetime
 
 from torchvision import transforms
-import transforms_reid, Model
+import transforms_reid, Model, AlphaPoseLoader
 import losses
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
@@ -48,8 +48,11 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
     else:
         torch.cuda.set_device(gpu_ids[0])
 
-
-    if parts_type=='limbs':
+    pose_model = None
+    if parts_type == 'pose_feature_attention':
+        pose_model = AlphaPoseLoader.AlphaPoseLoader(gpu_ids[0])
+        model = Model.MGNWithPoseLayer()
+    elif parts_type=='limbs':
         pose_ids = (2,9,10,15,16)
         model = Model.PoseReIDModel(pose_ids=pose_ids)
     elif parts_type=='limbs_only':
@@ -95,8 +98,11 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
 
     if len(gpu_ids) > 0:
         model_p = DataParallel(model, device_ids=gpu_ids)
+        if pose_model is not None:
+            pose_model_p = DataParallel(pose_model, device_ids=gpu_ids)
     else:
         model_p = model
+
 
     start_decay = 50
     min_lr = 1e-9
@@ -143,8 +149,14 @@ def main(index_file, model_file, sample_size, batch_size, parts_type='head', att
             keypoints = keypoints_5d.view([kp_size[0]*kp_size[1],kp_size[2],kp_size[3]])
             if len(gpu_ids)>0:
                 with torch.cuda.device(gpu_ids[0]):
+
                     person_ids = person_ids.cuda(device=gpu_ids[0])
-                    features = model_p(Variable(images.cuda(device=gpu_ids[0], async=True)), keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
+                    images_gpu = Variable(images.cuda(device=gpu_ids[0], async=True))
+                    if pose_model is not None:
+                        pose_features = pose_model_p(images_gpu)
+                        features = model_p(images_gpu, pose_features)
+                    else:
+                        features = model_p(images_gpu, keypoints.cuda(device=gpu_ids[0])) #, Variable(w_h_ratios.cuda(device=gpu_id)))m
             else:
                 features = model(Variable(images), keypoints)
             if len(features) > 1:  # in case with logits outputs

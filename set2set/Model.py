@@ -1064,6 +1064,25 @@ class MGNModel(nn.Module):
         return feat, logits
 
 
+class MGNWithPoseLayer(MGNModel):
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128, pose_feature_dim=128):
+        super(MGNWithPoseLayer, self).__init__(num_classes=num_classes, base_model=base_model,
+                                           local_conv_out_channels=local_conv_out_channels)
+        self.pose_attention_layer = nn.Linear(pose_feature_dim, (self.level2_strips+self.level3_strips+1))
+        init.normal_(self.pose_attention_layer.weight, std=0.001)
+        init.constant_(self.pose_attention_layer.bias, 0)
+
+    def forward(self, x, pose_feature=None):
+        concat_feat, logits = self.concat_stripe_features(x)
+        pose_feature_pooled = torch.squeeze(F.avg_pool2d(pose_feature, pose_feature.size()[2:]))
+        attention_weights = torch.clamp(self.pose_attention_layer(pose_feature_pooled),min=0.0, max=10.0)
+        if len(attention_weights.size()) == 1: # in case of single feature
+            attention_weights = attention_weights.unsqueeze(0)
+        feat = torch.cat([self.local_feat_list[i]*torch.unsqueeze(attention_weights[:,i], dim=1) for i in range(len(self.local_feat_list))], dim=1)
+        final_feat = F.normalize(feat, p=2, dim=1)
+        return final_feat, logits
+
 class MGNSelfAtten(MGNModel):
     def __init__(self,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=128, sum_weights=True):
