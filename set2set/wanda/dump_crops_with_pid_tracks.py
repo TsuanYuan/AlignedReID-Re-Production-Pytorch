@@ -34,6 +34,8 @@ if __name__ == "__main__":
     ap.add_argument("vtid2pid_file", type=str, help="files of list of pids")
     ap.add_argument("track_folder", type=str, help="path to track crop folder")
     ap.add_argument("output_folder", type=str, help="path to output file")
+    ap.add_argument('--short', action='store_true', default=False,
+                        help='whether pad mp4.short in binary data file name')
     args = ap.parse_args()
 
     start_time = time.time()
@@ -51,13 +53,16 @@ if __name__ == "__main__":
             track_id = parts[1]
             if video_name not in data_by_video_name:
                 data_by_video_name[video_name] = []
-            data_by_video_name[video_name].append(track_id+'-'+pid.zfill(8))
+            data_by_video_name[video_name].append(track_id+'-'+str(pid).zfill(8))
 
     crops_per_pid = defaultdict(int)
     tracklets_per_pid = defaultdict(int)
     for video_name in data_by_video_name:
         track_list = data_by_video_name[video_name]
-        track_data_index_file = os.path.join(args.track_folder, video_name + '_part_idx_map.pickl')
+        if args.short:
+            track_data_index_file = os.path.join(args.track_folder, video_name + '.mp4.short_part_idx_map.pickl')
+        else:
+            track_data_index_file = os.path.join(args.track_folder, video_name + '_part_idx_map.pickl')
         if not os.path.isfile(track_data_index_file):
             print 'cannot find index file {}'.format(track_data_index_file)
             continue
