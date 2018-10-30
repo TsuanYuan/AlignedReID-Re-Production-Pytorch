@@ -15,27 +15,43 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from struct_format import utils
 
+
+def convert(vtid2pid_file):
+    with open(vtid2pid_file, 'r') as fp:
+        d = json.load(fp)
+    pid2vtid = {}
+    for vtid in d:
+        pid = d[vtid]
+        if pid not in pid2vtid:
+            pid2vtid[pid] = []
+        pid2vtid[pid].append(vtid)
+
+    return pid2vtid
+
 if __name__ == "__main__":
     # construct the argument parse and parse the arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("pid_list_file", type=str, help="files of list of pids")
+    ap.add_argument("vtid2pid_file", type=str, help="files of list of pids")
     ap.add_argument("track_folder", type=str, help="path to track crop folder")
     ap.add_argument("output_folder", type=str, help="path to output file")
     args = ap.parse_args()
 
     start_time = time.time()
     data_by_video_name = {}
-    with open(args.pid_list_file, 'r') as fp:
-        pid_to_tracks = json.load(fp)
-        for pid in pid_to_tracks:
-            track_list = pid_to_tracks[pid]
-            for track in track_list:
-                parts = track.split('-')
-                video_name = parts[0]
-                track_id = parts[1]
-                if video_name not in data_by_video_name:
-                    data_by_video_name[video_name] = []
-                data_by_video_name[video_name].append(track_id+'-'+pid.zfill(8))
+
+    pid2vtid = convert(args.vtid2pid_file)
+
+    # with open(args.pid_list_file, 'r') as fp:
+    #     pid_to_tracks = json.load(fp)
+    for pid in pid2vtid:
+        track_list = pid2vtid[pid]
+        for track in track_list:
+            parts = track.split('-')
+            video_name = parts[0]
+            track_id = parts[1]
+            if video_name not in data_by_video_name:
+                data_by_video_name[video_name] = []
+            data_by_video_name[video_name].append(track_id+'-'+pid.zfill(8))
 
     crops_per_pid = defaultdict(int)
     tracklets_per_pid = defaultdict(int)
