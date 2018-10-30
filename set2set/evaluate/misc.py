@@ -45,13 +45,16 @@ def decode_wcc_image_name(image_name):
     frame_id = parts[-1]
     return channel, int(date), video_time, int(pid), int(frame_id)
 
-def get_filename_for_display(file_path):
+def get_filename_for_display(file_path, video_name=False):
     p1, _ = os.path.split(file_path)
     folder_name = os.path.basename(p1)
     bn = os.path.basename(file_path)
     bn, _ = os.path.splitext(bn)
     parts = bn.split('_')
-    return parts[-2]+'_'+parts[-1], folder_name
+    if video_name:
+        return parts[-2]+'_'+parts[-1], folder_name, parts[0], parts[1]
+    else:
+        return parts[-2]+'_'+parts[-1], folder_name
 
 
 def plot_key_points(im_rgb, xs, ys, radius=4, put_index=True):
@@ -97,7 +100,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
     canvas[:,:w,:] = im0
     canvas[:,w:,:] = im1
 
-    top_name, folder_name = get_filename_for_display(file_pairs[0])
+    top_name, folder_name, channel, video_time = get_filename_for_display(file_pairs[0], video_name=True)
     if load_keypoints:
         for ki in range(2):
             keypoints_path = os.path.join(os.path.split(file_pairs[ki])[0], 'keypoints.pkl')
@@ -112,16 +115,25 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
 
     cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #            (0, 255, 0), 2)
+    cv2.putText(canvas, str(channel), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                            (0, 255, 0), 2)
+    cv2.putText(canvas, str(video_time), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(im_shape_0), (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(im_shape_0), (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    top_name, folder_name = get_filename_for_display(file_pairs[1])
+
+    top_name, folder_name, channel, video_time = get_filename_for_display(file_pairs[1], video_name=True)
     cv2.putText(canvas, str(top_name), (w+10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
-    cv2.putText(canvas, str(folder_name), (w+10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    # cv2.putText(canvas, str(folder_name), (w+10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    #             (0, 255, 0), 2)
+    cv2.putText(canvas, str(channel), (w + 10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                             (0, 255, 0), 2)
+    cv2.putText(canvas, str(video_time), (w + 10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-    cv2.putText(canvas, str(im_shape_1), (270, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+    cv2.putText(canvas, str(im_shape_1), (270, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                (0, 255, 0), 2)
     cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
