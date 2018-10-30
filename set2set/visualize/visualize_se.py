@@ -12,11 +12,11 @@ import cv2
 import pickle
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from struct_format import utils
-from evaluate import feature_compute, load_model, misc
+import Model
 import numpy
 
 
-def process_folder(person_folder, model, load_keypoints=False, batch_max=128, keypoints_score_th=0.75):
+def visualize(person_folder, model, load_keypoints=False, batch_max=128, keypoints_score_th=0.75):
     p = person_folder
     crop_files = glob.glob(os.path.join(p, '*.jpg'))
     if len(crop_files) == 0:
@@ -65,8 +65,13 @@ def process_folder(person_folder, model, load_keypoints=False, batch_max=128, ke
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="visualize SE model excitations")
 
-    parser.add_argument('folder', type=str, help="index of training folders, each folder contains multiple pid folders")
+    parser.add_argument('image_path', type=str, help="image_path")
     parser.add_argument('model_file', type=str, help="the model file")
+    parser.add_argument('model_type', type=str, help="the model type")
     parser.add_argument('--gpu_ids', type=int, default= 0, help="gpu id to use")
 
     args = parser.parse_args()
+    if args.model_type=='plain':
+        model = Model.PlainModelWithFeatureExposed().cuda(device=args.gpu_id)
+    else:
+        raise Exception('undefined model type {}'.format(args.model_type))

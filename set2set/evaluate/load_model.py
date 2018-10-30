@@ -13,7 +13,7 @@ from enum import Enum
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, \
-    MGNWithHead, MGNWithParts, MGNSelfAtten, MGNWithPoseLayer
+    MGNWithHead, MGNWithParts, MGNSelfAtten, PlainModelWithFeatureExposed, MGNWithPoseLayer
 from Model import load_ckpt
 from AlphaPoseLoader import AlphaPoseLoader
 import misc
