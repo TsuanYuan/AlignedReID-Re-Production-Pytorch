@@ -74,8 +74,11 @@ if __name__ == "__main__":
             track_key = video_name + '-' + track_id
             matched_keys = [k for k in data_offsets if k.find(track_key)>=0]
             if len(matched_keys) ==0:
-                print 'cannot find key {} in binary data offsets'.format(track_key)
-                continue
+                track_key = video_name + '.mp4.short-' + track_id
+                matched_keys = [k for k in data_offsets if k.find(track_key) >= 0]
+                if len(matched_keys) == 0:
+                    print 'cannot find key {} in binary data offsets with/without .mp4.short'.format(track_key)
+                    continue
             output_pid_folder = os.path.join(args.output_folder, str(pid))
             if not os.path.isdir(output_pid_folder):
                 os.makedirs(output_pid_folder)
