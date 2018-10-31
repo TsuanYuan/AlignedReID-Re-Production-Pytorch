@@ -88,7 +88,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
     if not torch.cuda.is_available():
         gpu_ids = None
     if head_train:
-        model = Model.PlainModel(base_model='resnet34')
+        model = Model.PlainModel(base_model='resnet50')
         model_type = 'plain'
     elif model_type == 'mgn':
         model = Model.MGNModel()
@@ -223,7 +223,7 @@ if __name__ == '__main__':
 
     torch.backends.cudnn.benchmark = False
     if args.head or args.desired_aspect == 1:
-        desired_size = (64, 64)
+        desired_size = (128, 128)
     elif args.desired_aspect == 2:
         desired_size = (256, 128)
     elif args.desired_aspect == 3:
