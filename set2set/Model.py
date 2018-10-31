@@ -267,6 +267,24 @@ class PlainModel(nn.Module):
 
         return global_feat, None
 
+class PlainModelWithFeatureExposed(PlainModel):
+
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', ):
+        super(PlainModelWithFeatureExposed, self).__init__(num_classes=num_classes, base_model=base_model)
+
+    def forward(self, x):
+        """
+      exposes final feature layers
+    """
+        # shape [N, C, H, W]
+        feat = self.base(x)
+        global_feat = F.avg_pool2d(feat, feat.size()[2:])
+        # shape [N, C]
+        global_feat = global_feat.view(global_feat.size(0), -1)
+
+        return global_feat, feat
+
 
 class SwitchClassHeadModel(nn.Module):
     def __init__(self, local_conv_out_channels=128, final_conv_out_channels=512, num_classification_head = (1,),
@@ -835,7 +853,6 @@ class PCBModel(nn.Module):
         condensed_feat = condensed_feat.unsqueeze(0)
     feat = F.normalize(condensed_feat, p=2, dim=1)
     return feat, logits
-
 
 
 class MGNModelCompact(nn.Module):

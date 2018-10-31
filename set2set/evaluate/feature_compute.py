@@ -59,7 +59,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
         desired_size = (384, 128)
     elif model.get_model_type()==Model_Types.HEAD_PLAIN:
         desired_size=(64, 64)
-        w_h_quality_th = 0
+        w_h_quality_th = 1000
         min_crop_h = 0
     else:
         desired_size = (256, 128)
