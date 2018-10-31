@@ -17,7 +17,7 @@ from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, Plain
 from Model import load_ckpt
 from AlphaPoseLoader import AlphaPoseLoader
 import misc
-
+import cv2
 
 class Model_Types(Enum):
     Plain = 0
