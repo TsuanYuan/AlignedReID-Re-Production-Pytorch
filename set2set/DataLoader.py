@@ -268,7 +268,7 @@ class ReIDSameIDSameDayCameraDataset(Dataset):  # ch00002_20180816102633_0000550
         class_id = self.person_id_2_class_id[person_id]
         sample['person_id'] = torch.from_numpy(numpy.array([int(class_id)]))
         sample['date'] = torch.from_numpy(numpy.array([int(date)]))
-        sample['channel'] = torch.from_numpy(numpy.array([channel]))
+        sample['channel'] = torch.from_numpy(numpy.array([channel[2:]]))
         return sample
 
 
