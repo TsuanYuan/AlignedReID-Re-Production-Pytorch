@@ -1,18 +1,18 @@
-# config for evaluate wcc model
+# config for evaluate wcc reid model
 
 
 # benchmark options
-min_frame_interval: 32
-max_frame_interval: 64
+min_frame_interval: 120
+max_frame_interval: 10000000000
 must_same_day: True
 must_different_days: False
-must_same_camera: True
+must_same_camera: False
 must_diff_camera: False
 must_same_video: False
 must_diff_video: False
 same_sample_size: 128
 neg_folder_interval: 1
-load_keypoints: True
+load_keypoints: False
 
 # compute options
 force_compute: True

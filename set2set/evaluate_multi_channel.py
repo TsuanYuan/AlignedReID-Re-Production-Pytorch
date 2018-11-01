@@ -21,7 +21,7 @@ mlog.setLevel(level)
 
 
 def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max, load_keypoints,
-            keypoints_score_th, same_sample_size, neg_folder_sample_interval):
+            keypoints_score_th, same_sample_size, neg_folder_sample_interval, tough_max):
 
     sub_folders = os.listdir(data_folder)
     features_per_person, file_seq_list, person_id_list,crops_file_list = [], [], [], []
@@ -58,7 +58,8 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     time_tag = str(time.time())
 
     dump_folder_with_tag = os.path.join(dump_folder, data_tag+'_'+ext + '_'+time_tag)
-    misc.dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder_with_tag)
+    misc.dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder_with_tag, tough_diff_count=tough_max,
+                                   tough_same_count=tough_max)
     # report true postives at different false positives
     same_pair_dist = numpy.array(same_pair_dist)
     diff_pair_dist = numpy.array(diff_pair_dist)
@@ -80,13 +81,13 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
 
 
 def process_all(folder, model, ext, force_compute, dump_folder, ignore_ids,same_pair_requirements, batch_max, load_keypoints,
-                keypoints_score_th, same_sample_size, neg_folder_interval):
+                keypoints_score_th, same_sample_size, neg_folder_interval, touch_max):
     sub_folders = next(os.walk(folder))[1]  # [x[0] for x in os.walk(folder)]
     tps = []
     for sub_folder in sub_folders:
         sub_folder_full = os.path.join(folder, sub_folder)
         tp3 = process(sub_folder_full, model, ext, force_compute, dump_folder, ignore_ids, same_pair_requirements, batch_max,
-                      load_keypoints, keypoints_score_th, same_sample_size, neg_folder_interval)
+                      load_keypoints, keypoints_score_th, same_sample_size, neg_folder_interval, touch_max)
         tps.append(tp3)
     tps = numpy.array(tps)
     mean_tps = numpy.mean(tps, axis=0)
@@ -160,6 +161,9 @@ if __name__ == "__main__":
 
     parser.add_argument('--neg_folder_interval', type=int, default=1,
                         help='interval of neg sample folder')
+
+    parser.add_argument('--touch_max', type=int, default=128,
+                        help='max_count of touch pairs to plot')
 
     parser.add_argument('--load_keypoints', action='store_true', default=False,
                         help='whether to load keypoints for pose model')

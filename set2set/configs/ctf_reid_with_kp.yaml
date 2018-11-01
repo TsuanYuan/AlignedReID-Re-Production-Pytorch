@@ -1,0 +1,25 @@
+# config for evaluate ctf reid with keypoint detections
+
+
+# benchmark options
+min_frame_interval: 120
+max_frame_interval: 100000000000
+must_same_day: True
+must_different_days: False
+must_same_camera: False
+must_diff_camera: False
+must_same_video: False
+must_diff_video: False
+same_sample_size: 128
+neg_folder_interval: 1
+load_keypoints: True
+
+# compute options
+force_compute: True
+batch_max: 128
+multi_folder: True
+
+keep_fc: False
+keypoints_score_th: 0.0
+crop_aspect_ratio: 2.0
+ext: "dsc"
