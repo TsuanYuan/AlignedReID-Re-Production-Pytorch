@@ -162,7 +162,7 @@ if __name__ == "__main__":
     parser.add_argument('--neg_folder_interval', type=int, default=1,
                         help='interval of neg sample folder')
 
-    parser.add_argument('--touch_max', type=int, default=128,
+    parser.add_argument('--tough_max', type=int, default=128,
                         help='max_count of touch pairs to plot')
 
     parser.add_argument('--load_keypoints', action='store_true', default=False,
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    gpu_ids = args.device_ids
+
     if len(args.config_file) > 0: #  config files overwrites parameters
         args = ioutils.parse_config(args, args.config_file)
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         desired_size = (384, 128)
     else:
         raise Exception('unknown aspect ratio {}'.format(str(args.crop_aspect_ratio)))
-    model = feature_compute.AppearanceModelForward(args.model_path, aux_model_path=args.aux_model_path, device_ids=gpu_ids,
+    model = feature_compute.AppearanceModelForward(args.model_path, aux_model_path=args.aux_model_path, device_ids=args.device_ids,
                                                    skip_fc=(not args.keep_fc), desired_size=desired_size)
 
     if len(args.ignore_ids) > 0:
@@ -209,10 +209,10 @@ if __name__ == "__main__":
     start_time = time.time()
     if args.multi_folder:
         process_all(args.test_folder, model, args.ext, args.force_compute, args.dump_folder, args.ignore_ids,
-                    same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval)
+                    same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval, args.tough_max)
     else:
         process(args.test_folder, model, args.ext, args.force_compute, args.dump_folder,args.ignore_ids,
-                same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval)
+                same_pair_requirements, args.batch_max, args.load_keypoints, args.keypoints_score_th, args.same_sample_size, args.neg_folder_interval, args.tough_max)
     print "evaluated model {}".format(args.model_path)
     finish_time = time.time()
     elapsed = finish_time - start_time
