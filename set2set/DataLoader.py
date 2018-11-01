@@ -204,6 +204,73 @@ class ReIDSameDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.j
 
 
 
+class ReIDSameIDSameDayCameraDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
+    """ReID dataset each batch coming from the same day same camera."""
+
+    def __init__(self, root_dir, transform=None, crops_per_id=8, desired_size=(256, 128)):
+        """
+        Args:
+            root_dir (string): Directory with all the images.
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.person_id_dates = self.create_pid_same_day_camera_data(root_dir)
+        self.transform = transform
+        self.crops_per_id = crops_per_id
+        self.desired_size = desired_size
+
+    def create_pid_same_day_camera_data(self, root_dir):
+        sub_folders = [os.path.join(root_dir, subfolder) for subfolder in os.listdir(root_dir) if subfolder.isdigit()]
+        person_id_date_cameras = {}
+        self.person_id_2_class_id = {}
+        class_id_count = 0
+        for sub_folder in sub_folders:
+            jpgs = glob.glob(os.path.join(root_dir, sub_folder, '*.jpg'))
+            for jpg_file in jpgs:
+                channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(jpg_file))
+                if pid not in person_id_date_cameras:
+                    person_id_date_cameras[pid] = collections.defaultdict(list)
+                    self.person_id_2_class_id[int(pid)] = class_id_count
+                    class_id_count += 1
+                date_camera = str(channel)+'_'+str(date)
+                person_id_date_cameras[pid][date_camera].append(jpg_file)
+
+        return person_id_date_cameras
+
+    def __len__(self):
+        return len(self.person_id_dates)
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.person_id_dates.keys()[set_id]
+        date_cameras = self.person_id_dates[person_id].keys()
+        random.shuffle(date_cameras)
+
+        im_paths = self.person_id_dates[person_id][date_cameras[0]]
+        if len(im_paths) > self.crops_per_id:
+            random.shuffle(im_paths)
+            im_paths_sample = im_paths[0:min(self.crops_per_id, len(im_paths))]
+        else:
+            im_paths_sample = [random.choice(im_paths) for _ in range(self.crops_per_id)]
+        ims = []
+        for im_path in im_paths_sample:
+            im_bgr = cv2.imread(im_path)
+            im_rgb = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+            im, w_h_ratio = crop_pad_fixed_aspect_ratio(im_rgb, desired_size=self.desired_size)
+            ims.append(im)
+            # import scipy.misc
+            # scipy.misc.imsave('/tmp/new_im.jpg', im)
+        channel, date, time, pid, frame_id = misc.decode_wcc_image_name(os.path.basename(im_paths_sample[0]))
+
+        sample = {'images': ims}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        class_id = self.person_id_2_class_id[person_id]
+        sample['person_id'] = torch.from_numpy(numpy.array([int(class_id)]))
+        sample['date'] = torch.from_numpy(numpy.array([int(date)]))
+        sample['channel'] = torch.from_numpy(numpy.array([channel]))
+        return sample
+
 
 class ReIDSameIDOneDayDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""

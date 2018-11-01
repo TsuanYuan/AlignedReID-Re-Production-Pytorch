@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset, ReIDHeadAppearanceDataset
+from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset, ReIDHeadAppearanceDataset, ReIDSameIDSameDayCameraDataset
 import argparse
 import os
 import datetime
@@ -56,6 +56,9 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
             if head_train:
                 reid_dataset = ReIDHeadAppearanceDataset(data_path, transform=composed_transforms,
                                                 crops_per_id=sample_size)
+            elif data_path_extra.find('same_channel_day')>=0:
+                reid_dataset = ReIDSameIDSameDayCameraDataset(data_path, transform=composed_transforms,
+                                                       crops_per_id=sample_size)
             elif data_path_extra.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
                                                 crops_per_id=sample_size)
@@ -88,8 +91,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
     if not torch.cuda.is_available():
         gpu_ids = None
     if head_train:
-        model = Model.PlainModel(base_model='resnet50')
-        model_type = 'plain'
+        model = Model.PlainModel(base_model='resnet34')
     elif model_type == 'mgn':
         model = Model.MGNModel()
     elif model_type == 'se':
