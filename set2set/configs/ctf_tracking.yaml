@@ -17,7 +17,7 @@ load_keypoints: False
 # compute options
 force_compute: True
 batch_max: 128
-multi_folder: True
+multi_folder: False
 
 keep_fc: False
 keypoints_score_th: 0.0
