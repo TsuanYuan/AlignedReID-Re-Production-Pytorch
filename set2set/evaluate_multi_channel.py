@@ -179,6 +179,7 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
+    gpu_ids = args.device_ids
     if len(args.config_file) > 0: #  config files overwrites parameters
         args = ioutils.parse_config(args, args.config_file)
 
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         desired_size = (384, 128)
     else:
         raise Exception('unknown aspect ratio {}'.format(str(args.crop_aspect_ratio)))
-    model = feature_compute.AppearanceModelForward(args.model_path, aux_model_path=args.aux_model_path, device_ids=args.device_ids,
+    model = feature_compute.AppearanceModelForward(args.model_path, aux_model_path=args.aux_model_path, device_ids=gpu_ids,
                                                    skip_fc=(not args.keep_fc), desired_size=desired_size)
 
     if len(args.ignore_ids) > 0:
