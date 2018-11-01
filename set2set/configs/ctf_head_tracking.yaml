@@ -16,7 +16,6 @@ load_keypoints: False
 
 # compute options
 force_compute: True
-batch_max: 128
 multi_folder: False
 
 keep_fc: False
