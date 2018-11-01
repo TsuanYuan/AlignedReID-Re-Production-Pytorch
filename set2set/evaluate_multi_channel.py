@@ -183,8 +183,8 @@ if __name__ == "__main__":
     if len(args.config_file) > 0: #  config files overwrites parameters
         args = ioutils.parse_config(args, args.config_file)
 
-    print 'min_frame interval={}, batch_max={}, force_compute={}, load_keypoints={}, kp_score_th={}, aspect_ratio={}'\
-        .format(str(args.min_frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th), str(args.crop_aspect_ratio))
+    print 'min frame interval={}, max frame interval={}, batch_max={}, force_compute={}, load_keypoints={}, kp_score_th={}, aspect_ratio={}'\
+        .format(str(args.min_frame_interval), str(args.max_frame_interval), str(args.batch_max), str(args.force_compute), str(args.load_keypoints), str(args.keypoints_score_th), str(args.crop_aspect_ratio))
     import time
 
     same_pair_requirements = Same_Pair_Requirements(min_frame_interval=args.min_frame_interval, max_frame_interval=args.max_frame_interval, must_same_day=args.must_same_day, must_different_days=args.must_different_days, must_same_camera=args.must_same_camera,
