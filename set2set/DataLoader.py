@@ -563,7 +563,7 @@ class ReIDMultiFolderAppearanceDataset(Dataset):
 class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(96, 96), head_box_extension=1.2):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(64, 64), head_box_extension=1.2):
         """
         Args:
             person_id_data (string): dict with key of person pids.
@@ -626,13 +626,14 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
     def extend_box(self, corner_box):
         box_w = corner_box[2] - corner_box[0]
         box_h = corner_box[3] - corner_box[1]
-        radius = max([box_w, box_h])/2*self.head_box_extension
+        w_ext = box_w/2*self.head_box_extension
+        h_ext = box_h/2*self.head_box_extension
         box_center = numpy.array([(corner_box[0]+corner_box[2])/2, (corner_box[1]+corner_box[3])/2])
         extended_corner_box = numpy.zeros(4)
-        extended_corner_box[0] = box_center[0] - radius
-        extended_corner_box[2] = box_center[0] + radius
-        extended_corner_box[1] = box_center[1] - radius
-        extended_corner_box[3] = box_center[1] + radius
+        extended_corner_box[0] = box_center[0] - w_ext
+        extended_corner_box[2] = box_center[0] + w_ext
+        extended_corner_box[1] = box_center[1] - h_ext
+        extended_corner_box[3] = box_center[1] + h_ext
         return extended_corner_box
 
     def __getitem__(self, set_id):
@@ -648,6 +649,7 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
             head_corner_box = self.enforce_boundary(head_corner_box, im_bgr.shape[1], im_bgr.shape[0])
             im_bgr_head = im_bgr[head_corner_box[1]:head_corner_box[3], head_corner_box[0]:head_corner_box[2], :]
             im_rgb_head = cv2.cvtColor(im_bgr_head, cv2.COLOR_BGR2RGB)
+            head_crop = crop_pad_fixed_aspect_ratio(im_rgb_head, self.desired_size)
             # im_rgb_head = cv2.resize(im_rgb_head, (self.desired_size[1], self.desired_size[0]))
             ims.append(im_rgb_head)
             # import scipy.misc
