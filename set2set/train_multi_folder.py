@@ -19,7 +19,7 @@ from torch.nn.parallel import DataParallel
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
          num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False):
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25):
 
     if head_train:
         assert desired_size[0] == desired_size[1]
@@ -55,16 +55,16 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
         if os.path.isdir(data_path):
             if head_train:
                 reid_dataset = ReIDHeadAppearanceDataset(data_path, transform=composed_transforms,
-                                                crops_per_id=sample_size)
+                                                crops_per_id=sample_size, desired_size=desired_size)
             elif data_path_extra.find('same_channel_day')>=0:
                 reid_dataset = ReIDSameIDSameDayCameraDataset(data_path, transform=composed_transforms,
-                                                       crops_per_id=sample_size)
+                                                       crops_per_id=sample_size, desired_size=desired_size)
             elif data_path_extra.find('same_day')>=0:
                 reid_dataset = ReIDSameIDOneDayDataset(data_path,transform=composed_transforms,
-                                                crops_per_id=sample_size)
+                                                crops_per_id=sample_size, desired_size=desired_size)
             elif data_path_extra.find('all')>=0:
                 reid_dataset = ReIDAppearanceDataset(data_path,transform=composed_transforms,
-                                                crops_per_id=sample_size)
+                                                crops_per_id=sample_size, desired_size=desired_size)
             else:
                 raise Exception('unknown data loader name {}'.format(data_path_extra))
             reid_datasets.append(reid_dataset)
@@ -185,7 +185,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
                     .format(time_str, str(epoch), str(i_batch), str(loss.data.cpu().numpy()), str(dist_pos.data.cpu().numpy()),
                             str(dist_neg.data.cpu().numpy()), str(sum_loss))
                 print(log_str)
-                if (epoch+1) %(max(1,min(25, num_epochs/8)))==0:
+                if (epoch+1) %(max(1,min(save_epoch_interval, num_epochs/4)))==0:
                     Model.save_ckpt([model], epoch, log_str, model_file+'.epoch_{0}'.format(str(epoch)))
                 Model.save_ckpt([model],  epoch, log_str, model_file)
             i_batch += 1
@@ -215,7 +215,8 @@ if __name__ == '__main__':
     parser.add_argument('--num_data_workers', type=int, default=4, help="num of data batching workers")
     parser.add_argument('--head', action='store_true', default=False, help="training head model with head parameters")
     parser.add_argument('--desired_aspect', type=int, default=2, help="crop aspect ratio")
-    
+    parser.add_argument('--save_epoch_interval', type=int, default=25, help="epoch interval to save a check point")
+
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
@@ -225,7 +226,7 @@ if __name__ == '__main__':
 
     torch.backends.cudnn.benchmark = False
     if args.head or args.desired_aspect == 1:
-        desired_size = (128, 128)
+        desired_size = (64, 64)
     elif args.desired_aspect == 2:
         desired_size = (256, 128)
     elif args.desired_aspect == 3:
@@ -235,4 +236,4 @@ if __name__ == '__main__':
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers, desired_size=desired_size,
-         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head)
+         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head, save_epoch_interval=args.save_epoch_interval)
