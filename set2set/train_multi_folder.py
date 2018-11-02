@@ -126,7 +126,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
     metric_loss_function = losses.TripletLossK(margin=margin)
 
     n_set = len(reid_datasets)
-    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=batch_size,
+    dataloaders = [torch.utils.data.DataLoader(reid_datasets[set_id], batch_size=min(batch_size, len(reid_datasets[set_id])),
                                              shuffle=True, num_workers=num_data_workers) for set_id in range(n_set)]
     dataloader_iterators = [iter(dataloaders[i]) for i in range(n_set)]
     num_iters_per_epoch = sum([len(dataloaders[i]) for i in range(n_set)])
