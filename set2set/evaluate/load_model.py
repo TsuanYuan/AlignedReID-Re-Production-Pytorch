@@ -15,9 +15,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, \
     MGNWithHead, MGNWithParts, MGNSelfAtten, PlainModelWithFeatureExposed, MGNWithPoseLayer
 from Model import load_ckpt
-from AlphaPoseLoader import AlphaPoseLoader
 import misc
-import cv2
+# import cv2
 
 class Model_Types(Enum):
     Plain = 0
@@ -44,6 +43,7 @@ class AppearanceModelForward(object):
         self.aux_model_ws = None
 
         if model_file.find('alpha_mgn') >= 0:
+            from AlphaPoseLoader import AlphaPoseLoader
             model = MGNWithPoseLayer()
             self.model_type = Model_Types.ALPHA_MGN
             pose_model = AlphaPoseLoader(device_ids[0])
