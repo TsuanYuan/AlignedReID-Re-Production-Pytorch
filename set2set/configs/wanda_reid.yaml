@@ -1,0 +1,24 @@
+# config for evaluate wanda reid model
+
+
+# benchmark options
+min_frame_interval: 0
+max_frame_interval: 10000000000
+must_same_day: True
+must_different_days: False
+must_same_camera: False
+must_diff_camera: False
+must_same_video: False
+must_diff_video: False
+same_sample_size: 128
+neg_folder_interval: 16
+load_keypoints: False
+
+# compute options
+force_compute: True
+multi_folder: False
+
+keep_fc: False
+keypoints_score_th: 0.0
+crop_aspect_ratio: 2.0
+ext: "dsc"
