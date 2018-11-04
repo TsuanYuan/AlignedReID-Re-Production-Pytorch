@@ -115,8 +115,9 @@ class ReIDSingleFileCropsDataset(Dataset):
         # get personID
         person_id = self.person_ids[set_id]
         visit_count = 0
-        while person_id in self.single_file_data.pids_no_good_qualities and visit_count< len(self.person_ids):
+        while person_id in self.single_file_data.pids_no_good_qualities and visit_count<len(self.person_ids):
             set_id = (set_id+1)%len(self.person_ids)
+            person_id = self.person_ids[set_id]
             visit_count += 1
         if visit_count == len(self.person_ids):
             raise Exception('no person_ids are of good quality!')
