@@ -11,7 +11,7 @@ import torch.nn.init as init
 import numpy as np
 import os
 from torch.autograd import Variable
-from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers
+from BackBones import resnet50, resnet18, resnet34, resnet50_with_layers, resnet101, resnet152
 from torchvision.models import inception_v3
 from torchvision.models import squeezenet1_0
 from torchvision.models import vgg16_bn, vgg11_bn
@@ -217,7 +217,13 @@ class PlainModel(nn.Module):
     def __init__(self,
                  num_classes=None, base_model='resnet50', ):
         super(PlainModel, self).__init__()
-        if base_model == 'resnet50':
+        if base_model == 'resnet152':
+            self.base = resnet152(pretrained=True)
+            planes = 2048
+        elif base_model == 'resnet101':
+            self.base = resnet101(pretrained=True)
+            planes = 2048
+        elif base_model == 'resnet50':
             self.base = resnet50(pretrained=True)
             planes = 2048
         elif base_model == 'resnet34':
@@ -788,14 +794,22 @@ class PCBModel(nn.Module):
       last_conv_dilation=1,
       num_stripes=6,
       local_conv_out_channels=256,
-      num_classes=None
+      num_classes=None,
+      backbone='resnet50',
+
   ):
     super(PCBModel, self).__init__()
+    if backbone=='resnet50':
+        self.base = resnet50(
+          pretrained=True,
+          last_conv_stride=last_conv_stride,
+          last_conv_dilation=last_conv_dilation)
+    elif backbone=='resnet101':
+        self.base = resnet101(
+            pretrained=True,
+            last_conv_stride=last_conv_stride,
+            last_conv_dilation=last_conv_dilation)
 
-    self.base = resnet50(
-      pretrained=True,
-      last_conv_stride=last_conv_stride,
-      last_conv_dilation=last_conv_dilation)
     self.num_stripes = num_stripes
     self.num_classes = num_classes
 

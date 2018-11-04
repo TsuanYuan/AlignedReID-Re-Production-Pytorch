@@ -193,7 +193,7 @@ class SingleFileCrops(object):
 
 
 class MultiFileCrops(object):
-    def __init__(self, data_folder, list_file, ignore_pids=None, same_day_camera=False):
+    def __init__(self, data_folder, list_file, ignore_pids=None, same_day_camera=False, min_crop_height=96):
         self.prefix = 0
         #index_files = glob.glob(os.path.join(data_folder, '*'+index_ext))
         self.data_folder = data_folder
@@ -205,7 +205,7 @@ class MultiFileCrops(object):
 
         self.pid_pos = collections.defaultdict(int)
         self.pid_list = self.pid_index.keys()
-        self.quality = {'w_h_max': 0.9, 'min_h':  96}
+        self.quality = {'w_h_max': 0.9, 'min_h':  min_crop_height}
         self.same_day_camera = same_day_camera
         self.pids_no_good_qualities = set()
         self.pids_few_good_qualities = set()

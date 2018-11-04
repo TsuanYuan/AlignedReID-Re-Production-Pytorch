@@ -18,8 +18,9 @@ from torch.nn.parallel import DataParallel
 
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
-         num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4,
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25):
+         num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4, backbone='resnet50',
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25,
+         min_crop_height=96, random_block_mask=8):
 
     if head_train:
         assert desired_size[0] == desired_size[1]
@@ -34,7 +35,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
         composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale(desired_size),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
-                                              transforms_reid.RandomBlockMask(8),
+                                              transforms_reid.RandomBlockMask(random_block_mask),
                                               transforms_reid.PixelNormalize(),
                                               transforms_reid.ToTensor(),
                                               ])
@@ -80,7 +81,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
                 with open(ignore_path, 'r') as fp:
                     ignore_pid_list = [int(line.rstrip('\n')) for line in fp if len(line.rstrip('\n')) > 0]
             reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=False, ignore_pid_list=ignore_pid_list,
-                                                sample_size=sample_size, index_format='list', desired_size=desired_size)
+                                                sample_size=sample_size, index_format='list', desired_size=desired_size, min_crop_height=min_crop_height)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
@@ -90,16 +91,21 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
     if not torch.cuda.is_available():
         gpu_ids = None
+    if backbone != 'resnet50' and backbone !='resnet34':
+        print 'backbone={}. Only plain and pcb model will take backbone other than resnet50 or resnet34'.format(backbone)
     if head_train:
         model = Model.PlainModel(base_model='resnet34')
     elif model_type == 'mgn':
         model = Model.MGNModel()
+    elif model_type == 'pcb':
+        model = Model.PCBModel(backbone=backbone)
     elif model_type == 'se':
         model = Model.MGNModel(base_model='resnet50se')
     elif model_type == 'plain':
-        model = Model.PlainModel()
+        model = Model.PlainModel(base_model=backbone)
     else:
         raise Exception('unknown model type {}'.format(model_type))
+
     if len(gpu_ids)>=0:
         model = model.cuda(device=gpu_ids[0])
     else:
@@ -201,6 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample_size', type=int, default=8, help="total number of images of each ID in a sample")
     parser.add_argument('--batch_size', type=int, default=32, help="num samples in a mini-batch, each sample is a sequence of images")
     parser.add_argument('--gpu_ids', nargs='+', type=int, help="gpu ids to use")
+    parser.add_argument('--backbone', type=str, default='resnet50', help="back bone base model")
     parser.add_argument('--margin', type=float, default=0.1, help="margin for the loss")
     parser.add_argument('--num_epoch', type=int, default=200, help="num of epochs")
     parser.add_argument('--batch_factor', type=float, default=1.5, help="increase batch size by this factor")
@@ -216,13 +223,17 @@ if __name__ == '__main__':
     parser.add_argument('--head', action='store_true', default=False, help="training head model with head parameters")
     parser.add_argument('--desired_aspect', type=int, default=2, help="crop aspect ratio")
     parser.add_argument('--save_epoch_interval', type=int, default=25, help="epoch interval to save a check point")
+    parser.add_argument('--min_crop_height', type=int, default=64, help="ignore crops smaller than this height in wanda/redstar binary format")
+    parser.add_argument('--random_block_mask_count', type=int, default=8,
+                        help="count of random blocks in augmentation")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}, min_crop_height={}, backbone={}, random_block_count={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
-                   str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head)))
+                   str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head),
+                 str(args.min_crop_height), args.backbone, str(args.random_block_count)))
 
     torch.backends.cudnn.benchmark = False
     if args.head or args.desired_aspect == 1:
@@ -236,4 +247,5 @@ if __name__ == '__main__':
 
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers, desired_size=desired_size,
-         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head, save_epoch_interval=args.save_epoch_interval)
+         optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head,
+         save_epoch_interval=args.save_epoch_interval, min_crop_height=args.min_crop_height, backbone=args.backbone)
