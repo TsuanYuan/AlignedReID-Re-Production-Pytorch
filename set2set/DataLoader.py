@@ -88,7 +88,7 @@ class ConcatDayDataset(ConcatDataset):
 class ReIDSingleFileCropsDataset(Dataset):
     """ReID data set with single file crops format"""
     def __init__(self, data_folder, index_file, transform=None, sample_size=8, desired_size=(256, 128), ignore_pid_list=None,
-                 index_format='pickle', same_day_camera=False, min_crop_height=96):
+                 index_format='pickle', same_day_camera=False, min_crop_height=96, w_h_max=0.9):
         """
         Args:
             root_dir (string): Directory with all the index files and binary data files.
@@ -100,7 +100,7 @@ class ReIDSingleFileCropsDataset(Dataset):
             self.single_file_data = SingleFileCrops(data_folder)
         elif index_format=='list':
             self.single_file_data = MultiFileCrops(data_folder, index_file, ignore_pids=ignore_pid_list,
-                                                   same_day_camera=same_day_camera, min_crop_height=min_crop_height)
+                                                   same_day_camera=same_day_camera, min_crop_height=min_crop_height, w_h_max=w_h_max)
         else:
             raise Exception('unknonw binary data index format {}'.format(index_format))
         self.person_ids = self.single_file_data.get_pid_list()

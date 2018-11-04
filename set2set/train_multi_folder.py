@@ -20,7 +20,7 @@ from torch.nn.parallel import DataParallel
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
          num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4, backbone='resnet50',
          optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25,
-         min_crop_height=96, random_block_mask=8):
+         min_crop_height=96, random_block_mask=8, w_h_max=0.9):
 
     if head_train:
         assert desired_size[0] == desired_size[1]
@@ -81,7 +81,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
                 with open(ignore_path, 'r') as fp:
                     ignore_pid_list = [int(line.rstrip('\n')) for line in fp if len(line.rstrip('\n')) > 0]
             reid_dataset = ReIDSingleFileCropsDataset(data_folder, index_file, transform=composed_transforms, same_day_camera=False, ignore_pid_list=ignore_pid_list,
-                                                sample_size=sample_size, index_format='list', desired_size=desired_size, min_crop_height=min_crop_height)
+                                                sample_size=sample_size, index_format='list', desired_size=desired_size, min_crop_height=min_crop_height, w_h_max=w_h_max)
             reid_datasets.append(reid_dataset)
             num_classes = len(reid_dataset)
             softmax_loss_function = losses.MultiClassLoss(num_classes=num_classes)
@@ -226,14 +226,15 @@ if __name__ == '__main__':
     parser.add_argument('--min_crop_height', type=int, default=64, help="ignore crops smaller than this height in wanda/redstar binary format")
     parser.add_argument('--random_block_count', type=int, default=8,
                         help="count of random blocks in augmentation")
+    parser.add_argument('--w_h_max', type=float, default=0.9, help="max ratio of w/h in a crop to avoid partial crops")
 
     args = parser.parse_args()
     print('training_parameters:')
     print('  index_file={0}'.format(args.folder_list_file))
-    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}, min_crop_height={}, backbone={}, random_block_count={}'.
+    print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}, min_crop_height={}, backbone={}, random_block_count={}, w_h_max={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
                    str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head),
-                 str(args.min_crop_height), args.backbone, str(args.random_block_count)))
+                 str(args.min_crop_height), args.backbone, str(args.random_block_count), str(args._w_h_max)))
 
     torch.backends.cudnn.benchmark = False
     if args.head or args.desired_aspect == 1:
@@ -248,4 +249,4 @@ if __name__ == '__main__':
     main(args.folder_list_file, args.model_file, args.sample_size, args.batch_size, model_type=args.model_type,
          num_epochs=args.num_epoch, gpu_ids=args.gpu_ids, margin=args.margin, num_data_workers=args.num_data_workers, desired_size=desired_size,
          optimizer_name=args.optimizer, base_lr=args.lr, softmax_loss_weight=args.softmax_loss_weight, head_train=args.head,
-         save_epoch_interval=args.save_epoch_interval, min_crop_height=args.min_crop_height, backbone=args.backbone)
+         save_epoch_interval=args.save_epoch_interval, min_crop_height=args.min_crop_height, backbone=args.backbone, w_h_max=args.w_h_max)
