@@ -224,7 +224,7 @@ if __name__ == '__main__':
     parser.add_argument('--desired_aspect', type=int, default=2, help="crop aspect ratio")
     parser.add_argument('--save_epoch_interval', type=int, default=25, help="epoch interval to save a check point")
     parser.add_argument('--min_crop_height', type=int, default=64, help="ignore crops smaller than this height in wanda/redstar binary format")
-    parser.add_argument('--random_block_mask_count', type=int, default=8,
+    parser.add_argument('--random_block_count', type=int, default=8,
                         help="count of random blocks in augmentation")
 
     args = parser.parse_args()
