@@ -234,7 +234,7 @@ if __name__ == '__main__':
     print('  sample_size={}, batch_size={},  margin={}, loss={}, optimizer={}, lr={}, model_type={}, reid_same_day={}, softmax_weight={}, head={}, min_crop_height={}, backbone={}, random_block_count={}, w_h_max={}'.
           format(str(args.sample_size), str(args.batch_size), str(args.margin), str(args.loss), str(args.optimizer),
                    str(args.lr), args.model_type, str(args.reid_same_day), str(args.softmax_loss_weight), str(args.head),
-                 str(args.min_crop_height), args.backbone, str(args.random_block_count), str(args._w_h_max)))
+                 str(args.min_crop_height), args.backbone, str(args.random_block_count), str(args.w_h_max)))
 
     torch.backends.cudnn.benchmark = False
     if args.head or args.desired_aspect == 1:
