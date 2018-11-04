@@ -809,7 +809,9 @@ class PCBModel(nn.Module):
             pretrained=True,
             last_conv_stride=last_conv_stride,
             last_conv_dilation=last_conv_dilation)
-
+    else:
+        raise Exception('unknown backbone for pcb!')
+    
     self.num_stripes = num_stripes
     self.num_classes = num_classes
 
