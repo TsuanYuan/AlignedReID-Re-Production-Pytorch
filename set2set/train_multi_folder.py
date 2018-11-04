@@ -32,7 +32,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
                                                   transforms_reid.ToTensor(),
                                                   ])
     else:
-        composed_transforms = transforms.Compose([transforms_reid.RandomHorizontalFlip(),
+        composed_transforms = transforms.Compose([#transforms_reid.RandomHorizontalFlip(),
                                               transforms_reid.Rescale(desired_size),  # not change the pixel range to [0,1.0]
                                               #transforms_reid.RandomCrop((256, 128)),
                                               transforms_reid.RandomBlockMask(random_block_mask),
