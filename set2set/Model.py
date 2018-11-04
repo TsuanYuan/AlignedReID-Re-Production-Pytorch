@@ -819,8 +819,6 @@ class PCBModel(nn.Module):
     for _ in range(num_stripes):
       self.local_conv_list.append(nn.Sequential(
         nn.Conv2d(2048, local_conv_out_channels, 1),
-        nn.BatchNorm2d(local_conv_out_channels),
-        nn.ReLU(inplace=True)
       ))
 
     if num_classes is not None:
