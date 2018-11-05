@@ -67,12 +67,10 @@ class AppearanceModelForward(object):
         elif model_file.find('plain') >= 0:
             model = PlainModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.Plain
-        elif model_file.find('pcb_6') >= 0:
-            model = PCBModel(num_stripes=6).cuda(device=device_ids[0])
+        elif model_file.find('pcb') >= 0:
+            model = PCBModel(backbone='resnet101').cuda(device=device_ids[0])
+            desired_size = (384, 128)
             self.model_type = Model_Types.PCB_6
-        elif model_file.find('pcb_3') >= 0:
-            model = PCBModel(num_stripes=3).cuda(device=device_ids[0])
-            self.model_type = Model_Types.PCB_3
         elif model_file.find('head_only') >= 0:
             pose_ids = (2,)
             model = PoseReIDModel(pose_ids=pose_ids, no_global=True).cuda(device=device_ids[0])

@@ -601,9 +601,6 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
                         if n > 0:
                             valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > self.head_score_threshold]
                             if len(valid_heads) > 0:
-                                # debug only
-                                if len(valid_heads) > 1:
-                                    head_debug = 0
                                 best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
                                 jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
                 if len(jpgs_with_good_head) >= self.crops_per_id:
