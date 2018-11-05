@@ -602,7 +602,7 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
                         if n > 0:
                             # head score > th and # head w and h > 1
                             valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > self.head_score_threshold]
-                            valid_heads = [valid_head for valid_head in valid_heads if min(valid_head[2:4])/max(valid_head[2:4])>self.min_aspect_ratio]
+                            valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4]))/max(valid_head[2:4])>self.min_aspect_ratio]
                             if len(valid_heads) > 0:
                                 best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
                                 jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
