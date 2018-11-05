@@ -576,9 +576,10 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
         self.desired_size = desired_size
         self.crops_per_id = crops_per_id
         self.head_score_threshold = head_score_threshold
+        self.min_aspect_ratio = min_aspect_ratio
         self.create_head_pid_data(root_dir)
         self.transform = transform
-        self.min_aspect_ratio = min_aspect_ratio
+
 
     def create_head_pid_data(self, root_folder):
         subfolders = os.listdir(root_folder)
