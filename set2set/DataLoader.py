@@ -652,8 +652,8 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
             im_bgr_head = im_bgr[head_corner_box[1]:head_corner_box[3], head_corner_box[0]:head_corner_box[2], :]
             im_rgb_head = cv2.cvtColor(im_bgr_head, cv2.COLOR_BGR2RGB)
             head_crop = crop_pad_fixed_aspect_ratio(im_rgb_head, self.desired_size)
-            # im_rgb_head = cv2.resize(im_rgb_head, (self.desired_size[1], self.desired_size[0]))
-            ims.append(im_rgb_head)
+            head_crop = cv2.resize(head_crop, (self.desired_size[1], self.desired_size[0]))
+            ims.append(head_crop)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
 
