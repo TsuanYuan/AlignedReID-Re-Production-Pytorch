@@ -24,10 +24,11 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
     if head_train:
         assert desired_size[0] == desired_size[1]
-        rescale_ext = int(desired_size[0]*0.1)
+        #rescale_ext = int(desired_size[0]*0.1)
         composed_transforms = transforms.Compose([
-                                                  transforms_reid.Rescale((desired_size[0]+rescale_ext, desired_size[1]+rescale_ext)),
-                                                  transforms_reid.RandomCrop(desired_size),
+                                                  #transforms_reid.Rescale((desired_size[0]+rescale_ext, desired_size[1]+rescale_ext)),
+                                                  transforms_reid.Rescale(desired_size),
+                                                  #transforms_reid.RandomCrop(desired_size),
                                                   transforms_reid.PixelNormalize(),
                                                   transforms_reid.ToTensor(),
                                                   ])
