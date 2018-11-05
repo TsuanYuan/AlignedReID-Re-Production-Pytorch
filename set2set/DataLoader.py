@@ -565,7 +565,7 @@ class ReIDMultiFolderAppearanceDataset(Dataset):
 class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_00052119.jpg
     """ReID dataset each batch coming from the same day."""
 
-    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, desired_size=(64, 64), head_box_extension=1.2):
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.75, min_aspect_ratio=0.8, desired_size=(64, 64), head_box_extension=1.2):
         """
         Args:
             person_id_data (string): dict with key of person pids.
@@ -578,7 +578,7 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
         self.head_score_threshold = head_score_threshold
         self.create_head_pid_data(root_dir)
         self.transform = transform
-
+        self.min_aspect_ratio = min_aspect_ratio
 
     def create_head_pid_data(self, root_folder):
         subfolders = os.listdir(root_folder)
@@ -599,7 +599,9 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
                         head_scores = head_info['scores']
                         n = len(head_boxes)
                         if n > 0:
+                            # head score > th and # head w and h > 1
                             valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > self.head_score_threshold]
+                            valid_heads = [valid_head for valid_head in valid_heads if min(valid_head[2:4])/max(valid_head[2:4])>self.min_aspect_ratio]
                             if len(valid_heads) > 0:
                                 best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]  # find the smallest Y value for the highest head
                                 jpgs_with_good_head.append((jpg, numpy.array(best_head_corner_box)))
