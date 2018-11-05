@@ -651,14 +651,12 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
             head_corner_box = self.enforce_boundary(head_corner_box, im_bgr.shape[1], im_bgr.shape[0])
             im_bgr_head = im_bgr[head_corner_box[1]:head_corner_box[3], head_corner_box[0]:head_corner_box[2], :]
             im_rgb_head = cv2.cvtColor(im_bgr_head, cv2.COLOR_BGR2RGB)
-            head_crop = crop_pad_fixed_aspect_ratio(im_rgb_head, self.desired_size)
+            head_crop, _ = crop_pad_fixed_aspect_ratio(im_rgb_head, self.desired_size)
             head_crop = cv2.resize(head_crop, (self.desired_size[1], self.desired_size[0]))
             ims.append(head_crop)
             # import scipy.misc
             # scipy.misc.imsave('/tmp/new_im.jpg', im)
-
         sample = {'images': ims, 'person_id': person_id}
-
         if self.transform:
             sample['images'] = self.transform(sample['images'])
         sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
