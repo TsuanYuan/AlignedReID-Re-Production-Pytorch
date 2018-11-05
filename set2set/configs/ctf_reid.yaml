@@ -3,7 +3,7 @@
 
 # benchmark options
 min_frame_interval: 120
-max_frame_interval: 10000000000
+max_frame_interval: -1
 must_same_day: True
 must_different_days: False
 must_same_camera: False

@@ -114,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument('--min_frame_interval', type=int, default=-1,
                         help='the min frame intervals between a same pair')
 
-    parser.add_argument('--max_frame_interval', type=int, default=10000000,
+    parser.add_argument('--max_frame_interval', type=int, default=-1,
                         help='the max frame intervals between a same pair')
 
     parser.add_argument('--dump_folder', type=str, default='/tmp/difficult',

@@ -65,13 +65,20 @@ def compute_same_pair_dist_per_person(features, crop_files, requirements):
         satisfied = numpy.logical_and(satisfied, numpy.logical_not(same_days))
 
     # frame interval > 0 could be different days, different video_time, different camera or frame diff > frame_interval
-    diff_days = numpy.logical_not(same_days)
-    diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
-    frame_diff =  pairwise.euclidean_distances(frame_indices.reshape((n, 1)))
-    frame_interval_min_satisfied = frame_diff >= requirements.min_frame_interval
-    frame_interval_max_satisfied = frame_diff <= requirements.max_frame_interval
-    frame_requirement = numpy.logical_or(numpy.logical_or(diff_days, diff_videos), numpy.logical_or(frame_interval_min_satisfied, frame_interval_max_satisfied))
-    satisfied = numpy.logical_and(satisfied, frame_requirement)
+    # diff_days = numpy.logical_not(same_days)
+    # diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
+    frame_diff = pairwise.euclidean_distances(frame_indices.reshape((n, 1)))
+    if requirements.min_frame_interval > 0:
+        diff_days = numpy.logical_not(same_days)
+        diff_videos = numpy.logical_not(numpy.logical_and(same_camera, same_video_times))
+        frame_interval_min_satisfied = frame_diff >= requirements.min_frame_interval
+        frame_requirement = numpy.logical_or(numpy.logical_or(diff_days, diff_videos), frame_interval_min_satisfied)
+        satisfied = numpy.logical_and(satisfied, frame_requirement)
+
+    if requirements.max_frame_interval > 0:
+        frame_interval_max_satisfied = frame_diff <= requirements.max_frame_interval
+        frame_requirement = numpy.logical_and(same_video_times, frame_interval_max_satisfied)
+        satisfied = numpy.logical_and(satisfied, frame_requirement)
 
     satisfied_dist = features_dist[satisfied]
     crops_file_array = numpy.tile(numpy.array(crop_files).reshape((n, 1)), [1, n])
