@@ -36,7 +36,7 @@ class Model_Types(Enum):
     HEAD_BOX_ATTEN = 15
 
 class AppearanceModelForward(object):
-    def __init__(self, model_path, aux_model_path = None, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
+    def __init__(self, model_path, aux_model_path=None, device_ids=(0,), desired_size=(256, 128), batch_max=128, skip_fc=True):
         self.im_mean, self.im_std = [0.486, 0.459, 0.408], [0.229, 0.224, 0.225]
         torch.cuda.set_device(min(device_ids))
         model_file = os.path.split(model_path)[1]
@@ -44,6 +44,8 @@ class AppearanceModelForward(object):
         self.require_keypoints = False
         self.require_head_box = False
         self.box_extension = 1.0
+        self.head_detection_threshold = 0.75
+        self.min_head_aspect_ratio = 0.5
         if model_file.find('alpha_mgn') >= 0:
             from AlphaPoseLoader import AlphaPoseLoader
             model = MGNWithPoseLayer()
@@ -63,7 +65,7 @@ class AppearanceModelForward(object):
             model = MGNModel().cuda(device=device_ids[0])
             self.model_type = Model_Types.MGN
             print "use mgn model"
-        elif  model_file.find('plain_parts') >= 0:
+        elif model_file.find('plain_parts') >= 0:
             model = SwitchClassHeadModel(parts_model=True).cuda(device=device_ids[0])
             self.model_type = Model_Types.PLAIN_PARTS
         elif model_file.find('plain') >= 0:
@@ -156,7 +158,7 @@ class AppearanceModelForward(object):
         global_feats = None
         for i in range(0, n, self.batch_max):
             images = normalized_patches[i:i + self.batch_max, :, :, :]
-            features =  self.extract_feature(images, keypoints)
+            features = self.extract_feature(images, keypoints)
             if global_feats is None:
                 global_feats = features
             else:
@@ -197,7 +199,7 @@ class AppearanceModelForward(object):
         global_feat = global_feat / (l2_norm[:, numpy.newaxis])
         return global_feat
 
-    def crop_im(self, im, bbox):
+    def crop_im(self, im, bbox=None):
         """
         :param im: full rgb image
         :param bbox as an array: [x,y,w,h]
@@ -205,9 +207,12 @@ class AppearanceModelForward(object):
         """
         corner_box = bbox.copy()
         corner_box[2:4] += bbox[0:2]
-        extended_corner_box = self.extend_box(corner_box)
-        extended_corner_box = self.enforce_boundary(extended_corner_box, im.shape[1], im.shape[0])
-        im_patch = im[extended_corner_box[1]:extended_corner_box[3], extended_corner_box[0]:extended_corner_box[2], :]
+        if bbox is not None:
+            extended_corner_box = self.extend_box(corner_box)
+            extended_corner_box = self.enforce_boundary(extended_corner_box, im.shape[1], im.shape[0])
+            im_patch = im[extended_corner_box[1]:extended_corner_box[3], extended_corner_box[0]:extended_corner_box[2], :]
+        else:
+            im_patch = im
         return im_patch
 
     def enforce_boundary(self, corner_box, im_w, im_h):
@@ -254,6 +259,10 @@ class AppearanceModelForward(object):
 
     def get_aux_model(self):
         return self.aux_model_ws
+
+    def get_head_detection_quality_parameters(self):
+        return self.head_detection_threshold, self.min_head_aspect_ratio
+
 
 if __name__ == '__main__':
     import argparse, cv2

@@ -10,6 +10,7 @@ import cv2
 import pickle
 from load_model import AppearanceModelForward, Model_Types
 import misc
+import json
 
 
 def median_feature(features):
@@ -40,6 +41,7 @@ def adjust_keypoints_to_normalized_shape(keypoints, w_h_ratio, normalized_ratio=
 
     return kp
 
+
 def best_keypoints(keypoints):
     if len(keypoints) == 1:
         return keypoints[0]
@@ -53,16 +55,25 @@ def best_keypoints(keypoints):
                 best_kp = kp
     return best_kp
 
+
+def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
+    best_head_corner_box = None
+    if os.path.isfile(head_json_file):
+        with open(head_json_file, 'r') as fp:
+            head_info = json.load(fp)
+        head_boxes = head_info['head_boxes']
+        head_scores = head_info['scores']
+        n = len(head_boxes)
+        if n > 0:
+            valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > head_score_threshold]
+            valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4])) / max(valid_head[2:4]) > min_aspect_ratio]
+            if len(valid_heads) > 0:
+                best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]
+    return best_head_corner_box
+
+
 def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = None, batch_max=128, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
-    if model.get_model_type()== Model_Types.PCB_3 or model.get_model_type()== Model_Types.PCB_6:
-        desired_size = (384, 128)
-    elif model.get_model_type()==Model_Types.HEAD_PLAIN:
-        desired_size=(64, 64)
-        w_h_quality_th = 1000
-        min_crop_h = 0
-    else:
-        desired_size = (256, 128)
 
     if same_sample_size > 0:
         sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
@@ -86,7 +97,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
         else:
             im_bgr = cv2.imread(crop_file)
             w_h_ratio = float(im_bgr.shape[1]) / im_bgr.shape[0]
-            if w_h_ratio > w_h_quality_th or im_bgr.shape[0] < min_crop_h:  # a crop that is too wide, possibly a partial crop of head only or too small
+            if model.get_model_type()!=Model_Types.HEAD_PLAIN and (w_h_ratio > w_h_quality_th or im_bgr.shape[0] < min_crop_h):  # a crop that is too wide, possibly a partial crop of head only or too small
                 skip_reading = True
 
             if keypoint_file is not None and (not skip_reading):
@@ -101,10 +112,22 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
                     else:
                         kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
                         kps.append(kp)
+            if model.get_model_type() == Model_Types.HEAD_PLAIN:
+                jhd_file = os.path.basename(crop_file)+'.jhd'
+                if not os.path.isfile(jhd_file):
+                    skip_reading = True
+                else:
+                    head_detection_threshold, min_aspect_ratio = model.get_head_detection_quality_parameters()
+                    head_box = load_valid_head(jhd_file, head_detection_threshold, min_aspect_ratio)
+
             if not skip_reading:
-                im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
-                im = misc.crop_pad_fixed_aspect_ratio(im, desired_size=desired_size)
-                im = cv2.resize(im, (desired_size[1], desired_size[0]))
+                if model.get_model_type() == Model_Types.HEAD_PLAIN:
+                    im = model.crop_im(im_bgr, head_box)
+                else:
+                    im = model.crop_im(im_bgr)
+                #im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
+                #im = misc.crop_pad_fixed_aspect_ratio(im, desired_size=desired_size)
+                #im = cv2.resize(im, (desired_size[1], desired_size[0]))
                 ims.append(im)
                 files_from_gpus.append(crop_file)
 
@@ -139,6 +162,10 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
             keypoint_file = os.path.join(person_folder, pid_folder_only+'_keypoints.pkl')
             if os.path.isfile(keypoint_file) == False:
                 keypoint_file = None
+    elif model.get_model_type() == Model_Types.HEAD_BOX_ATTEN or model.get_model_type() == Model_Types.HEAD_PLAIN:
+        jhd_files = glob.glob(os.path.join(p, '*.jhd'))
+        crop_files = [os.path.basename(jhd_file)+'.jpg' for jhd_file in jhd_files if os.path.isfile(os.path.basename(jhd_file)+'.jpg')]
+        keypoint_file = None
     else:
         keypoint_file = None
 
@@ -154,6 +181,7 @@ def save_joint_descriptors(descriptors_for_encoders, crop_files, ext='experts'):
         feature_arr = descriptors
         feature_arr = feature_arr / numpy.sqrt(float(len(descriptors)))
         feature_arr.tofile(descriptor_file)
+
 
 def save_array_descriptors(descriptors_for_encoders, crop_files, ext):
     if len(descriptors_for_encoders.shape) == 1:
@@ -177,6 +205,7 @@ def load_descriptor_list(person_folder, model, ext, force_compute, batch_max, lo
         save_array_descriptors(descriptors_for_encoders, crop_files, ext)
     #save_joint_descriptors(descriptors_for_encoders, crop_files, ext=ext)
     return descriptors_for_encoders, crop_files
+
 
 def load_descriptor_list_on_files(image_files, model, ext, force_compute, batch_max, keypoint_file, keypoints_score_th, same_sampel_size,
                                   w_h_quality_th=0.90, min_crop_h=96):

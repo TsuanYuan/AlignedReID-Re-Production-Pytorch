@@ -180,8 +180,6 @@ def evaluate_merges(track_features, tid_2_pid, output_curve_file):
     print "output track roc curves to {0}".format(output_curve_file)
 
 
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
