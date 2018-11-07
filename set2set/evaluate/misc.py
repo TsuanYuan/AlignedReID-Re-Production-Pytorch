@@ -153,7 +153,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True,
     cv2.putText(canvas, str(im_shape_0), (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     normalized_head_0[2:4]+=normalized_head_0[0:2]
-    cv2.rectangle(canvas, (normalized_head_0[0]*w, normalized_head_0[1]*h), (normalized_head_0[2]*w,normalized_head_0[3]*h), (0,255,0),3)
+    cv2.rectangle(canvas, (int(normalized_head_0[0]*w), int(normalized_head_0[1]*h)), (int(normalized_head_0[2]*w),int(normalized_head_0[3]*h)), (0,255,0),3)
     top_name, folder_name, channel, video_time = get_filename_for_display(file_pairs[1], video_name=True)
     cv2.putText(canvas, str(top_name), (w+10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
@@ -168,7 +168,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True,
     cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     normalized_head_1[2:4] += normalized_head_1[0:2]
-    cv2.rectangle(canvas, (normalized_head_0[1] * w+w, normalized_head_1[1] * h), (normalized_head_1[2] * w+w, normalized_head_1[3] * h), (0, 255, 0), 3)
+    cv2.rectangle(canvas, (int(normalized_head_0[1] * w+w), int(normalized_head_1[1] * h)), (int(normalized_head_1[2] * w+w), int(normalized_head_1[3] * h)), (0, 255, 0), 3)
 
     cv2.imwrite(output_path, canvas)
 
