@@ -170,7 +170,7 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True,
     cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
     normalized_head_1[2:4] += normalized_head_1[0:2]
-    cv2.rectangle(canvas, (int(normalized_head_0[1] * w+w), int(normalized_head_1[1] * h)), (int(normalized_head_1[2] * w+w), int(normalized_head_1[3] * h)), (0, 255, 0), 3)
+    cv2.rectangle(canvas, (int(normalized_head_1[0] * w+w), int(normalized_head_1[1] * h)), (int(normalized_head_1[2] * w+w), int(normalized_head_1[3] * h)), (0, 255, 0), 3)
 
     cv2.imwrite(output_path, canvas)
 
