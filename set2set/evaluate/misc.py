@@ -139,10 +139,10 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True,
     if plot_head is not None:
         head_file_0 = os.path.splitext(file_pairs[0])[0]+'.jhd'
         valid_head_0 = load_valid_head_bbox(head_file_0, plot_head[0], plot_head[1])
-        normalized_head_0 = normalize_box(valid_head_0, im0.shape)
+        normalized_head_0 = normalize_box(valid_head_0, im_shape_0)
         head_file_1 = os.path.splitext(file_pairs[1])[0] + '.jhd'
         valid_head_1 = load_valid_head_bbox(head_file_1, plot_head[0], plot_head[1])
-        normalized_head_1 = normalize_box(valid_head_1, im1.shape)
+        normalized_head_1 = normalize_box(valid_head_1, im_shape_1)
 
     cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
