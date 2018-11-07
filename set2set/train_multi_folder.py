@@ -5,7 +5,7 @@ Quan Yuan
 """
 import torch.utils.data, torch.optim
 import torch.backends.cudnn
-from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset, ReIDHeadAppearanceDataset, ReIDSameIDSameDayCameraDataset
+from DataLoader import ReIDAppearanceDataset, ReIDSameIDOneDayDataset, ReIDSingleFileCropsDataset, ReIDHeadAppearanceDataset, ReIDSameIDSameDayCameraDataset, ReIDHeadBoxesAttenDataset
 import argparse
 import os
 import datetime
@@ -19,7 +19,7 @@ from torch.nn.parallel import DataParallel
 
 def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desired_size=(256, 128),
          num_epochs=200, gpu_ids=None, margin=0.1, softmax_loss_weight=0.01, num_data_workers=4, backbone='resnet50',
-         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25,
+         optimizer_name='adam', base_lr=0.001, weight_decay=5e-04, head_train=False, save_epoch_interval=25, head_box_atten=False,
          min_crop_height=96, random_block_mask=8, w_h_max=0.9):
 
     if head_train:
@@ -53,11 +53,15 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
 
     reid_datasets = []
     softmax_loss_functions = []
-    for data_path, data_path_extra, ignore_path in zip(data_folders, data_loader_names, ignore_paths):
+    for data_path, data_path_extra, data_path_extra2 in zip(data_folders, data_loader_names, ignore_paths):
         if os.path.isdir(data_path):
             if head_train:
                 reid_dataset = ReIDHeadAppearanceDataset(data_path, transform=composed_transforms,
                                                 crops_per_id=sample_size, desired_size=desired_size)
+            elif head_box_atten:
+                reid_dataset = ReIDHeadBoxesAttenDataset(data_path, transform=composed_transforms,
+                                                         crops_per_id=sample_size, desired_size=desired_size)
+                print "***** training with head box atten data *****"
             elif data_path_extra.find('same_channel_day')>=0:
                 reid_dataset = ReIDSameIDSameDayCameraDataset(data_path, transform=composed_transforms,
                                                        crops_per_id=sample_size, desired_size=desired_size)
@@ -78,6 +82,7 @@ def main(index_file, model_file, sample_size, batch_size, model_type='mgn', desi
             index_file = data_path
             data_folder = data_path_extra
             ignore_pid_list = None
+            ignore_path = data_path_extra2
             if ignore_path is not None:
                 with open(ignore_path, 'r') as fp:
                     ignore_pid_list = [int(line.rstrip('\n')) for line in fp if len(line.rstrip('\n')) > 0]

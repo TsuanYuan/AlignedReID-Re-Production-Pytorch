@@ -1135,6 +1135,61 @@ class MGNSelfAtten(MGNModel):
         return final_feat, logits
 
 
+class MGNWithHeadBox(MGNModel):
+    def __init__(self,
+                 num_classes=None, base_model='resnet50', local_conv_out_channels=128):
+        super(MGNWithHeadBox, self).__init__(num_classes=num_classes, base_model=base_model,
+                                          local_conv_out_channels=local_conv_out_channels)
+        self.head_base = resnet34(pretrained=True)
+        head_feature_len = 512
+        mgn_feature_len = 1408
+        output_feature_len = mgn_feature_len
+        self.merge_layer = nn.Linear(head_feature_len+mgn_feature_len, output_feature_len)
+        #init.normal_(self.merge_layer.weight, std=0.001)
+        self.merge_layer.weight = torch.nn.Parameter(torch.cat((torch.zeros((output_feature_len, head_feature_len)), torch.eye(output_feature_len)), dim=1))
+        init.constant_(self.merge_layer.bias, 0)
+
+        self.attention_weight_layer = nn.Linear(head_feature_len, 1)
+        init.normal_(self.attention_weight_layer.weight, mean=0.0, std=0.00001)
+        init.constant_(self.attention_weight_layer.bias, 0)
+        # stop_gradient_on_module(self.base) # no updates on mgn base part
+
+
+    def get_head_crops(self, x, head_boxes):
+        # assume head_boxes were enforced to be within the boundaries
+        x_size = x.size().float()
+        normalized_boxes = torch.zeros((x_size[0], 4)).cuda(x.get_device())
+        normalized_boxes[:, 2] = head_boxes[:, 2]/x_size[3]  # width
+        normalized_boxes[:, 3] = head_boxes[:, 3]/x_size[2]  # height
+        normalized_boxes[:, 0] = head_boxes[:, 0]/x_size[3]  # x
+        normalized_boxes[:, 1] = head_boxes[:, 1]/x_size[2]  # y
+          # x smaller than half
+        head_crops = torch.zeros((x_size[0], x_size[1], x_size[2]/4, x_size[3]/2)).cuda(x.get_device())
+        for i in range(x_size[0]):
+            head_crops[i, :,:,:] = x[i, :, torch.round(normalized_boxes[i, 1]*x_size[2]).int():torch.round((normalized_boxes[i, 1]+normalized_boxes[i, 3])*x_size[2]).int(),
+                              torch.round(normalized_boxes[i, 0] * x_size[3]).int():torch.round((normalized_boxes[i, 0] + normalized_boxes[i, 2]) * x_size[3]).int()]
+        #import debug_tool
+        #debug_tool.dump_images(head_crops, '/tmp/head_crops/')
+        #print 'dumped head crops to /tmp/head_crops/'
+        return head_crops
+
+    def forward(self, x, head_boxes=None):
+        head_crops = self.get_head_crops(x, head_boxes)
+        head_base_feature = self.head_base(head_crops)
+        head_feat = torch.squeeze(F.max_pool2d(head_base_feature, head_base_feature.size()[2:]))
+        if self.attention_weight:
+            head_weights = torch.clamp(self.attention_weight_layer(head_feat), min=0.0, max=10.0)
+            head_feat = head_feat*head_weights
+        if len(head_feat.size()) == 1: # in case of single feature
+            head_feat = head_feat.unsqueeze(0)
+        mgn_feat, _ = self.concat_stripe_features(x)
+        combined_feat = torch.cat((head_feat, mgn_feat), dim=1)
+        merged_feat = self.merge_layer(combined_feat)
+        if len(merged_feat.size()) == 1: # in case of single feature
+            merged_feat = merged_feat.unsqueeze(0)
+        feat = F.normalize(merged_feat, p=2, dim=1)
+        return feat
+
 class MGNWithHead(MGNModel):
     def __init__(self, pose_id = 0, attention_weight = False,
                  num_classes=None, base_model='resnet50', local_conv_out_channels=128):

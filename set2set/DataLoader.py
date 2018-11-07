@@ -662,6 +662,35 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
         sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
         return sample
 
+
+class ReIDHeadBoxesAttenDataset(ReIDHeadAppearanceDataset):
+    """ReID dataset with head boxes as extra atten."""
+
+    def __init__(self, root_dir, transform=None, crops_per_id=8, head_score_threshold=0.65, min_aspect_ratio=0.5,
+                 desired_size=(64, 64), head_box_extension=1.2):
+        super(ReIDHeadBoxesAttenDataset, self).__init__(root_dir, transform, crops_per_id, head_score_threshold, min_aspect_ratio,
+                                                   desired_size, head_box_extension)
+
+    def __getitem__(self, set_id):
+        # get personID
+        person_id = self.head_pid_image_records.keys()[set_id]
+        im_paths_with_head = self.head_pid_image_records[person_id]
+        random.shuffle(im_paths_with_head)
+        im_heads_sample = im_paths_with_head[0:min(self.crops_per_id, len(im_paths_with_head))]
+        ims = []
+        head_boxes= []
+        for im_path in im_heads_sample:
+            im_bgr = cv2.imread(im_path[0])
+            ims.append(im_bgr)
+            head_boxes.append(im_path[1])
+        sample = {'images': ims}
+        if self.transform:
+            sample['images'] = self.transform(sample['images'])
+        sample['person_id'] = torch.from_numpy(numpy.array([int(person_id)]))
+        sample['head_boxes'] = torch.from_numpy(numpy.array(head_boxes))
+        return sample
+
+
 # to load reID set to set matching data set
 class ReIDAppearanceSet2SetDataset(Dataset):
     """ReID dataset."""
