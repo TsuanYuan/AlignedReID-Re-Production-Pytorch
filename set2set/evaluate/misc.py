@@ -12,8 +12,8 @@ import shutil
 import pickle
 
 
-def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
-    best_head_corner_box = None
+def load_valid_head_bbox(head_json_file, head_score_threshold, min_aspect_ratio):
+    best_head_bounding_box = None
     if os.path.isfile(head_json_file):
         with open(head_json_file, 'r') as fp:
             head_info = json.load(fp)
@@ -25,7 +25,9 @@ def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
             valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4])) / max(valid_head[2:4]) > min_aspect_ratio]
             if len(valid_heads) > 0:
                 best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]
-    return best_head_corner_box
+                best_head_bounding_box = best_head_corner_box
+                best_head_bounding_box[2:4] = best_head_bounding_box[2:4] - best_head_bounding_box[0:2]
+    return best_head_bounding_box
 
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
     color = [0, 0, 0]  # zero padding
@@ -136,10 +138,10 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True,
 
     if plot_head is not None:
         head_file_0 = os.path.splitext(file_pairs[0])[0]+'.jhd'
-        valid_head_0 = load_valid_head(head_file_0, plot_head[0], plot_head[1])
+        valid_head_0 = load_valid_head_bbox(head_file_0, plot_head[0], plot_head[1])
         normalized_head_0 = normalize_box(valid_head_0, im0.shape)
         head_file_1 = os.path.splitext(file_pairs[1])[0] + '.jhd'
-        valid_head_1 = load_valid_head(head_file_1, plot_head[0], plot_head[1])
+        valid_head_1 = load_valid_head_bbox(head_file_1, plot_head[0], plot_head[1])
         normalized_head_1 = normalize_box(valid_head_1, im1.shape)
 
     cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,

@@ -580,7 +580,6 @@ class ReIDHeadAppearanceDataset(Dataset):  # ch00002_20180816102633_00005504_000
         self.create_head_pid_data(root_dir)
         self.transform = transform
 
-
     def create_head_pid_data(self, root_folder):
         subfolders = os.listdir(root_folder)
         self.head_pid_image_records = collections.defaultdict(list)

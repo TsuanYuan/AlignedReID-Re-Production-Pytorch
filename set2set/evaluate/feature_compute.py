@@ -101,7 +101,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
                     skip_reading = True
                 else:
                     head_detection_threshold, min_aspect_ratio = model.get_head_detection_quality_parameters()
-                    head_box = misc.load_valid_head(jhd_file, head_detection_threshold, min_aspect_ratio)
+                    head_box = misc.load_valid_head_bbox(jhd_file, head_detection_threshold, min_aspect_ratio)
                     if head_box is None:
                         skip_reading = True
             if not skip_reading:
