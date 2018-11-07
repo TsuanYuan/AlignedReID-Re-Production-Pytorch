@@ -112,16 +112,17 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
                         kp = adjust_keypoints_to_normalized_shape(kp, w_h_ratio)
                         kps.append(kp)
             if model.get_model_type() == Model_Types.HEAD_PLAIN:
-                jhd_file = os.path.basename(crop_file)+'.jhd'
+                jhd_file = os.path.splitext(crop_file)[0]+'.jhd'
                 if not os.path.isfile(jhd_file):
                     skip_reading = True
                 else:
                     head_detection_threshold, min_aspect_ratio = model.get_head_detection_quality_parameters()
                     head_box = load_valid_head(jhd_file, head_detection_threshold, min_aspect_ratio)
-
+                    if head_box is None:
+                        skip_reading = True
             if not skip_reading:
                 if model.get_model_type() == Model_Types.HEAD_PLAIN:
-                    im = model.crop_im(im_bgr, head_box)
+                    im = model.crop_im(im_bgr, numpy.asarray(head_box))
                 else:
                     im = model.crop_im(im_bgr)
                 #im = cv2.cvtColor(im_bgr, cv2.COLOR_BGR2RGB)
@@ -163,13 +164,13 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
                 keypoint_file = None
     elif model.get_model_type() == Model_Types.HEAD_BOX_ATTEN or model.get_model_type() == Model_Types.HEAD_PLAIN:
         jhd_files = glob.glob(os.path.join(p, '*.jhd'))
-        crop_files = [os.path.basename(jhd_file)+'.jpg' for jhd_file in jhd_files if os.path.isfile(os.path.basename(jhd_file)+'.jpg')]
+        crop_files = [os.path.splitext(jhd_file)[0]+'.jpg' for jhd_file in jhd_files if os.path.isfile(os.path.splitext(jhd_file)[0]+'.jpg')]
         keypoint_file = None
     else:
         keypoint_file = None
 
     if len(crop_files) == 0:
-        return [], []
+        return numpy.array([]),[]
     else:
         return encode_image_files(crop_files, model, ext, force_compute, keypoint_file=keypoint_file, batch_max=batch_max,
                        keypoints_score_th=keypoints_score_th,

@@ -10,6 +10,7 @@ import torch
 from torch.autograd import Variable
 from torch.nn.parallel import DataParallel
 from enum import Enum
+import cv2
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from Model import MGNModel, SwitchClassHeadModel, PoseReIDModel, PCBModel, PlainModel, PoseReWeightModel, \
@@ -175,7 +176,7 @@ class AppearanceModelForward(object):
             patch = patch / numpy.array(self.im_std).astype(float)
             patch = patch.transpose((2, 0, 1))
             normalized_patches.append(patch)
-        return numpy.asarray(normalized_patches)
+        return Variable(torch.from_numpy(numpy.asarray(normalized_patches)).float())
 
     def extract_feature(self, ims, extra_inputs=None):
         if self.aux_model_ws is not None:
