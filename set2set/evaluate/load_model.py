@@ -206,9 +206,9 @@ class AppearanceModelForward(object):
         :param bbox as an array: [x,y,w,h]
         :return:
         """
-        corner_box = bbox.copy()
-        corner_box[2:4] += bbox[0:2]
         if bbox is not None:
+            corner_box = bbox.copy()
+            corner_box[2:4] += bbox[0:2]
             extended_corner_box = self.extend_box(corner_box)
             extended_corner_box = self.enforce_boundary(extended_corner_box, im.shape[1], im.shape[0])
             im_patch = im[extended_corner_box[1]:extended_corner_box[3], extended_corner_box[0]:extended_corner_box[2], :]
