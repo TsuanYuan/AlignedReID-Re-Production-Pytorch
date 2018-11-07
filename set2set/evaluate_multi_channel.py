@@ -13,6 +13,7 @@ import numpy
 sys.path.append(os.path.join(os.path.dirname(__file__), "../"))
 from evaluate import feature_compute, metric_compute, misc
 from evaluate.metric_compute import Same_Pair_Requirements
+from evaluate.load_model import Model_Types
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)-8s %(message)s',)
 mlog = logging.getLogger('myLogger')
@@ -57,9 +58,12 @@ def process(data_folder, model, ext, force_compute, dump_folder, ignore_ids, sam
     data_tag = os.path.basename(os.path.normpath(data_folder))
     time_tag = str(time.time())
 
+    plot_head = None
+    if model.get_model_type()==Model_Types.HEAD_PLAIN:
+        plot_head = model.get_head_detection_quality_parameters()
     dump_folder_with_tag = os.path.join(dump_folder, data_tag+'_'+ext + '_'+time_tag)
     misc.dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, output_folder=dump_folder_with_tag, tough_diff_count=tough_max,
-                                   tough_same_count=tough_max)
+                                   tough_same_count=tough_max, plot_head=plot_head)
     # report true postives at different false positives
     same_pair_dist = numpy.array(same_pair_dist)
     diff_pair_dist = numpy.array(diff_pair_dist)

@@ -56,22 +56,6 @@ def best_keypoints(keypoints):
     return best_kp
 
 
-def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
-    best_head_corner_box = None
-    if os.path.isfile(head_json_file):
-        with open(head_json_file, 'r') as fp:
-            head_info = json.load(fp)
-        head_boxes = head_info['head_boxes']
-        head_scores = head_info['scores']
-        n = len(head_boxes)
-        if n > 0:
-            valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > head_score_threshold]
-            valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4])) / max(valid_head[2:4]) > min_aspect_ratio]
-            if len(valid_heads) > 0:
-                best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]
-    return best_head_corner_box
-
-
 def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = None, batch_max=128, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
     if same_sample_size > 0:
@@ -117,7 +101,7 @@ def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = No
                     skip_reading = True
                 else:
                     head_detection_threshold, min_aspect_ratio = model.get_head_detection_quality_parameters()
-                    head_box = load_valid_head(jhd_file, head_detection_threshold, min_aspect_ratio)
+                    head_box = misc.load_valid_head(jhd_file, head_detection_threshold, min_aspect_ratio)
                     if head_box is None:
                         skip_reading = True
             if not skip_reading:

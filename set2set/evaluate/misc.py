@@ -12,6 +12,21 @@ import shutil
 import pickle
 
 
+def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
+    best_head_corner_box = None
+    if os.path.isfile(head_json_file):
+        with open(head_json_file, 'r') as fp:
+            head_info = json.load(fp)
+        head_boxes = head_info['head_boxes']
+        head_scores = head_info['scores']
+        n = len(head_boxes)
+        if n > 0:
+            valid_heads = [head_boxes[k] for k in range(n) if head_scores[k] > head_score_threshold]
+            valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4])) / max(valid_head[2:4]) > min_aspect_ratio]
+            if len(valid_heads) > 0:
+                best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]
+    return best_head_corner_box
+
 def crop_pad_fixed_aspect_ratio(im, desired_size=(256, 128), head_top=False):
     color = [0, 0, 0]  # zero padding
     aspect_ratio = desired_size[0] / float(desired_size[1])
@@ -78,8 +93,14 @@ def keypoints_quality(normalized_keypoints):
     score = mean_score*10+occupy
     return score
 
+def normalize_box(box, shape):
+    box[0] /= shape[1]
+    box[2] /= shape[1]
+    box[1] /= shape[0]
+    box[3] /= shape[0]
+    return box
 
-def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True):
+def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True, plot_head=None):
     # json0 = os.path.splitext(file_pairs[0])[0]+'.json'
     # json1 = os.path.splitext(file_pairs[1])[0] + '.json'
     # with open(json0, 'r') as fp:
@@ -113,6 +134,14 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
                     kpsy = kps[:, 1]*h
                     canvas = plot_key_points(canvas, kpsx, kpsy, radius=4, put_index=False)
 
+    if plot_head is not None:
+        head_file_0 = os.path.splitext(file_pairs[0])[0]+'.jhd'
+        valid_head_0 = load_valid_head(head_file_0, plot_head[0], plot_head[1])
+        normalized_head_0 = normalize_box(valid_head_0, im0.shape)
+        head_file_1 = os.path.splitext(file_pairs[1])[0] + '.jhd'
+        valid_head_1 = load_valid_head(head_file_1, plot_head[0], plot_head[1])
+        normalized_head_1 = normalize_box(valid_head_1, im1.shape)
+
     cv2.putText(canvas, str(top_name), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
     #cv2.putText(canvas, str(folder_name), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
@@ -123,7 +152,8 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
                 (0, 255, 0), 2)
     cv2.putText(canvas, str(im_shape_0), (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
-
+    normalized_head_0[2:4]+=normalized_head_0[0:2]
+    cv2.rectangle(canvas, (normalized_head_0[0]*w, normalized_head_0[1]*h), (normalized_head_0[2]*w,normalized_head_0[3]*h), (0,255,0),3)
     top_name, folder_name, channel, video_time = get_filename_for_display(file_pairs[1], video_name=True)
     cv2.putText(canvas, str(top_name), (w+10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 0, 255), 2)
@@ -137,6 +167,9 @@ def dump_pair_in_folder(file_pairs, pair_dist, output_path, load_keypoints=True)
                (0, 255, 0), 2)
     cv2.putText(canvas, str(pair_dist), (w/2, h-w/2), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
                 (0, 255, 0), 2)
+    normalized_head_1[2:4] += normalized_head_1[0:2]
+    cv2.rectangle(canvas, (normalized_head_0[1] * w+w, normalized_head_1[1] * h), (normalized_head_1[2] * w+w, normalized_head_1[3] * h), (0, 255, 0), 3)
+
     cv2.imwrite(output_path, canvas)
 
 
@@ -155,7 +188,7 @@ def plot_error_spatial(canvas, tough_pair_files):
     return canvas
 
 def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, diff_pair_files, tough_diff_count=64, tough_same_count=64,
-                              output_folder='/tmp/difficult/',frame_shape=(1920, 1080), load_keypoints=False):
+                              output_folder='/tmp/difficult/',frame_shape=(1920, 1080), plot_head=None):
     same_sort_ids = numpy.argsort(same_pair_dist)[::-1]  # descending argsort
     tough_same_ids = same_sort_ids[0:tough_same_count*100]
     same_select_files, same_select_dist, same_all_files = [],[],[]
@@ -225,7 +258,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     count = 0
     for dist, same_pair in zip(tough_same_dist, tough_same_pairs):
         file_path = os.path.join(same_folder, '{0}.jpg'.format(str(count)))
-        dump_pair_in_folder(same_pair,dist, file_path)
+        dump_pair_in_folder(same_pair,dist, file_path, plot_head=plot_head)
         count+=1
 
     diff_folder = os.path.join(output_folder, 'diff')
@@ -234,7 +267,7 @@ def dump_difficult_pair_files(same_pair_dist, same_pair_files, diff_pair_dist, d
     count = 0
     for dist, file_pair in zip(tough_diff_dist, tough_diff_pairs):
         file_path = os.path.join(diff_folder, '{0}.jpg'.format(str(count)))
-        dump_pair_in_folder(file_pair,dist, file_path)
+        dump_pair_in_folder(file_pair,dist, file_path, plot_head=plot_head)
         count+=1
 
     cv2.imwrite(output_tough_image_file, canvas)
