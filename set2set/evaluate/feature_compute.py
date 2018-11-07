@@ -74,7 +74,6 @@ def load_valid_head(head_json_file, head_score_threshold, min_aspect_ratio):
 
 def encode_image_files(crop_files, model, ext, force_compute, keypoint_file = None, batch_max=128, keypoints_score_th=0.75,
                   same_sample_size=-1, w_h_quality_th=0.9, min_crop_h=96):
-
     if same_sample_size > 0:
         sample_ids = numpy.linspace(0, len(crop_files)-1, same_sample_size).astype(int)
         sample_ids = numpy.unique(sample_ids)
@@ -169,7 +168,10 @@ def encode_folder(person_folder, model, ext, force_compute, batch_max=128, load_
     else:
         keypoint_file = None
 
-    return encode_image_files(crop_files, model, ext, force_compute, keypoint_file=keypoint_file, batch_max=batch_max,
+    if len(crop_files) == 0:
+        return [], []
+    else:
+        return encode_image_files(crop_files, model, ext, force_compute, keypoint_file=keypoint_file, batch_max=batch_max,
                        keypoints_score_th=keypoints_score_th,
                        same_sample_size=same_sample_size, w_h_quality_th=w_h_quality_th, min_crop_h=min_crop_h)
 
