@@ -25,7 +25,7 @@ def load_valid_head_bbox(head_json_file, head_score_threshold, min_aspect_ratio)
             valid_heads = [valid_head for valid_head in valid_heads if float(min(valid_head[2:4])) / max(valid_head[2:4]) > min_aspect_ratio]
             if len(valid_heads) > 0:
                 best_head_corner_box = sorted(valid_heads, key=lambda x: x[1])[0]
-                best_head_bounding_box = best_head_corner_box
+                best_head_bounding_box = numpy.asarray(best_head_corner_box)
                 best_head_bounding_box[2:4] = best_head_bounding_box[2:4] - best_head_bounding_box[0:2]
     return best_head_bounding_box
 
